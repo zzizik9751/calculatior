@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>변압기 2차측 간선 선정 계산서</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Noto+Sans+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#f5f4f0; --surface:#ffffff; --border:#e0ddd5;
+  --text:#1a1a18; --muted:#888880;
+  --accent:#e8500a; --accent-dark:#d0440a; --accent-light:#fdf0eb;
+  --ok:#2e7d32; --ok-bg:#e8f5e9;
+  --warn:#e65100; --warn-bg:#fff3e0;
+  --err:#c62828; --err-bg:#fce4ec;
+  --mono:'Noto Sans Mono',monospace; --sans:'Noto Sans KR',sans-serif;
+  --radius:10px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14px;padding:28px 16px 80px;}
+.wrapper{max-width:1020px;margin:0 auto;}
+
+/* 페이지 헤더 */
+.page-header{display:flex;align-items:baseline;gap:12px;margin-bottom:24px;padding-bottom:14px;border-bottom:2px solid var(--accent);}
+.page-header h1{font-size:20px;font-weight:700;}
+.page-header .sub{font-family:var(--mono);font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;}
+
+/* 탭 */
+.tab-nav{display:flex;gap:0;margin-bottom:22px;border-bottom:2px solid var(--border);}
+.tab-btn{font-family:var(--sans);font-size:13px;font-weight:600;padding:10px 22px;background:none;border:none;border-bottom:3px solid transparent;margin-bottom:-2px;cursor:pointer;color:var(--muted);transition:all .15s;white-space:nowrap;}
+.tab-btn.active{color:var(--accent);border-bottom-color:var(--accent);}
+.tab-btn:hover:not(.active){color:var(--text);}
+.tab-pane{display:none;}
+.tab-pane.active{display:block;}
+
+/* 카드 */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:22px;margin-bottom:18px;}
+.card-title{font-family:var(--mono);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid var(--border);}
+.section-title{font-size:13px;font-weight:700;color:var(--accent);border-left:3px solid var(--accent);padding-left:10px;margin:20px 0 12px;}
+.section-title:first-of-type{margin-top:0;}
+
+/* 입력 그리드 */
+.input-grid{display:grid;gap:14px;}
+.g2{grid-template-columns:repeat(2,1fr);}
+.g3{grid-template-columns:repeat(3,1fr);}
+.g4{grid-template-columns:repeat(4,1fr);}
+@media(max-width:680px){.g2,.g3,.g4{grid-template-columns:1fr 1fr;}}
+@media(max-width:420px){.g2,.g3,.g4{grid-template-columns:1fr;}}
+.field{display:flex;flex-direction:column;gap:5px;}
+.field label{font-size:12px;font-weight:500;color:var(--muted);}
+.field input,.field select{font-family:var(--mono);font-size:14px;font-weight:500;color:var(--text);background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:9px 12px;outline:none;transition:border-color .15s;width:100%;}
+.field input:focus,.field select:focus{border-color:var(--accent);background:#fff;}
+.field .unit{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:2px;}
+
+/* 결과 테이블 */
+.result-table-wrap{overflow-x:auto;margin-top:4px;}
+.result-table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:12px;}
+.result-table th{background:#f7f6f2;color:var(--muted);font-weight:600;padding:8px 10px;text-align:center;border:1px solid var(--border);font-size:11px;white-space:nowrap;}
+.result-table td{padding:8px 10px;border:1px solid var(--border);text-align:center;vertical-align:middle;white-space:nowrap;}
+.result-table tr.highlight-row td{background:var(--accent-light);font-weight:700;}
+.result-table .key-val{font-weight:700;color:var(--accent);font-size:14px;}
+.result-table .sub-row td{background:#fafaf8;color:var(--muted);font-size:11px;}
+.result-table .th-left{text-align:left;}
+.result-table td.left{text-align:left;}
+
+/* 결과 박스 */
+.result-box{background:var(--accent-light);border:1px solid #f5c9b0;border-radius:8px;padding:14px 18px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-top:14px;}
+.result-box .rb-item{flex:1;min-width:120px;}
+.result-box .rb-label{font-size:10px;color:var(--muted);font-family:var(--mono);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;}
+.result-box .rb-val{font-family:var(--mono);font-size:22px;font-weight:700;color:var(--accent);line-height:1;}
+.result-box .rb-unit{font-family:var(--mono);font-size:12px;color:var(--muted);margin-left:4px;}
+.result-box .rb-divider{width:1px;height:46px;background:#f0c8a8;}
+
+/* 태그 */
+.tag{display:inline-block;font-family:var(--mono);font-size:11px;font-weight:600;padding:3px 8px;border-radius:4px;}
+.tag-ok{background:var(--ok-bg);color:var(--ok);}
+.tag-warn{background:var(--warn-bg);color:var(--warn);}
+.tag-err{background:var(--err-bg);color:var(--err);}
+.tag-info{background:#e8eaf6;color:#3949ab;}
+
+/* 계산 과정 */
+.calc-step{background:#fafaf8;border:1px solid var(--border);border-radius:6px;padding:12px 16px;margin:8px 0;font-family:var(--mono);font-size:12px;line-height:1.8;}
+.calc-step .step-label{font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;font-weight:600;}
+.calc-step .formula{color:var(--text);}
+.calc-step .result-line{color:var(--accent);font-weight:700;font-size:13px;border-top:1px dashed var(--border);margin-top:6px;padding-top:6px;}
+
+/* 뱅크 행 */
+.bank-list{display:flex;flex-direction:column;gap:12px;margin-bottom:14px;}
+.bank-row{background:var(--bg);border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+.bank-header{display:flex;align-items:center;gap:10px;padding:10px 14px;flex-wrap:wrap;}
+.bank-badge{background:var(--accent);color:#fff;border-radius:5px;font-family:var(--mono);font-size:11px;font-weight:600;padding:3px 9px;white-space:nowrap;}
+.bank-fields{display:flex;gap:10px;flex:1;flex-wrap:wrap;}
+.bank-field{display:flex;flex-direction:column;gap:3px;min-width:100px;}
+.bank-field label{font-size:11px;color:var(--muted);font-family:var(--mono);}
+.bank-field input,.bank-field select{font-family:var(--mono);font-size:13px;font-weight:500;background:var(--surface);border:1px solid var(--border);border-radius:5px;padding:6px 9px;outline:none;width:100%;min-width:90px;transition:border-color .15s;}
+.bank-field input:focus,.bank-field select:focus{border-color:var(--accent);}
+.bank-result{background:var(--accent-light);border-top:1px solid #f0c8a8;padding:8px 14px;display:flex;gap:16px;flex-wrap:wrap;align-items:center;}
+.bank-result-item{font-family:var(--mono);font-size:12px;color:var(--text);}
+.bank-result-item .val{font-weight:700;color:var(--accent);}
+.btn-remove{background:none;border:1px solid var(--border);border-radius:5px;color:#bbb;cursor:pointer;padding:5px 9px;font-size:14px;line-height:1;transition:all .15s;}
+.btn-remove:hover{border-color:#e53935;color:#e53935;background:#fce4ec;}
+
+/* 버튼 */
+.btn-add{background:var(--accent-light);color:var(--accent);border:1.5px dashed var(--accent);border-radius:8px;padding:10px;width:100%;font-size:13px;font-weight:600;cursor:pointer;transition:background .15s;display:flex;align-items:center;justify-content:center;gap:6px;}
+.btn-add:hover{background:#fbe0d0;}
+.btn-primary{background:var(--accent);color:#fff;border:none;border-radius:7px;padding:10px 22px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--sans);transition:background .15s;}
+.btn-primary:hover{background:var(--accent-dark);}
+.btn-row{display:flex;gap:10px;justify-content:flex-end;margin-top:14px;}
+
+/* 참고 테이블 (탭3) */
+.ref-section{margin-bottom:28px;}
+.ref-title{font-size:14px;font-weight:700;color:var(--text);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border);}
+.ref-sub{font-size:12px;color:var(--muted);margin-bottom:10px;}
+.ref-table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:12px;}
+.ref-table th{background:#f0efeb;color:var(--muted);font-weight:600;padding:7px 10px;border:1px solid var(--border);text-align:center;font-size:11px;white-space:nowrap;}
+.ref-table td{padding:7px 10px;border:1px solid var(--border);text-align:center;white-space:nowrap;}
+.ref-table .td-left{text-align:left;}
+.ref-table tr:hover td{background:#fafaf8;}
+.ref-table .grp{background:#f7f6f2;font-weight:600;}
+.note-box{background:#f7f6f2;border:1px solid var(--border);border-radius:6px;padding:12px 16px;font-size:12px;color:var(--muted);line-height:1.8;margin-top:10px;}
+.note-box b{color:var(--text);font-weight:600;}
+
+/* 탭③ 집합보정계수 */
+.gf-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
+@media(max-width:600px){.gf-grid{grid-template-columns:1fr;}}
+.gf-method-title{font-family:var(--sans);font-size:12px;font-weight:700;color:var(--text);
+  margin-bottom:8px;padding:6px 10px;border-radius:6px;}
+.gf-method-sub{font-family:var(--sans);font-weight:400;font-size:11px;color:var(--muted);}
+.gf-b1{background:#f7f6f2;border-left:3px solid var(--accent);}
+.gf-f{background:#f0f4ff;border-left:3px solid #3949ab;}
+.note-box-sm{font-size:11px;}
+.ref-sub{font-family:var(--sans);font-size:12px;color:var(--muted);margin-bottom:10px;}
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+<div class="page-header">
+  <h1>변압기 2차측 간선 선정 계산서</h1>
+  <span class="sub">Transformer Secondary Feeder Cable Selection</span>
+</div>
+
+<div class="tab-nav">
+  <button class="tab-btn active" onclick="switchTab('tab1',this)">① 변압기 용량 기준 선정</button>
+  <button class="tab-btn" onclick="switchTab('tab2',this)">② Main 차단기 기준 선정</button>
+  <button class="tab-btn" onclick="switchTab('tab3',this)">③ 관련 근거</button>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     TAB 1  변압기 용량 기준 선정
+═══════════════════════════════════════════ -->
+<div id="tab1" class="tab-pane active">
+
+  <div class="card">
+    <div class="card-title">설계 공통 조건</div>
+    <div class="input-grid g3">
+      <div class="field">
+        <label>포설 방법</label>
+        <select id="t1-install" onchange="calcAll()">
+          <option value="B1">하부 트랜치 (B1 — 항목1)</option>
+          <option value="F">상부 트레이 (F — 항목4)</option>
+        </select>
+        <span class="unit">750 kVA 이상은 AL BUS-DUCT 고정</span>
+      </div>
+      <div class="field">
+        <label>집합 회로수 <span style="color:var(--accent);">*</span></label>
+        <input type="number" id="t1-circuits" value="6" min="1" max="20" step="1" oninput="calcAll()">
+        <span class="unit" id="t1-gf-display">보정계수 산출 중...</span>
+      </div>
+      <div class="field">
+        <label>주위 온도</label>
+        <select id="t1-temp" onchange="calcAll()">
+          <option value="40">40 ℃ (보정 0.91)</option>
+          <option value="30">30 ℃ (보정 1.00)</option>
+          <option value="45">45 ℃ (보정 0.87)</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">변압기 뱅크 입력</div>
+    <div class="bank-list" id="t1-bank-list"></div>
+    <button class="btn-add" onclick="addBank()">＋ 변압기 뱅크 추가</button>
+  </div>
+
+  <div class="card" id="t1-result-card">
+    <div class="card-title">간선 선정 결과</div>
+    <div class="result-table-wrap">
+      <table class="result-table" id="t1-result-table">
+        <thead>
+          <tr>
+            <th>뱅크</th>
+            <th>용량<br>[kVA]</th>
+            <th>전부하전류<br>[A]</th>
+            <th>배선방식/<br>공사방법</th>
+            <th>규격<br>[㎟]</th>
+            <th>가닥 수<br>(심×조)</th>
+            <th>보정 내역</th>
+            <th>허용전류<br>[A]</th>
+            <th>부하율<br>[%]</th>
+            <th>판정</th>
+          </tr>
+        </thead>
+        <tbody id="t1-result-body">
+          <tr><td colspan="10" style="color:var(--muted);padding:20px;font-family:var(--mono);font-size:12px;">뱅크를 입력하면 결과가 표시됩니다.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="note-box" style="margin-top:14px;">
+      <b>선정 기준:</b> KEC 240.2 / KS C IEC 60364-5-52<br>
+      ① 변압기 2차측 전부하전류 = kVA × 1000 / (√3 × 380)<br>
+      ② <b>750 kVA 미만</b>: 케이블 — 하부 트랜치(B1) 또는 상부 트레이(F), 온도·조수 보정 후 규격 선정<br>
+      ③ <b>750 kVA 이상</b>: AL BUS-DUCT 확정 (포설 방법 무관, 0.4 전기실 케이블 시트 기준)<br>
+      ④ 케이블 복수 조수 보정: 2조 ×0.80, 3조 ×0.70, 4조 ×0.65
+    </div>
+  </div>
+
+</div><!-- /tab1 -->
+
+<!-- ═══════════════════════════════════════════
+     TAB 2  Main CB 기준 선정
+═══════════════════════════════════════════ -->
+<div id="tab2" class="tab-pane">
+
+  <div class="card">
+    <div class="card-title">설계 공통 조건</div>
+    <div class="input-grid g3">
+      <div class="field">
+        <label>포설 방법</label>
+        <select id="t2-install" onchange="calcTab2()">
+          <option value="B1">하부 트랜치 (B1 — 항목1)</option>
+          <option value="F">상부 트레이 (F — 항목4)</option>
+        </select>
+        <span class="unit">3조 초과 시 BUS-DUCT 권장</span>
+      </div>
+      <div class="field">
+        <label>집합 회로수 <span style="color:var(--accent);">*</span></label>
+        <input type="number" id="t2-circuits" value="6" min="1" max="20" step="1" oninput="calcTab2()">
+        <span class="unit" id="t2-gf-display">보정계수 산출 중...</span>
+      </div>
+      <div class="field">
+        <label>주위 온도</label>
+        <select id="t2-temp" onchange="calcTab2()">
+          <option value="40">40 ℃ (보정 0.91)</option>
+          <option value="30">30 ℃ (보정 1.00)</option>
+          <option value="45">45 ℃ (보정 0.87)</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Main CB 입력</div>
+    <div class="bank-list" id="t2-bank-list"></div>
+    <button class="btn-add" onclick="addCBBank()">＋ CB 회로 추가</button>
+  </div>
+
+  <div class="card">
+    <div class="card-title">간선 선정 결과</div>
+    <div class="result-table-wrap">
+      <table class="result-table" id="t2-result-table">
+        <thead>
+          <tr>
+            <th>회로 명칭</th>
+            <th>CB AT<br>[A]</th>
+            <th>공사방법</th>
+            <th>규격<br>[㎟]</th>
+            <th>가닥 수<br>(심×조)</th>
+            <th>보정 내역</th>
+            <th>허용전류<br>[A]</th>
+            <th>CB 적용률<br>[%]</th>
+            <th>판정</th>
+          </tr>
+        </thead>
+        <tbody id="t2-result-body">
+          <tr><td colspan="10" style="color:var(--muted);padding:20px;font-family:var(--mono);font-size:12px;">CB 정보를 입력하면 결과가 표시됩니다.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="note-box" style="margin-top:14px;">
+      <b>선정 기준:</b> KEC 240.2 / KS C IEC 60364-5-52<br>
+      ① CB AT 직접 입력 → 케이블 허용전류 IZ ≥ CB AT (보호조건: IB ≤ IN ≤ IZ)<br>
+      ② 포설방법·온도·집합회로수 보정계수 적용<br>
+      ③ <b>케이블 3조 초과 시 BUS-DUCT 권장</b> — 경제성·시공성 고려
+    </div>
+  </div>
+
+</div><!-- /tab2 -->
+
+
+<!-- ═══════════════════════════════════════════
+     TAB 3  관련 근거
+═══════════════════════════════════════════ -->
+<div id="tab3" class="tab-pane">
+
+  <!-- 3-1 허용전류표 -->
+  <div class="card">
+    <div class="card-title">허용전류표 — 0.6/1kV HFCO·F-CV·TFR-CV (XLPE 90℃, Cu)</div>
+    <div class="ref-sub">KS C IEC 60364-5-52 부속서 B 기준 / 기저온도 30℃ → 40℃ 보정계수 0.91 적용값 병기</div>
+    <div class="result-table-wrap">
+      <table class="ref-table">
+        <thead>
+          <tr>
+            <th rowspan="2">공칭단면적<br>[㎟]</th>
+            <th colspan="2">B1 — 하부 트랜치<br>전선관 내 단심 3C</th>
+            <th colspan="2">F — 상부 트레이<br>단심 수평배열</th>
+          </tr>
+          <tr>
+            <th>30℃ [A]</th><th>40℃ [A]</th>
+            <th>30℃ [A]</th><th>40℃ [A]</th>
+          </tr>
+        </thead>
+        <tbody id="ref-ampacity-body"></tbody>
+      </table>
+    </div>
+    <div class="note-box">
+      <b>주)</b> KS C IEC 60364-5-52 부속서 B 기준. 기저온도 30℃. 40℃ 보정계수 0.91 (XLPE 90℃) 적용.<br>
+      <b>B1 (하부 트랜치)</b>: 표 A.52-17 항목1 (기중·묶음·매설·수납) — 기본 6회로(0.57), 사용자 회로수 지정 가능<br>
+      <b>F (상부 트레이)</b>: 표 A.52-17 항목4 (천공 트레이 단일층) — 기본 6회로(0.73), 사용자 회로수 지정 가능<br>
+      750 kVA 이상은 포설 방법에 무관하게 <b>AL BUS-DUCT 확정</b>.
+    </div>
+  </div>
+
+  <!-- 3-2 변압기 용량별 선정 요약 -->
+  <div class="card">
+    <div class="card-title">변압기 용량별 간선 선정 요약 (B1 공사방법, 40℃, HFCO)</div>
+    <div class="ref-sub">0.4 전기실 케이블 시트 기준 — 3Φ 4W 380/220V &nbsp;|&nbsp; <b style="color:#e8500a;">750 kVA 미만: 케이블 (트랜치 B1 / 트레이 F) &nbsp;/&nbsp; 750 kVA 이상: AL BUS-DUCT 확정</b></div>
+    <div class="result-table-wrap">
+      <table class="ref-table">
+        <thead>
+          <tr>
+            <th rowspan="2">용량<br>[kVA]</th>
+            <th rowspan="2">전부하전류<br>[A]</th>
+            <th rowspan="2">배선 방식</th>
+            <th colspan="3" style="background:#f0f7f0;">케이블 배선</th>
+            <th colspan="2" style="background:#f0f4ff;">AL BUS-DUCT</th>
+          </tr>
+          <tr>
+            <th style="background:#f0f7f0;">규격 [㎟]</th>
+            <th style="background:#f0f7f0;">가닥 수</th>
+            <th style="background:#f0f7f0;">허용전류 [A]</th>
+            <th style="background:#f0f4ff;">규격</th>
+            <th style="background:#f0f4ff;">허용전류 [A]</th>
+          </tr>
+        </thead>
+        <tbody id="ref-tr-body"></tbody>
+      </table>
+    </div>
+    <div class="note-box">
+      ※ <b>"변압기 용량 750[kVA] 이상은 BUS DUCT 배선이 경제성, 시공성 및 유지관리가 유리하다. 따라서 750[kVA] 미만은 케이블 배선, 그 이상은 BUS DUCT로 계획한다."</b>
+    </div>
+  </div>
+
+  <!-- 3-3 CB 기준 선정 요약 -->
+  <div class="card">
+    <div class="card-title">Main CB 정격별 최소 케이블 규격 (공사방법 B1, 40℃, HFCO)</div>
+    <div class="ref-sub">KEC 240.2 과전류보호장치 정격전류 조건: IB ≤ IN ≤ IZ</div>
+    <div class="result-table-wrap">
+      <table class="ref-table">
+        <thead>
+          <tr>
+            <th>CB 정격<br>AT [A]</th>
+            <th>규격<br>[㎟]</th>
+            <th>가닥 수</th>
+            <th>허용전류<br>[A] (40℃)</th>
+            <th>비고</th>
+          </tr>
+        </thead>
+        <tbody id="ref-cb-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 3-4 관련 법규 -->
+  <div class="card">
+    <div class="card-title">관련 법규 및 기준</div>
+    <table class="ref-table" style="margin-bottom:20px;">
+      <thead><tr><th class="td-left">항목</th><th class="td-left">근거</th><th class="td-left">내용 요약</th></tr></thead>
+      <tbody>
+        <tr><td class="td-left">허용전류 선정</td><td class="td-left">KEC 240.2.1</td><td class="td-left">KS C IEC 60364-5-52 부속서 B 허용전류표 적용, 보정계수 반영</td></tr>
+        <tr><td class="td-left">단면적 산정</td><td class="td-left">KEC 240.2.2</td><td class="td-left">설계전류 · 과전류보호장치 정격 · 전압강하 중 최대값으로 선정</td></tr>
+        <tr><td class="td-left">전압강하 기준</td><td class="td-left">KEC 232.3.9</td><td class="td-left">고압 수전 저압설비 기타 부하: 8% 이하 (간선+분기 합산)</td></tr>
+        <tr><td class="td-left">주위온도 기준</td><td class="td-left">KEC 240.2.1 가</td><td class="td-left">기중 30℃ 기준. 40℃ 보정계수 0.91 (XLPE 90℃), 45℃ 보정계수 0.87 적용</td></tr>
+        <tr><td class="td-left">과부하 보호조건</td><td class="td-left">KEC 212.4</td><td class="td-left">IB ≤ IN ≤ IZ &nbsp;/&nbsp; I2 ≤ 1.45 × IZ</td></tr>
+        <tr><td class="td-left">모선 설계전류</td><td class="td-left">KEC 240.2.2 가 비고</td><td class="td-left">모선의 P는 변압기(전원) 용량으로 설계전류 산정 (IB = kVA×1000 / √3×380)</td></tr>
+        <tr><td class="td-left">케이블 3조 초과</td><td class="td-left">실무 기준</td><td class="td-left">케이블 4조 이상 시 AL BUS-DUCT 권장 — 경제성·시공성·유지관리 유리</td></tr>
+        <tr><td class="td-left">AL BUS-DUCT 적용</td><td class="td-left">0.4 전기실 케이블 시트</td><td class="td-left">변압기 750 kVA 이상은 AL BUS-DUCT 확정 적용</td></tr>
+      </tbody>
+    </table>
+
+    <!-- 집합보정계수 상세 -->
+    <div class="section-title">복수집합 보정계수 상세 — KS C IEC 60364-5-52 표 B.52.17 (표 A.52-17)</div>
+
+    <div class="gf-grid">
+
+      <!-- B1 항목1 -->
+      <div>
+        <div class="gf-method-title gf-b1">
+          항목 1 — 하부 트랜치 (B1)<br>
+          <span class="gf-method-sub">기중·벽면 묶음·매설·수납 (전선관 내 포설)</span>
+        </div>
+        <table class="ref-table">
+          <thead><tr><th>회로 수</th><th>보정계수</th><th>비고</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td><b>1.00</b></td><td>단독 포설</td></tr>
+            <tr><td>2</td><td><b>0.80</b></td><td></td></tr>
+            <tr><td>3</td><td><b>0.70</b></td><td></td></tr>
+            <tr><td>4</td><td><b>0.65</b></td><td></td></tr>
+            <tr><td>5 ~ 6</td><td><b>0.57</b></td><td>기본값 (6회로)</td></tr>
+            <tr><td>7</td><td><b>0.54</b></td><td></td></tr>
+            <tr><td>8</td><td><b>0.52</b></td><td></td></tr>
+            <tr><td>9</td><td><b>0.50</b></td><td></td></tr>
+            <tr><td>10 ~ 12</td><td><b>0.45</b></td><td></td></tr>
+            <tr><td>13 ~ 16</td><td><b>0.41</b></td><td></td></tr>
+            <tr><td>17 ~ 20</td><td><b>0.38</b></td><td>최소값</td></tr>
+          </tbody>
+        </table>
+        <div class="note-box note-box-sm" style="margin-top:8px;">
+          ※ 회로 간 수평간격이 케이블 외경의 2배 초과 시 보정 불필요<br>
+          (표 B.52.17 비고 2 — 이 계산서에서는 보수적으로 항상 적용)
+        </div>
+      </div>
+
+      <!-- F 항목4 -->
+      <div>
+        <div class="gf-method-title gf-f">
+          항목 4 — 상부 트레이 (F)<br>
+          <span class="gf-method-sub">천공 수평·수직 케이블트레이 단일층</span>
+        </div>
+        <table class="ref-table">
+          <thead><tr><th>회로 수</th><th>보정계수</th><th>비고</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td><b>1.00</b></td><td>단독 포설</td></tr>
+            <tr><td>2</td><td><b>0.88</b></td><td></td></tr>
+            <tr><td>3</td><td><b>0.82</b></td><td></td></tr>
+            <tr><td>4</td><td><b>0.77</b></td><td></td></tr>
+            <tr><td>5</td><td><b>0.75</b></td><td></td></tr>
+            <tr><td>6</td><td><b>0.73</b></td><td>기본값 (6회로)</td></tr>
+            <tr><td>7 ~ 9</td><td><b>0.72</b></td><td></td></tr>
+            <tr><td>10 이상</td><td><b>0.72</b></td><td>최소값 (수렴)</td></tr>
+          </tbody>
+        </table>
+        <div class="note-box note-box-sm" style="margin-top:8px;">
+          ※ 항목4는 9회로 이상에서 0.72로 수렴 (항목1과 달리 감소 폭 완만)<br>
+          ※ B1 대비 허용전류 자체가 높아 동일 부하에서 유리한 규격 선정 가능
+        </div>
+      </div>
+    </div>
+
+    <div class="note-box">
+      <b>이 계산서의 보정계수 적용 원칙</b><br>
+      ① 포설방법(트랜치/트레이)과 사용자 지정 회로수에 따라 위 표에서 자동 선택<br>
+      ② 온도보정(Ct) × 집합보정(Cg) 동시 적용: <b>IZ(보정) = IZ(기준) × Ct × Cg</b><br>
+      ③ 기준 허용전류: KS C IEC 60364-5-52 부속서 B, 기저온도 30℃, 동(Cu) 도체<br>
+      ④ 0.4 전기실 케이블 시트(보정 미적용)와 결과가 다를 수 있으며, 이 계산서가 KEC 기준에 더 엄밀함
+    </div>
+  </div>
+
+</div><!-- /tab3 -->
+
+</div><!-- .wrapper -->
+
+<script>
+/* ─────────── 허용전류 데이터 (XLPE 90℃, Cu, 30℃ 기준) ─────────── */
+// [단면적, B1(3Φ), E(삼각), F(수평)]
+const AMP_DATA = [
+  [4,   37,  39,  40],
+  [6,   47,  50,  52],
+  [10,  65,  68,  72],
+  [16,  87,  91,  96],
+  [25, 114, 118, 128],
+  [35, 141, 147, 158],
+  [50, 168, null,198],
+  [70, 213, null,245],
+  [95, 258, null,298],
+  [120,299, null,346],
+  [150,344, null,399],
+  [185,391, null,455],
+  [240,459, null,537],
+  [300,528, null,619],
+];
+// 복수집합 보정계수 — KS C IEC 60364-5-52 표 B.52.17 (표 A.52-17)
+// B1 트랜치 → 항목1 (기중·묶음·매설·수납)
+// F  트레이 → 항목4 (천공 케이블트레이 단일층)
+const GF_TABLE = {
+  B1: {1:1.00, 2:0.80, 3:0.70, 4:0.65, 5:0.57, 6:0.57, 7:0.54, 8:0.52, 9:0.50, 10:0.45, 12:0.45, 16:0.41, 20:0.38},
+  F:  {1:1.00, 2:0.88, 3:0.82, 4:0.77, 5:0.75, 6:0.73, 7:0.73, 8:0.72, 9:0.72, 10:0.72, 12:0.72, 16:0.72, 20:0.72},
+};
+function getGF(method, circuits) {
+  const tbl = GF_TABLE[method] || GF_TABLE['B1'];
+  // 표에 없는 회로수는 가장 가까운 낮은 값 적용
+  const keys = Object.keys(tbl).map(Number).sort((a,b)=>a-b);
+  let k = keys[0];
+  for (const key of keys) { if (key <= circuits) k = key; else break; }
+  return tbl[k];
+}
+// 주위온도 보정계수 (XLPE 90℃)
+const TEMP_FACTOR  = {30:1.00, 40:0.91, 45:0.87};
+// 차단기 표준 계열
+const CB_SERIES = [30,50,60,75,100,125,150,175,200,225,250,300,350,400,500,600,630,800,1000,1200,1600,2000,2500,3150];
+
+/* 변압기 용량별 참조 데이터 (0.4 시트 정확한 값)
+   [kVA, 전부하전류A, 케이블규격, 가닥수표기, 케이블허용전류A, 배선방식, BUS-DUCT규격, BUS-DUCT허용전류A]
+   ※ 750 kVA 미만: 케이블 / 750 kVA 이상: AL BUS-DUCT (0.4시트 명시) */
+const TR_REF = [
+  [50,    75.97,  '16㎟',  '1C×4 (1조)',  88,  'CABLE',    '', 0],
+  [100,  151.93,  '50㎟',  '1C×4 (1조)', 175,  'CABLE',    '', 0],
+  [160,  243.09,  '95㎟',  '1C×4 (1조)', 269,  'CABLE',    '', 0],
+  [200,  303.87, '120㎟',  '1C×4 (1조)', 312,  'CABLE',    '', 0],
+  [300,  455.80, '300㎟',  '1C×4 (1조)', 514,  'CABLE',    '', 0],
+  [400,  607.74, '185㎟',  '1C×8 (2조)', 768,  'CABLE',    '', 0],
+  [500,  759.67, '240㎟',  '1C×8 (2조)', 900,  'CABLE',    '', 0],
+  [630,  957.19, '300㎟',  '1C×8 (2조)',1028,  'CABLE',    '', 0],
+  [750, 1139.51,  '',       '',             0, 'BUS-DUCT', 'AL BUS-DUCT 1500A', 1600],
+  [1000,1519.34,  '',       '',             0, 'BUS-DUCT', 'AL BUS-DUCT 2000A', 2000],
+  [1250,1899.18,  '',       '',             0, 'BUS-DUCT', 'AL BUS-DUCT 2500A', 2500],
+  [1600,2430.95,  '',       '',             0, 'BUS-DUCT', 'AL BUS-DUCT 3000A', 3200],
+  [2000,3038.69,  '',       '',             0, 'BUS-DUCT', 'AL BUS-DUCT 3000A', 3200],
+  [2500,3798.36,  '',       '',             0, 'BUS-DUCT', 'AL BUS-DUCT 5000A', 5000],
+  [3150,4785.93,  '',       '',             0, 'BUS-DUCT', 'AL BUS-DUCT 6000A', 6300],
+];
+
+/* BUS-DUCT 용량별 규격 */
+const BUSDUCT_MAP = {
+   750: {spec:'AL BUS-DUCT 1500A', amp:1600},
+  1000: {spec:'AL BUS-DUCT 2000A', amp:2000},
+  1250: {spec:'AL BUS-DUCT 2500A', amp:2500},
+  1600: {spec:'AL BUS-DUCT 3000A', amp:3200},
+  2000: {spec:'AL BUS-DUCT 3000A', amp:3200},
+  2500: {spec:'AL BUS-DUCT 5000A', amp:5000},
+  3150: {spec:'AL BUS-DUCT 6000A', amp:6300},
+};
+
+/* CB 기준 참조 데이터 */
+const CB_REF = [
+  [50,   '10㎟',  '1C×4', 66,  ''],
+  [75,   '16㎟',  '1C×4', 88,  ''],
+  [100,  '25㎟',  '1C×4', 117, ''],
+  [125,  '35㎟',  '1C×4', 144, ''],
+  [150,  '50㎟',  '1C×4', 175, ''],
+  [175,  '50㎟',  '1C×4', 175, ''],
+  [200,  '70㎟',  '1C×4', 222, ''],
+  [225,  '95㎟',  '1C×4', 269, ''],
+  [250,  '95㎟',  '1C×4', 269, ''],
+  [300,  '120㎟', '1C×4', 312, ''],
+  [350,  '185㎟', '1C×4', 384, ''],
+  [400,  '240㎟', '1C×4', 450, ''],
+  [500,  '300㎟', '1C×4', 514, ''],
+  [600,  '120㎟', '1C×8', 624, '2조'],
+  [630,  '150㎟', '1C×8', 684, '2조'],
+  [800,  '240㎟', '1C×8', 900, '2조'],
+  [1000, '300㎟', '1C×8',1028, '2조'],
+  [1200, '240㎟', '1C×12',1350,'3조'],
+  [1600, '240㎟', '1C×16',1800,'4조'],
+  [2000, '300㎟', '1C×16',2250,'4조'],
+];
+
+/* ─────────── 헬퍼 ─────────── */
+function getAmp(size, method) {
+  const row = AMP_DATA.find(r => r[0] === size);
+  if (!row) return null;
+  if (method === 'B1') return row[1];
+  if (method === 'E')  return row[2];
+  if (method === 'F')  return row[3];
+  return row[1];
+}
+
+function selectCable(need_A, method) {
+  // 미사용 (calcAll/calcTab2 에서 직접 처리)
+  return null;
+}
+
+// CB AT 자동 선정: I_full 이상 표준계열 최소값
+function selectCBAT(I_full) {
+  return CB_SERIES.find(v => v >= I_full) || CB_SERIES[CB_SERIES.length - 1];
+}
+
+// 3조 초과 여부 → BUS-DUCT 권장
+function needsBusDuct(groups) { return groups > 3; }
+
+// selectCableForCurrent: 미사용 제거
+
+function tag(ratio) {
+  if (ratio <= 95) return '<span class="tag tag-ok">✓ 적합</span>';
+  if (ratio <= 100) return '<span class="tag tag-warn">△ 주의</span>';
+  return '<span class="tag tag-err">✗ 초과</span>';
+}
+
+/* ─────────── 탭 전환 ─────────── */
+function switchTab(id, btn) {
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+}
+
+/* ─────────── TAB 1 — 변압기 용량 기준 ─────────── */
+let bankIdx = 0;
+function addBank() {
+  const id = ++bankIdx;
+  const div = document.createElement('div');
+  div.className = 'bank-row';
+  div.id = `bank-${id}`;
+  div.innerHTML = `
+    <div class="bank-header">
+      <span class="bank-badge">TR-${id}</span>
+      <div class="bank-fields">
+        <div class="bank-field">
+          <label>변압기 명칭</label>
+          <input type="text" id="b${id}-name" value="T${id}" style="max-width:90px;" oninput="calcAll()">
+        </div>
+        <div class="bank-field">
+          <label>용량 [kVA]</label>
+          <select id="b${id}-kva" onchange="calcAll()">
+            ${[50,100,160,200,300,400,500,630,750,1000,1250,1600,2000,2500,3150].map(v=>`<option value="${v}"${v===500?' selected':''}>${v}</option>`).join('')}
+          </select>
+        </div>
+        <div class="bank-field">
+          <label>역률 cosθ</label>
+          <input type="number" id="b${id}-pf" value="0.9" min="0.5" max="1" step="0.01" style="max-width:80px;" oninput="calcAll()">
+        </div>
+      </div>
+      <button class="btn-remove" onclick="removeBank(${id})">✕</button>
+    </div>
+    <div class="bank-result" id="b${id}-result">—</div>`;
+  document.getElementById('t1-bank-list').appendChild(div);
+  calcAll();
+}
+
+function removeBank(id) {
+  const el = document.getElementById(`bank-${id}`);
+  if (el) el.remove();
+  calcAll();
+}
+
+function calcAll() {
+  const method   = document.getElementById('t1-install').value;
+  const temp     = parseInt(document.getElementById('t1-temp').value);
+  const circuits = parseInt(document.getElementById('t1-circuits').value) || 6;
+  const tf       = TEMP_FACTOR[temp] || 0.91;
+  const gfVal    = getGF(method, circuits);
+  const tbody    = document.getElementById('t1-result-body');
+  const rows     = [];
+  // 보정계수 실시간 표시
+  const itemLabel = method === 'F' ? '항목4' : '항목1';
+  document.getElementById('t1-gf-display').textContent =
+    `표 A.52-17 ${itemLabel}, ${circuits}회로 → 보정계수 ${gfVal.toFixed(2)}`;
+
+  // 각 뱅크 처리
+  document.querySelectorAll('[id^="bank-"]').forEach(el => {
+    const id = el.id.replace('bank-','');
+    const nameEl = document.getElementById(`b${id}-name`);
+    const kvaEl  = document.getElementById(`b${id}-kva`);
+    const pfEl   = document.getElementById(`b${id}-pf`);
+    if (!nameEl) return;
+    const name = nameEl.value || `TR-${id}`;
+    const kva  = parseFloat(kvaEl.value) || 0;
+    const pf   = parseFloat(pfEl.value)  || 0.9;
+    // 전부하전류
+    const I_full = kva * 1000 / (Math.sqrt(3) * 380);
+
+    const resEl = document.getElementById(`b${id}-result`);
+
+    // ── 750 kVA 이상: AL BUS-DUCT 확정 (TR 용량 자동 모드만) ──
+    if (kva >= 750) {
+      const bd = BUSDUCT_MAP[kva];
+      if (bd) {
+        const ratio = Math.round(I_full / bd.amp * 100);
+        resEl.innerHTML = `
+          <span class="bank-result-item">전부하전류 <span class="val">${I_full.toFixed(1)} A</span></span>
+          <span class="bank-result-item">배선 방식 <span class="val" style="color:#4a6fa5;">AL BUS-DUCT</span></span>
+          <span class="bank-result-item">선정 규격 <span class="val" style="color:#4a6fa5;">${bd.spec}</span></span>
+          <span class="bank-result-item">허용전류 <span class="val">${bd.amp} A</span></span>
+          <span class="bank-result-item">부하율 <span class="val">${ratio}%</span></span>`;
+        rows.push({name, kva, I_full, method, isBusDuct:true, bd, ratio});
+      } else {
+        resEl.innerHTML = `<span style="color:var(--err)">BUS-DUCT 규격 미정의 — 확인 필요</span>`;
+      }
+      return; // forEach 콜백 리턴
+    }
+
+    // ── 750 kVA 미만: 케이블 선정 ──
+    // 3조 이하 조건을 우선 충족하는 최소 규격 탐색
+    let selected = null;
+    for (const row of AMP_DATA) {
+      const base = getAmp(row[0], method);
+      if (!base) continue;
+      const corr = base * gfVal * tf;
+      if (corr <= 0) continue;
+      const groups = Math.ceil(I_full / corr);
+      if (groups <= 3) {
+        selected = {size: row[0], base, corrected: Math.round(corr*10)/10, groups, totalAmp: Math.round(corr*groups*10)/10};
+        break;
+      }
+    }
+    // 300㎟에도 3조 초과면 300㎟ + 최소 조수로 선정 후 BUS-DUCT 권장
+    if (!selected) {
+      const maxRow = AMP_DATA[AMP_DATA.length - 1];
+      const base = getAmp(maxRow[0], method);
+      if (base) {
+        const corr   = base * gfVal * tf;
+        const groups = Math.ceil(I_full / corr);
+        selected = {size: maxRow[0], base, corrected: Math.round(corr*10)/10, groups, totalAmp: Math.round(corr*groups*10)/10};
+      }
+    }
+
+    if (selected) {
+      const ratio = Math.round(I_full / selected.totalAmp * 100);
+      const bdWarn = needsBusDuct(selected.groups);
+      resEl.innerHTML = `
+        ${kva > 0 ? `<span class="bank-result-item">전부하전류 <span class="val">${I_full.toFixed(1)} A</span></span>` : ''}
+        <span class="bank-result-item">배선 방식 <span class="val">케이블</span></span>
+        <span class="bank-result-item">선정 규격 <span class="val">${selected.size}㎟ 1C×${selected.groups*4}가닥 (${selected.groups}조)</span></span>
+        <span class="bank-result-item">허용전류 <span class="val">${selected.totalAmp} A</span></span>
+        <span class="bank-result-item">부하율 <span class="val">${ratio}%</span></span>
+        ${bdWarn ? '<span class="tag tag-warn">⚠ 3조 초과 — BUS-DUCT 권장</span>' : ''}`;
+      rows.push({name, kva, I_full, method, circuits, gfVal, isBusDuct:false, selected, ratio, bdWarn});
+    } else {
+      resEl.innerHTML = `<span style="color:var(--err)">선정 불가</span>`;
+    }
+  });
+
+  // 결과 테이블 갱신
+  if (!rows.length) {
+    tbody.innerHTML = `<tr><td colspan="10" style="color:var(--muted);padding:20px;font-family:var(--mono);font-size:12px;">뱅크를 입력하면 결과가 표시됩니다.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = rows.map(r => {
+    if (r.isBusDuct) {
+      return `<tr style="background:#f0f4ff;">
+        <td>${r.name}</td>
+        <td class="key-val">${r.kva}</td>
+        <td>${r.I_full.toFixed(1)}</td>
+        <td><span class="tag tag-info">AL BUS-DUCT</span></td>
+        <td colspan="3" class="key-val" style="color:#4a6fa5;">${r.bd.spec}</td>
+        <td>${r.bd.amp} A</td>
+        <td>${r.ratio}%</td>
+        <td>${tag(r.ratio)}</td>
+      </tr>`;
+    }
+    const bdCell = r.bdWarn
+      ? `<span class="tag tag-warn">⚠ BUS-DUCT 권장</span>`
+      : tag(r.ratio);
+    return `<tr ${r.bdWarn ? 'style="background:#fff8e1;"' : ''}>
+      <td>${r.name}</td>
+      <td class="key-val">${r.kva}</td>
+      <td>${r.I_full.toFixed(1)}</td>
+      <td><span class="tag tag-info">${r.method}</span></td>
+      <td class="key-val">${r.selected.size}㎟</td>
+      <td>1C×${r.selected.groups*4} (${r.selected.groups}조)</td>
+      <td>${r.selected.corrected}×${r.selected.groups}조<br>
+        <span style='font-size:10px;color:var(--muted);'>${r.method==='F'?'항목4':'항목1'}, ${r.circuits}회로 ×${r.gfVal.toFixed(2)}</span></td>
+      <td>${r.selected.totalAmp} A</td>
+      <td>${r.ratio}%</td>
+      <td>${bdCell}</td>
+    </tr>`;
+  }).join('');
+}
+
+/* ─────────── TAB 2 — Main CB 기준 ─────────── */
+let cbIdx = 0;
+
+// CB 입력 방식 전환: TR용량 자동 ↔ 직접 선정
+function addCBBank() {
+  const id = ++cbIdx;
+  const div = document.createElement('div');
+  div.className = 'bank-row';
+  div.id = `cb-${id}`;
+  div.innerHTML = `
+    <div class="bank-header">
+      <span class="bank-badge" style="background:#4a6fa5;">CB-${id}</span>
+      <div class="bank-fields">
+        <div class="bank-field">
+          <label>회로 명칭</label>
+          <input type="text" id="cb${id}-name" value="회로${id}" style="max-width:120px;" oninput="calcTab2()">
+        </div>
+        <div class="bank-field">
+          <label>CB AT [A]</label>
+          <select id="cb${id}-at" onchange="calcTab2()">
+            ${CB_SERIES.map(v=>`<option value="${v}"${v===400?' selected':''}>${v} A</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <button class="btn-remove" onclick="removeCBBank(${id})">✕</button>
+    </div>
+    <div class="bank-result" id="cb${id}-result">—</div>`;
+  document.getElementById('t2-bank-list').appendChild(div);
+  calcTab2();
+}
+
+function removeCBBank(id) {
+  const el = document.getElementById(`cb-${id}`);
+  if (el) el.remove();
+  calcTab2();
+}
+
+function calcTab2() {
+  const method   = document.getElementById('t2-install').value;
+  const temp     = parseInt(document.getElementById('t2-temp').value);
+  const circuits = parseInt(document.getElementById('t2-circuits').value) || 6;
+  const tf       = TEMP_FACTOR[temp] || 0.91;
+  const gfVal    = getGF(method, circuits);
+  const tbody    = document.getElementById('t2-result-body');
+  const rows     = [];
+  const itemLabel = method === 'F' ? '항목4' : '항목1';
+  document.getElementById('t2-gf-display').textContent =
+    `표 A.52-17 ${itemLabel}, ${circuits}회로 → 보정계수 ${gfVal.toFixed(2)}`;
+
+  document.querySelectorAll('[id^="cb-"]').forEach(el => {
+    const id     = el.id.replace('cb-','');
+    const nameEl = document.getElementById(`cb${id}-name`);
+    const atEl   = document.getElementById(`cb${id}-at`);
+    if (!nameEl) return;
+
+    const name = nameEl.value || `CB${id}`;
+    const AT   = parseFloat(atEl.value) || 400;
+
+    // ── 케이블 선정: 규격을 올리면서 3조 이하 조건 우선 충족 ──
+    // 1단계: 3조 이하로 수용 가능한 최소 규격 탐색
+    let selected = null;
+    for (const row of AMP_DATA) {
+      const base = getAmp(row[0], method);
+      if (!base) continue;
+      const corr = base * gfVal * tf;
+      if (corr <= 0) continue;
+      const groups = Math.ceil(AT / corr);
+      if (groups <= 3) {
+        selected = {size: row[0], base,
+                    corrected: Math.round(corr*10)/10,
+                    groups,
+                    totalAmp: Math.round(corr*groups*10)/10};
+        break;
+      }
+    }
+    // 2단계: 300㎟까지도 3조 초과면 300㎟ + 최소 조수로 선정 후 BUS-DUCT 권장
+    if (!selected) {
+      const maxRow = AMP_DATA[AMP_DATA.length - 1]; // 300㎟
+      const base = getAmp(maxRow[0], method);
+      if (base) {
+        const corr   = base * gfVal * tf;
+        const groups = Math.ceil(AT / corr);
+        selected = {size: maxRow[0], base,
+                    corrected: Math.round(corr*10)/10,
+                    groups,
+                    totalAmp: Math.round(corr*groups*10)/10};
+      }
+    }
+
+    const resEl = document.getElementById(`cb${id}-result`);
+    if (selected) {
+      const ratio  = Math.round(AT / selected.totalAmp * 100);
+      const bdWarn = needsBusDuct(selected.groups);
+      resEl.innerHTML = `
+        <span class="bank-result-item">CB AT <span class="val">${AT} A</span></span>
+        <span class="bank-result-item">선정 규격 <span class="val">${selected.size}㎟ 1C×${selected.groups*4}가닥 (${selected.groups}조)</span></span>
+        <span class="bank-result-item">허용전류 <span class="val">${selected.totalAmp} A</span></span>
+        <span class="bank-result-item">적용률 <span class="val">${ratio}%</span></span>
+        ${bdWarn ? '<span class="tag tag-warn">⚠ 3조 초과 — BUS-DUCT 권장</span>' : ''}`;
+      rows.push({name, AT, method, circuits, gfVal, selected, ratio, bdWarn});
+    } else {
+      resEl.innerHTML = `<span style="color:var(--err)">선정 불가 — 규격 초과</span>`;
+    }
+  });
+
+  if (!rows.length) {
+    tbody.innerHTML = `<tr><td colspan="10" style="color:var(--muted);padding:20px;font-family:var(--mono);font-size:12px;">CB 정보를 입력하면 결과가 표시됩니다.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = rows.map(r => {
+    const bdCell = r.bdWarn
+      ? `<span class="tag tag-warn">⚠ BUS-DUCT 권장</span>`
+      : tag(r.ratio);
+    return `<tr ${r.bdWarn ? 'style="background:#fff8e1;"' : ''}>
+      <td>${r.name}</td>
+      <td class="key-val">${r.AT} A</td>
+      <td><span class="tag tag-info">${r.method}</span></td>
+      <td class="key-val">${r.selected.size}㎟</td>
+      <td>1C×${r.selected.groups*4} (${r.selected.groups}조)</td>
+      <td>${r.selected.corrected}×${r.selected.groups}조<br>
+        <span style="font-size:10px;color:var(--muted);">${r.method==='F'?'항목4':'항목1'}, ${r.circuits}회로 ×${r.gfVal.toFixed(2)}</span>
+      </td>
+      <td>${r.selected.totalAmp} A</td>
+      <td>${r.ratio}%</td>
+      <td>${bdCell}</td>
+    </tr>`;
+  }).join('');
+}
+
+
+/* ─────────── TAB 3 — 참조 테이블 렌더 ─────────── */
+function renderRefTables() {
+  // 허용전류표 (B1·F)
+  const ampBody = document.getElementById('ref-ampacity-body');
+  ampBody.innerHTML = AMP_DATA.map(row => {
+    const b1_30 = row[1] || '—';
+    const b1_40 = row[1] ? Math.round(row[1] * 0.91) : '—';
+    const f_30  = row[3] || '—';
+    const f_40  = row[3] ? Math.round(row[3] * 0.91) : '—';
+    return `<tr>
+      <td><b>${row[0]}</b></td>
+      <td>${b1_30}</td><td><b>${b1_40}</b></td>
+      <td>${f_30}</td><td><b>${f_40}</b></td>
+    </tr>`;
+  }).join('');
+
+  // 변압기 기준
+  const trBody = document.getElementById('ref-tr-body');
+  trBody.innerHTML = TR_REF.map(r => {
+    const isBD = r[5] === 'BUS-DUCT';
+    const rowStyle = isBD ? 'style="background:#f0f4ff;"' : '';
+    const methodTag = isBD
+      ? `<span class="tag tag-info" style="background:#e8eaf6;color:#3949ab;">AL BUS-DUCT</span>`
+      : `<span class="tag tag-ok">케이블</span>`;
+    const cableSpec  = isBD ? '<span style="color:#bbb;">—</span>' : `<b>${r[2]}</b>`;
+    const cableGads  = isBD ? '<span style="color:#bbb;">—</span>' : r[3];
+    const cableAmp   = isBD ? '<span style="color:#bbb;">—</span>' : r[4];
+    const bdSpec     = isBD ? `<b style="color:#3949ab;">${r[6]}</b>` : '<span style="color:#bbb;">—</span>';
+    const bdAmp      = isBD ? `<b style="color:#3949ab;">${r[7]}</b>` : '<span style="color:#bbb;">—</span>';
+    return `<tr ${rowStyle}>
+      <td><b>${r[0]}</b></td>
+      <td>${r[1].toFixed(1)}</td>
+      <td>${methodTag}</td>
+      <td>${cableSpec}</td>
+      <td>${cableGads}</td>
+      <td>${cableAmp}</td>
+      <td>${bdSpec}</td>
+      <td>${bdAmp}</td>
+    </tr>`;
+  }).join('');
+
+  // CB 기준
+  const cbBody = document.getElementById('ref-cb-body');
+  cbBody.innerHTML = CB_REF.map(r => `
+    <tr>
+      <td><b>${r[0]}</b></td>
+      <td><b>${r[1]}</b></td>
+      <td>${r[2]}</td>
+      <td>${r[3]}</td>
+      <td>${r[4]}</td>
+    </tr>`).join('');
+}
+
+/* ─────────── 초기화 ─────────── */
+renderRefTables();
+addBank();    // 탭① 기본 뱅크 1개
+addCBBank();  // 탭② 기본 뱅크 1개
+</script>
+</body>
+</html>
