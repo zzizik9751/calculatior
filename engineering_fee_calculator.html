@@ -1,0 +1,1303 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>엔지니어링사업대가 설계비 산출기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Noto+Sans+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#f2f4f7; --surf:#ffffff; --surf2:#f7f8fa; --surf3:#edf0f4;
+  --border:#dde1e8; --border2:#bcc3cf;
+  --blue:#1a56db; --blue2:#1447c0; --blue-light:#eff4ff;
+  --green:#1a7a4a; --green2:#15673e; --green-light:#ecfdf4;
+  --purple:#6b21a8; --purple2:#581c87; --purple-light:#faf5ff;
+  --orange:#c2400a; --orange-light:#fff7ed;
+  --red:#b91c1c;
+  --text:#111827; --sub:#4b5563; --dim:#9ca3af;
+  --mono:'Noto Sans Mono',monospace; --sans:'Noto Sans KR',sans-serif;
+  --radius:10px;
+  --hdr-blue:#1e3a5f;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;padding:0 0 80px;font-size:14px;}
+
+/* ── 헤더 ── */
+.hdr{background:var(--hdr-blue);}
+.hdr-inner{max-width:1040px;margin:0 auto;padding:20px 24px 0;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;}
+.hdr h1{font-size:1.1rem;font-weight:700;color:#fff;letter-spacing:-.01em;}
+.hdr-sub{font-size:.7rem;color:rgba(255,255,255,.6);margin-top:4px;line-height:1.7;}
+.hdr-sub strong{color:rgba(255,255,255,.9);}
+.hdr-badges{display:flex;gap:5px;flex-wrap:wrap;margin-top:4px;}
+.bdg{font-size:.58rem;padding:3px 8px;border-radius:4px;font-weight:600;letter-spacing:.04em;white-space:nowrap;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.12);color:#fff;}
+.bdg a{color:#fff;text-decoration:none;}
+.bdg a:hover{text-decoration:underline;}
+
+/* ── 상단 탭 ── */
+.main-tabs{max-width:1040px;margin:0 auto;display:flex;gap:2px;padding:0 24px;border-top:1px solid rgba(255,255,255,.1);}
+.mtab{padding:10px 18px;font-size:.78rem;font-weight:500;cursor:pointer;color:rgba(255,255,255,.5);border:none;background:none;border-bottom:3px solid transparent;transition:all .15s;user-select:none;}
+.mtab:hover{color:rgba(255,255,255,.8);}
+.mtab.on{color:#fff;border-bottom-color:#60a5fa;font-weight:700;}
+
+.tab-bar{background:var(--hdr-blue);padding-bottom:0;}
+.tab-divider{max-width:1040px;margin:0 auto 16px;height:3px;background:var(--hdr-blue);}
+
+/* ── 레이아웃 ── */
+.wrap{max-width:1040px;margin:0 auto;padding:0 16px;}
+.panel{display:none;}.panel.on{display:block;}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+.s2{grid-column:1/-1;}
+@media(max-width:680px){.g2,.g3{grid-template-columns:1fr;}}
+
+/* ── 카드 ── */
+.card{background:var(--surf);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;box-shadow:0 1px 3px rgba(0,0,0,.04);}
+.ct{font-size:.65rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--blue);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:7px;}
+.ct::before{content:'';width:3px;height:13px;border-radius:2px;background:var(--blue);flex-shrink:0;}
+.ct.green{color:var(--green);}.ct.green::before{background:var(--green);}
+.ct.purple{color:var(--purple);}.ct.purple::before{background:var(--purple);}
+.ct.orange{color:var(--orange);}.ct.orange::before{background:var(--orange);}
+
+/* ── 섹션 선택 버튼 ── */
+.sect-btns{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:0;}
+.sb{padding:8px 14px;border-radius:6px;border:1px solid var(--border);background:var(--surf2);color:var(--sub);cursor:pointer;font-size:.76rem;font-weight:500;transition:all .15s;line-height:1.4;text-align:center;}
+.sb small{display:block;font-size:.6rem;color:var(--dim);margin-top:2px;}
+.sb:hover{border-color:var(--border2);background:var(--surf3);}
+.sb.on-blue{background:var(--blue-light);border-color:var(--blue);color:var(--blue);font-weight:700;}
+.sb.on-blue small{color:var(--blue2);}
+.sb.on-green{background:var(--green-light);border-color:var(--green);color:var(--green);font-weight:700;}
+.sb.on-green small{color:var(--green2);}
+.sb.on-purple{background:var(--purple-light);border-color:var(--purple);color:var(--purple);font-weight:700;}
+.sb.on-purple small{color:var(--purple2);}
+.sb.on-orange{background:var(--orange-light);border-color:var(--orange);color:var(--orange);font-weight:700;}
+.sb.on-orange small{color:var(--orange);}
+.sb.disabled{opacity:.4;cursor:not-allowed;pointer-events:none;}
+
+/* ── 입력 ── */
+.lbl{display:block;font-size:.72rem;color:var(--sub);margin-bottom:5px;font-weight:600;}
+.lbl-note{font-size:.62rem;color:var(--dim);display:block;margin-top:2px;font-weight:400;line-height:1.5;}
+.irow{display:flex;align-items:center;gap:8px;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:0 11px;transition:border-color .15s;}
+.irow:focus-within{border-color:var(--blue);box-shadow:0 0 0 2px rgba(26,86,219,.1);}
+.irow input{flex:1;background:none;border:none;outline:none;font-family:var(--mono);font-size:.95rem;font-weight:600;color:var(--text);padding:9px 0;}
+.unit{font-size:.7rem;color:var(--dim);white-space:nowrap;}
+.hint{font-size:.68rem;color:var(--dim);margin-top:4px;font-family:var(--mono);}
+.hint-kor{font-size:.74rem;color:var(--blue);margin-top:2px;font-weight:600;}
+
+/* ── X1/X2 ── */
+.bkg{display:grid;grid-template-columns:1fr 1fr;gap:7px;}
+.bk{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:9px 12px;}
+.bkl{font-size:.6rem;color:var(--dim);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px;font-weight:600;}
+.bkv{font-family:var(--mono);font-size:.84rem;font-weight:700;color:var(--blue);}
+.bkr{font-size:.67rem;color:var(--sub);margin-top:2px;font-family:var(--mono);}
+
+/* ── 결과 행 ── */
+.rr{display:flex;justify-content:space-between;align-items:baseline;padding:5px 0;border-bottom:1px solid var(--border);}
+.rr:last-child{border-bottom:none;}
+.rrl{font-size:.73rem;color:var(--sub);}
+.rrv{font-family:var(--mono);font-size:.84rem;font-weight:700;}
+.cb{color:var(--blue);}.cg{color:var(--green2);}.cp{color:var(--purple);}.co{color:var(--orange);}
+hr.dv{border:none;border-top:1px solid var(--border);margin:8px 0;}
+
+/* ── 수식박스 ── */
+.fml{background:var(--blue-light);border:1px solid #bfdbfe;border-radius:6px;padding:10px 13px;font-family:var(--mono);font-size:.71rem;color:var(--sub);line-height:2.1;margin-top:8px;}
+.fh{color:var(--blue);font-weight:700;}.fr{color:var(--green);font-weight:700;}
+
+/* ── 최종 금액 ── */
+.final{background:var(--hdr-blue);border-radius:var(--radius);padding:16px 18px;box-shadow:0 2px 8px rgba(30,58,95,.2);}
+.final.green{background:var(--green);}
+.final.purple{background:var(--purple);}
+.final .fl{font-size:.62rem;color:rgba(255,255,255,.65);letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px;}
+.final .fa{font-family:var(--mono);font-size:1.45rem;font-weight:700;color:#fff;}
+.final .fk{font-size:.73rem;color:rgba(255,255,255,.75);margin-top:4px;}
+.final .fv{font-size:.62rem;color:rgba(255,255,255,.45);margin-top:3px;}
+
+/* ── 흐름 요약 ── */
+.flow-box{margin-top:10px;background:var(--surf2);border:1px solid var(--border);border-radius:6px;padding:11px 13px;}
+.flow-title{font-size:.62rem;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;font-weight:700;margin-bottom:7px;}
+
+/* ── 주석 ── */
+.lnote{font-size:.67rem;color:var(--sub);margin-top:10px;line-height:1.7;border-left:2px solid var(--blue);padding:5px 10px;background:var(--blue-light);border-radius:0 4px 4px 0;}
+.lnote.green{border-left-color:var(--green);background:var(--green-light);}
+.lnote.purple{border-left-color:var(--purple);background:var(--purple-light);}
+
+/* ── 할증 박스 ── */
+.pm-box{background:#faf5ff;border:1px solid #d8b4fe;border-radius:6px;padding:11px 13px;margin-top:4px;}
+.pm-row{display:flex;align-items:center;gap:8px;}
+.pm-irow{display:flex;align-items:center;gap:8px;background:var(--surf);border:1px solid #c4b5fd;border-radius:6px;padding:0 11px;flex:1;}
+.pm-irow input{flex:1;background:none;border:none;outline:none;font-family:var(--mono);font-size:.95rem;font-weight:700;color:var(--purple);padding:9px 0;}
+
+/* ── 요율표 ── */
+.rnote{font-size:.7rem;color:var(--sub);margin-bottom:14px;line-height:1.7;background:var(--blue-light);border-left:3px solid var(--blue);padding:9px 13px;border-radius:0 6px 6px 0;}
+.rnote strong{color:var(--text);}
+.rnote.green{background:var(--green-light);border-left-color:var(--green);}
+.rnote.purple{background:var(--purple-light);border-left-color:var(--purple);}
+table.rt{width:100%;border-collapse:collapse;font-size:.73rem;}
+table.rt th{background:var(--hdr-blue);color:#fff;font-weight:600;padding:7px 9px;text-align:center;white-space:nowrap;font-size:.68rem;}
+table.rt th.tg{color:#86efac;} table.rt th.tb{color:#93c5fd;} table.rt th.tp{color:#d8b4fe;} table.rt th.to{color:#fdba74;}
+table.rt td{padding:6px 9px;border-bottom:1px solid var(--border);font-family:var(--mono);text-align:right;color:var(--sub);font-size:.72rem;}
+table.rt td:first-child{font-family:var(--sans);text-align:left;color:var(--text);white-space:nowrap;}
+table.rt tr:nth-child(even) td{background:var(--surf2);}
+table.rt tr.act td{background:#eff4ff;color:var(--text);font-weight:700;}
+table.rt tr.act td:first-child{color:var(--blue);}
+table.rt td.ed{cursor:pointer;}
+table.rt td.ed:hover{background:var(--blue-light);}
+table.rt td input.ci{background:var(--surf);border:1px solid var(--blue);outline:none;font-family:var(--mono);font-size:.72rem;color:var(--blue);width:64px;padding:2px 4px;border-radius:3px;text-align:right;}
+.ehint{font-size:.63rem;color:var(--dim);margin-top:7px;}
+
+/* ── JSON 저장/불러오기 툴바 ── */
+.io-bar{max-width:1040px;margin:0 auto 14px;padding:0 16px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.io-btn{display:flex;align-items:center;gap:5px;padding:7px 14px;border-radius:6px;border:1px solid var(--border);background:var(--surf);color:var(--sub);cursor:pointer;font-size:.73rem;font-weight:600;transition:all .15s;font-family:var(--sans);}
+.io-btn:hover{border-color:var(--border2);background:var(--surf3);}
+.io-btn.save{border-color:var(--blue);background:var(--blue-light);color:var(--blue);}
+.io-btn.save:hover{background:var(--blue);color:#fff;}
+.io-btn.load{border-color:var(--green);background:var(--green-light);color:var(--green);}
+.io-btn.load:hover{background:var(--green);color:#fff;}
+.io-btn.reset{border-color:#f87171;background:#fef2f2;color:var(--red);}
+.io-btn.reset:hover{background:var(--red);color:#fff;}
+.io-sep{flex:1;}
+.io-msg{font-size:.68rem;color:var(--green);font-weight:600;opacity:0;transition:opacity .3s;}
+.io-msg.show{opacity:1;}
+#fileInput{display:none;}
+.io-ver{font-size:.65rem;color:var(--dim);}
+
+/* ── 발주 배율 안내 ── */
+.mult-note{background:#fffbeb;border:1px solid #fcd34d;border-radius:6px;padding:9px 12px;font-size:.68rem;color:#78350f;margin-top:8px;line-height:1.7;}
+
+/* ── 푸터 ── */
+.footer-note{max-width:1040px;margin:28px auto 0;text-align:center;font-size:.66rem;color:var(--dim);line-height:1.8;padding:12px 16px 4px;border-top:1px solid var(--border);}
+</style>
+</head>
+<body>
+
+<!-- 헤더 -->
+<div class="hdr">
+  <div class="hdr-inner">
+    <div>
+      <h1>엔지니어링사업대가 설계비 산출기 — 공사비요율방식</h1>
+      <div class="hdr-sub">
+        <strong>근거: 엔지니어링사업대가의 기준 (산업통상자원부고시 제2024-217호, 2024.12.31. 시행)</strong><br>
+        건설부문(별표1) · 통신부문(별표2) · 산업플랜트부문(별표3) | 직선보간법 자동산출
+      </div>
+      <div class="hdr-badges">
+        <span class="bdg"><a href="https://www.law.go.kr/LSW//admRulInfoP.do?admRulSeq=2100000252534" target="_blank" rel="noopener">산업통상자원부고시 제2024-217호</a></span>
+        <span class="bdg">공사비요율방식</span>
+        <span class="bdg">요율 JSON 저장/불러오기 지원</span>
+      </div>
+    </div>
+  </div>
+  <div class="tab-bar">
+    <div class="main-tabs">
+      <div class="mtab on"  id="mtab-b1"   onclick="switchMain('b1')">건설부문 (별표1)</div>
+      <div class="mtab"     id="mtab-b2"   onclick="switchMain('b2')">통신부문 (별표2)</div>
+      <div class="mtab"     id="mtab-b3"   onclick="switchMain('b3')">산업플랜트 (별표3)</div>
+      <div class="mtab"     id="mtab-rate" onclick="switchMain('rate')">요율표 편집</div>
+    </div>
+  </div>
+</div>
+<div class="tab-divider"></div>
+
+<!-- IO 툴바는 요율표 편집 탭 안으로 이동 -->
+
+<!-- ══════════════════════════════════════════════════
+     별표1 — 건설부문
+══════════════════════════════════════════════════ -->
+<div class="panel on wrap" id="panel-b1">
+  <div class="g2" style="margin-bottom:12px;">
+
+    <!-- 공사비 입력 -->
+    <div class="card">
+      <div class="ct">① 공사비 입력</div>
+      <label class="lbl">공사비 (부가세·용지비·보상비 제외)<span class="lbl-note">※ 전기·건축·기계 등 전문공종 → 도로 요율 적용 (비고5)</span></label>
+      <div class="irow">
+        <input type="text" id="b1-cost" placeholder="0" inputmode="numeric" autocomplete="off">
+        <span class="unit">원</span>
+      </div>
+      <div class="hint" id="b1-costHint">—</div>
+      <div class="hint-kor" id="b1-costKor"></div>
+    </div>
+
+    <!-- 분야 선택 -->
+    <div class="card">
+      <div class="ct">② 적용 분야</div>
+      <div class="sect-btns" id="b1-type-btns">
+        <div class="sb" data-v="road"  onclick="setB1Type('road')">도로<small>토목 도로공사</small></div>
+        <div class="sb" data-v="rail"  onclick="setB1Type('rail')">철도<small>토목 철도공사</small></div>
+        <div class="sb" data-v="port"  onclick="setB1Type('port')">항만<small>토목 항만공사</small></div>
+        <div class="sb" data-v="water" onclick="setB1Type('water')">상수도<small>토목 상수도공사</small></div>
+        <div class="sb on-blue" data-v="etc" onclick="setB1Type('etc')">기타<small>전기·건축·기계설비<br>→ 도로 요율 자동 적용 (비고5)</small></div>
+      </div>
+      <div class="lnote" id="b1-type-note" style="margin-top:10px;">※ 전기·건축·기계설비 등 요율표 미작성 분야 → 도로 요율 자동 적용 (별표1 비고5)</div>
+    </div>
+
+    <!-- 발주방식 -->
+    <div class="card">
+      <div class="ct">③ 발주 방식</div>
+      <div class="sect-btns" id="b1-mode-btns">
+        <div class="sb" data-v="basic"    onclick="setB1Mode('basic')">기본설계<small>기본설계 요율 × 1.0</small></div>
+        <div class="sb on-blue" data-v="detail"   onclick="setB1Mode('detail')">실시설계<small>실시설계 요율 × 1.0</small></div>
+        <div class="sb" data-v="c-detail" onclick="setB1Mode('c-detail')">기본+실시 동시<small>실시설계 요율 × 1.4</small></div>
+        <div class="sb" data-v="c-basic"  onclick="setB1Mode('c-basic')">타당성+기본설계<small>기본설계 요율 × 1.3</small></div>
+        <div class="sb" data-v="d-only"   onclick="setB1Mode('d-only')">실시만(기본없이)<small>실시설계 요율 × 1.3</small></div>
+        <div class="sb" data-v="sup"      onclick="setB1Mode('sup')">공사감리<small>감리 요율 (비상주)</small></div>
+      </div>
+      <div class="mult-note" id="b1-modeNote"></div>
+    </div>
+
+    <!-- X1/X2 + 수식 -->
+    <div class="card">
+      <div class="ct">④ 직선보간 산출</div>
+      <div class="bkg">
+        <div class="bk"><div class="bkl">X1 · 구간 상한</div><div class="bkv" id="b1-x1val">—</div><div class="bkr" id="b1-x1rate">Y1: —</div></div>
+        <div class="bk"><div class="bkl">X2 · 구간 하한</div><div class="bkv" id="b1-x2val">—</div><div class="bkr" id="b1-x2rate">Y2: —</div></div>
+      </div>
+      <div class="rr" style="margin-top:10px;"><span class="rrl" id="b1-yLbl">보간 요율</span><span class="rrv cb" id="b1-yVal">—</span></div>
+      <div class="rr" id="b1-multRow" style="display:none;"><span class="rrl" id="b1-multLbl">× 배율</span><span class="rrv co" id="b1-yFinal">—</span></div>
+      <div class="fml" id="b1-fml">공사비를 입력하면 수식이 표시됩니다.</div>
+    </div>
+
+  </div>
+
+  <!-- 설계비 산출 -->
+  <div class="card s2">
+    <div class="ct">⑤ 설계비 산출</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start;">
+      <div>
+        <div class="rr"><span class="rrl">공사비</span><span class="rrv" id="b1-r-cost">—</span></div>
+        <div class="rr"><span class="rrl" id="b1-r-rate-lbl">× 요율</span><span class="rrv cb" id="b1-r-fee">—</span></div>
+        <hr class="dv">
+        <div class="rr"><span class="rrl">산출 설계비</span><span class="rrv cg" id="b1-r-design">—</span></div>
+        <div style="margin-top:14px;">
+          <label class="lbl">가산 할증<span class="lbl-note">※ PM비·지방·해외 등</span></label>
+          <div class="pm-box">
+            <div class="pm-row">
+              <div class="pm-irow"><input type="text" id="b1-pm" placeholder="0" inputmode="decimal" autocomplete="off"><span class="unit" style="color:var(--purple);">%</span></div>
+              <span style="font-size:.8rem;color:var(--sub);white-space:nowrap;padding-left:4px;">가산</span>
+            </div>
+          </div>
+          <div class="rr" id="b1-rr-pm" style="margin-top:8px;display:none;"><span class="rrl" style="color:var(--purple);">+ 가산 할증</span><span class="rrv cp" id="b1-r-pm">—</span></div>
+          <div class="rr" id="b1-rr-pmtot" style="display:none;"><span class="rrl">할증 소계</span><span class="rrv" id="b1-r-pmtot">—</span></div>
+        </div>
+        <div style="margin-top:14px;">
+          <label class="lbl">견적 조정 비율</label>
+          <div class="irow"><input type="text" id="b1-adj" value="1.00" autocomplete="off" style="color:var(--orange);"><span class="unit" style="color:var(--orange);">× 배율</span></div>
+        </div>
+      </div>
+      <div>
+        <div class="final">
+          <div class="fl">견적 제출 금액</div>
+          <div class="fa" id="b1-final">—</div>
+          <div class="fk" id="b1-finalKor">공사비를 입력해주세요</div>
+          <div class="fv">VAT 별도 · 10만원 단위 반올림</div>
+        </div>
+        <div class="flow-box" style="margin-top:10px;">
+          <div class="flow-title">산출 흐름</div>
+          <div class="rr"><span class="rrl">① 산출 설계비</span><span class="rrv cg" id="b1-s-design">—</span></div>
+          <div class="rr" id="b1-sr-pm" style="display:none;"><span class="rrl" style="color:var(--purple);">② 가산 할증 (×<span id="b1-s-pmrate">—</span>)</span><span class="rrv cp" id="b1-s-pmtot">—</span></div>
+          <div class="rr"><span class="rrl" id="b1-s-adjlbl">② 견적 조정</span><span class="rrv co" id="b1-s-final">—</span></div>
+        </div>
+        <div class="lnote" style="margin-top:10px;" id="b1-lnote"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     별표2 — 통신부문
+══════════════════════════════════════════════════ -->
+<div class="panel wrap" id="panel-b2">
+  <div class="g2" style="margin-bottom:12px;">
+    <div class="card">
+      <div class="ct green">① 공사비 입력</div>
+      <label class="lbl">공사비 (부가세·용지비·보상비 제외)<span class="lbl-note">※ 소방·방재는 그룹2 고정 적용</span></label>
+      <div class="irow" style="border-color:var(--green);">
+        <input type="text" id="b2-cost" placeholder="0" inputmode="numeric" autocomplete="off">
+        <span class="unit">원</span>
+      </div>
+      <div class="hint" id="b2-costHint">—</div>
+      <div class="hint-kor" id="b2-costKor" style="color:var(--green);"></div>
+    </div>
+    <div class="card">
+      <div class="ct green">② 그룹 선택</div>
+      <div class="sect-btns" id="b2-grp-btns">
+        <div class="sb" data-v="g1" onclick="setB2Grp('g1')">그룹 1<small>방송국설비공사</small></div>
+        <div class="sb on-green" data-v="g2" onclick="setB2Grp('g2')">그룹 2<small>교환·전송·구내·고정무선통신<br>소방·방재 (고정)</small></div>
+        <div class="sb" data-v="g3" onclick="setB2Grp('g3')">그룹 3<small>선로·방송전송·정보매체<br>정보통신전용 전기시설</small></div>
+        <div class="sb" data-v="g4" onclick="setB2Grp('g4')">그룹 4<small>이동·위성통신·철도신호<br>선박통신·항공·유시티</small></div>
+      </div>
+      <div class="lnote green" style="margin-top:10px;">※ 소방·방재 분야는 그룹2 고정 (비고5) | 그룹이 높을수록 요율 높음</div>
+    </div>
+    <div class="card">
+      <div class="ct green">③ 발주 방식</div>
+      <div class="sect-btns" id="b2-mode-btns">
+        <div class="sb" data-v="basic"    onclick="setB2Mode('basic')">기본설계<small>× 1.0</small></div>
+        <div class="sb on-green" data-v="detail"   onclick="setB2Mode('detail')">실시설계<small>× 1.0</small></div>
+        <div class="sb" data-v="c-detail" onclick="setB2Mode('c-detail')">기본+실시 동시<small>실시 × 1.4</small></div>
+        <div class="sb" data-v="d-only"   onclick="setB2Mode('d-only')">실시만(기본없이)<small>실시 × 1.3</small></div>
+        <div class="sb" data-v="sup"      onclick="setB2Mode('sup')">공사감리<small>감리 요율</small></div>
+      </div>
+      <div class="mult-note" id="b2-modeNote"></div>
+    </div>
+    <div class="card">
+      <div class="ct green">④ 직선보간 산출</div>
+      <div class="bkg">
+        <div class="bk"><div class="bkl">X1</div><div class="bkv" style="color:var(--green);" id="b2-x1val">—</div><div class="bkr" id="b2-x1rate">Y1: —</div></div>
+        <div class="bk"><div class="bkl">X2</div><div class="bkv" style="color:var(--green);" id="b2-x2val">—</div><div class="bkr" id="b2-x2rate">Y2: —</div></div>
+      </div>
+      <div class="rr" style="margin-top:10px;"><span class="rrl" id="b2-yLbl">보간 요율</span><span class="rrv cg" id="b2-yVal">—</span></div>
+      <div class="rr" id="b2-multRow" style="display:none;"><span class="rrl" id="b2-multLbl">× 배율</span><span class="rrv co" id="b2-yFinal">—</span></div>
+      <div class="fml" id="b2-fml" style="background:var(--green-light);border-color:#bbf7d0;">공사비를 입력하면 수식이 표시됩니다.</div>
+    </div>
+  </div>
+  <div class="card s2">
+    <div class="ct green">⑤ 설계비 산출</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start;">
+      <div>
+        <div class="rr"><span class="rrl">공사비</span><span class="rrv" id="b2-r-cost">—</span></div>
+        <div class="rr"><span class="rrl" id="b2-r-rate-lbl">× 요율</span><span class="rrv cg" id="b2-r-fee">—</span></div>
+        <hr class="dv">
+        <div class="rr"><span class="rrl">산출 설계비</span><span class="rrv cg" id="b2-r-design">—</span></div>
+        <div style="margin-top:14px;">
+          <label class="lbl">가산 할증</label>
+          <div class="pm-box" style="background:#f0fdf4;border-color:#86efac;">
+            <div class="pm-row">
+              <div class="pm-irow" style="border-color:#86efac;"><input type="text" id="b2-pm" placeholder="0" inputmode="decimal" autocomplete="off" style="color:var(--green);"><span class="unit" style="color:var(--green);">%</span></div>
+              <span style="font-size:.8rem;color:var(--sub);white-space:nowrap;padding-left:4px;">가산</span>
+            </div>
+          </div>
+          <div class="rr" id="b2-rr-pm" style="margin-top:8px;display:none;"><span class="rrl" style="color:var(--green);">+ 가산 할증</span><span class="rrv cg" id="b2-r-pm">—</span></div>
+          <div class="rr" id="b2-rr-pmtot" style="display:none;"><span class="rrl">할증 소계</span><span class="rrv" id="b2-r-pmtot">—</span></div>
+        </div>
+        <div style="margin-top:14px;">
+          <label class="lbl">견적 조정 비율</label>
+          <div class="irow"><input type="text" id="b2-adj" value="1.00" autocomplete="off" style="color:var(--orange);"><span class="unit" style="color:var(--orange);">× 배율</span></div>
+        </div>
+      </div>
+      <div>
+        <div class="final green">
+          <div class="fl">통신부문 견적 금액</div>
+          <div class="fa" id="b2-final">—</div>
+          <div class="fk" id="b2-finalKor">공사비를 입력해주세요</div>
+          <div class="fv">VAT 별도 · 10만원 단위 반올림</div>
+        </div>
+        <div class="flow-box" style="margin-top:10px;">
+          <div class="flow-title">산출 흐름</div>
+          <div class="rr"><span class="rrl">① 산출 설계비</span><span class="rrv cg" id="b2-s-design">—</span></div>
+          <div class="rr" id="b2-sr-pm" style="display:none;"><span class="rrl" style="color:var(--green);">② 가산 할증 (×<span id="b2-s-pmrate">—</span>)</span><span class="rrv cg" id="b2-s-pmtot">—</span></div>
+          <div class="rr"><span class="rrl" id="b2-s-adjlbl">② 견적 조정</span><span class="rrv co" id="b2-s-final">—</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     별표3 — 산업플랜트
+══════════════════════════════════════════════════ -->
+<div class="panel wrap" id="panel-b3">
+  <div class="g2" style="margin-bottom:12px;">
+    <div class="card">
+      <div class="ct purple">① 공사비 입력</div>
+      <label class="lbl">공사비 (부가세·용지비·보상비 제외)<span class="lbl-note">※ 발전·화학·환경플랜트 등</span></label>
+      <div class="irow" style="border-color:var(--purple);">
+        <input type="text" id="b3-cost" placeholder="0" inputmode="numeric" autocomplete="off">
+        <span class="unit">원</span>
+      </div>
+      <div class="hint" id="b3-costHint">—</div>
+      <div class="hint-kor" id="b3-costKor" style="color:var(--purple);"></div>
+    </div>
+    <div class="card">
+      <div class="ct purple">② 플랜트 유형</div>
+      <div class="sect-btns" id="b3-type-btns">
+        <div class="sb on-purple" data-v="gen" onclick="setB3Type('gen')">일반산업<small>전기전자·식품 등</small></div>
+        <div class="sb" data-v="chem" onclick="setB3Type('chem')">화학·가스플랜트<small>요율 × 1.250</small></div>
+        <div class="sb" data-v="sub" onclick="setB3Type('sub')">부대시설<small>요율 × 0.813</small></div>
+      </div>
+      <div class="lnote purple" style="margin-top:10px;">※ 화학·가스플랜트: 기본요율 × 1.250 | 부대시설: 기본요율 × 0.813</div>
+    </div>
+    <div class="card">
+      <div class="ct purple">③ 발주 방식</div>
+      <div class="sect-btns" id="b3-mode-btns">
+        <div class="sb" data-v="basic"    onclick="setB3Mode('basic')">기본설계<small>× 1.0</small></div>
+        <div class="sb on-purple" data-v="detail"   onclick="setB3Mode('detail')">실시설계<small>× 1.0</small></div>
+        <div class="sb" data-v="c-detail" onclick="setB3Mode('c-detail')">기본+실시 동시<small>실시 × 1.4</small></div>
+        <div class="sb" data-v="d-only"   onclick="setB3Mode('d-only')">실시만(기본없이)<small>실시 × 1.3</small></div>
+        <div class="sb" data-v="sup"      onclick="setB3Mode('sup')">공사감리<small>감리 요율</small></div>
+      </div>
+      <div class="mult-note" id="b3-modeNote"></div>
+    </div>
+    <div class="card">
+      <div class="ct purple">④ 직선보간 산출</div>
+      <div class="bkg">
+        <div class="bk"><div class="bkl">X1</div><div class="bkv" style="color:var(--purple);" id="b3-x1val">—</div><div class="bkr" id="b3-x1rate">Y1: —</div></div>
+        <div class="bk"><div class="bkl">X2</div><div class="bkv" style="color:var(--purple);" id="b3-x2val">—</div><div class="bkr" id="b3-x2rate">Y2: —</div></div>
+      </div>
+      <div class="rr" style="margin-top:10px;"><span class="rrl" id="b3-yLbl">보간 요율</span><span class="rrv cp" id="b3-yVal">—</span></div>
+      <div class="rr" id="b3-multRow" style="display:none;"><span class="rrl" id="b3-multLbl">× 배율</span><span class="rrv co" id="b3-yFinal">—</span></div>
+      <div class="fml" id="b3-fml" style="background:var(--purple-light);border-color:#e9d5ff;">공사비를 입력하면 수식이 표시됩니다.</div>
+    </div>
+  </div>
+  <div class="card s2">
+    <div class="ct purple">⑤ 설계비 산출</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start;">
+      <div>
+        <div class="rr"><span class="rrl">공사비</span><span class="rrv" id="b3-r-cost">—</span></div>
+        <div class="rr"><span class="rrl" id="b3-r-rate-lbl">× 요율</span><span class="rrv cp" id="b3-r-fee">—</span></div>
+        <hr class="dv">
+        <div class="rr"><span class="rrl">산출 설계비</span><span class="rrv cp" id="b3-r-design">—</span></div>
+        <div style="margin-top:14px;">
+          <label class="lbl">가산 할증</label>
+          <div class="pm-box" style="background:var(--purple-light);border-color:#d8b4fe;">
+            <div class="pm-row">
+              <div class="pm-irow"><input type="text" id="b3-pm" placeholder="0" inputmode="decimal" autocomplete="off" style="color:var(--purple);"><span class="unit" style="color:var(--purple);">%</span></div>
+              <span style="font-size:.8rem;color:var(--sub);white-space:nowrap;padding-left:4px;">가산</span>
+            </div>
+          </div>
+          <div class="rr" id="b3-rr-pm" style="margin-top:8px;display:none;"><span class="rrl" style="color:var(--purple);">+ 가산 할증</span><span class="rrv cp" id="b3-r-pm">—</span></div>
+          <div class="rr" id="b3-rr-pmtot" style="display:none;"><span class="rrl">할증 소계</span><span class="rrv" id="b3-r-pmtot">—</span></div>
+        </div>
+        <div style="margin-top:14px;">
+          <label class="lbl">견적 조정 비율</label>
+          <div class="irow"><input type="text" id="b3-adj" value="1.00" autocomplete="off" style="color:var(--orange);"><span class="unit" style="color:var(--orange);">× 배율</span></div>
+        </div>
+      </div>
+      <div>
+        <div class="final purple">
+          <div class="fl">산업플랜트 견적 금액</div>
+          <div class="fa" id="b3-final">—</div>
+          <div class="fk" id="b3-finalKor">공사비를 입력해주세요</div>
+          <div class="fv">VAT 별도 · 10만원 단위 반올림</div>
+        </div>
+        <div class="flow-box" style="margin-top:10px;">
+          <div class="flow-title">산출 흐름</div>
+          <div class="rr"><span class="rrl">① 산출 설계비</span><span class="rrv cp" id="b3-s-design">—</span></div>
+          <div class="rr" id="b3-sr-pm" style="display:none;"><span class="rrl" style="color:var(--purple);">② 가산 할증 (×<span id="b3-s-pmrate">—</span>)</span><span class="rrv cp" id="b3-s-pmtot">—</span></div>
+          <div class="rr"><span class="rrl" id="b3-s-adjlbl">② 견적 조정</span><span class="rrv co" id="b3-s-final">—</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     요율표 편집 패널
+══════════════════════════════════════════════════ -->
+<div class="panel wrap" id="panel-rate">
+
+  <!-- 저장/불러오기 툴바 -->
+  <div class="card" style="margin-bottom:12px;">
+    <div class="ct">요율 관리 — JSON 저장 / 불러오기</div>
+
+    <!-- 고시 정보 업데이트 -->
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--border);">
+      <span style="font-size:.72rem;font-weight:700;color:var(--sub);white-space:nowrap;">고시 정보</span>
+      <div class="irow" style="flex:1;min-width:160px;max-width:220px;">
+        <input type="text" id="ioGosi" value="산업통상자원부고시 제2024-217호" autocomplete="off" style="font-size:.75rem;font-weight:500;">
+      </div>
+      <div class="irow" style="width:120px;">
+        <input type="text" id="ioYear" value="2024.12.31" autocomplete="off" style="font-size:.75rem;font-weight:500;color:var(--blue);">
+        <span class="unit">시행</span>
+      </div>
+      <button class="io-btn" onclick="applyGosiInfo()" style="padding:8px 14px;font-size:.72rem;">↻ 헤더 반영</button>
+      <span class="io-msg" id="gosiMsg"></span>
+    </div>
+
+    <!-- 저장/불러오기 버튼 -->
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+      <button class="io-btn save" onclick="saveJSON()">⬇ 요율 내보내기 (JSON)</button>
+      <button class="io-btn load" onclick="document.getElementById('fileInput').click()">⬆ 요율 불러오기</button>
+      <button class="io-btn reset" onclick="resetRates()">↺ 기본값 복원</button>
+      <input type="file" id="fileInput" accept=".json" onchange="loadJSON(event)">
+      <div class="io-sep" style="flex:1;"></div>
+      <span class="io-msg" id="ioMsg"></span>
+      <span class="io-ver" id="ioVer">기본 요율 (2024.12.31)</span>
+    </div>
+    <div style="font-size:.65rem;color:var(--dim);margin-top:10px;line-height:1.8;">
+      ※ <strong>요율 내보내기</strong>: 현재 요율표 전체를 JSON 파일로 저장합니다 (연도 포함)<br>
+      ※ <strong>요율 불러오기</strong>: 저장한 JSON 파일을 불러와 요율을 즉시 반영합니다<br>
+      ※ <strong>고시 정보 업데이트</strong>: 연도·고시번호 수정 후 [헤더 반영] 클릭 시 상단 헤더에 표시됩니다
+    </div>
+  </div>
+
+  <!-- 별표1 -->
+  <div class="card" style="margin-bottom:12px;">
+    <div class="ct">별표1 — 건설부문 요율표 (도로·철도·항만·상수도)</div>
+    <div class="rnote"><strong>근거: 엔지니어링사업대가의 기준 별표1 (2024.12.31 시행)</strong><br>※ 전기·건축·기계 등 미분류 분야 → 도로 적용 (비고5) | ※ 셀 클릭 → 수정 → Enter 저장</div>
+    <div style="overflow-x:auto;">
+      <table class="rt">
+        <thead>
+          <tr>
+            <th rowspan="2">공사비 규모</th>
+            <th colspan="4" class="tg" style="border-bottom:1px solid rgba(255,255,255,.2);">기본설계 (%)</th>
+            <th colspan="4" class="tb" style="border-bottom:1px solid rgba(255,255,255,.2);">실시설계 (%)</th>
+            <th rowspan="2" class="to">공사감리 (%)</th>
+            <th rowspan="2">현재</th>
+          </tr>
+          <tr>
+            <th class="tg">도로</th><th class="tg">철도</th><th class="tg">항만</th><th class="tg">상수도</th>
+            <th class="tb">도로</th><th class="tb">철도</th><th class="tb">항만</th><th class="tb">상수도</th>
+          </tr>
+        </thead>
+        <tbody id="b1-rateBody"></tbody>
+      </table>
+    </div>
+    <div class="ehint">※ 5,000억 초과는 멱함수 공식 자동 적용 (편집 불가) | 공사감리는 별도 구간 체계 적용</div>
+  </div>
+
+  <!-- 별표2 -->
+  <div class="card" style="margin-bottom:12px;">
+    <div class="ct green">별표2 — 통신부문 요율표 (그룹1~4)</div>
+    <div class="rnote green"><strong>근거: 엔지니어링사업대가의 기준 별표2 (2024.12.31 시행)</strong><br>※ 소방·방재 = 그룹2 고정 | ※ 셀 클릭 → 수정 → Enter 저장</div>
+    <div style="overflow-x:auto;">
+      <table class="rt">
+        <thead>
+          <tr>
+            <th rowspan="2">공사비 규모</th>
+            <th colspan="4" class="tg" style="border-bottom:1px solid rgba(255,255,255,.2);">기본설계 (%)</th>
+            <th colspan="4" class="tb" style="border-bottom:1px solid rgba(255,255,255,.2);">실시설계 (%)</th>
+            <th rowspan="2" class="to">공사감리 (%)</th>
+            <th rowspan="2">현재</th>
+          </tr>
+          <tr>
+            <th class="tg">그룹1</th><th class="tg">그룹2</th><th class="tg">그룹3</th><th class="tg">그룹4</th>
+            <th class="tb">그룹1</th><th class="tb">그룹2</th><th class="tb">그룹3</th><th class="tb">그룹4</th>
+          </tr>
+        </thead>
+        <tbody id="b2-rateBody"></tbody>
+      </table>
+    </div>
+    <div class="ehint">※ 5,000억 초과 공식 산출</div>
+  </div>
+
+  <!-- 별표3 -->
+  <div class="card">
+    <div class="ct purple">별표3 — 산업플랜트부문 요율표</div>
+    <div class="rnote purple"><strong>근거: 엔지니어링사업대가의 기준 별표3 (2024.12.31 시행)</strong><br>※ 화학·가스플랜트 × 1.250 | 부대시설 × 0.813 | ※ 셀 클릭 → 수정 → Enter 저장</div>
+    <div style="overflow-x:auto;">
+      <table class="rt">
+        <thead>
+          <tr>
+            <th>공사비 규모</th>
+            <th class="tg">기본설계 (%)</th>
+            <th class="tb">실시설계 (%)</th>
+            <th class="to">공사감리 (%)</th>
+            <th>현재</th>
+          </tr>
+        </thead>
+        <tbody id="b3-rateBody"></tbody>
+      </table>
+    </div>
+    <div class="ehint">※ 5,000억 초과 공식 산출 | 화학플랜트·가스플랜트 할증, 부대시설 할인은 산출 탭에서 선택</div>
+  </div>
+</div>
+
+<div class="footer-note">
+  ※ 본 산출기는 엔지니어링사업대가의 기준 (산업통상자원부고시 제2024-217호, 2024.12.31. 시행) 별표1~3을 기준으로 제작되었습니다.<br>
+  요율 개정 시 [요율표 편집] 탭에서 수정 후 JSON 저장하여 관리하세요. 본 산출기는 참고용이며 실제 계약 시 최신 고시를 확인하시기 바랍니다.
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════
+// 요율 데이터 — 기본값 (2024.12.31 고시)
+// ════════════════════════════════════════════════════════
+
+// 별표1 건설부문 — min: 구간 하한(원), basic/detail: {road,rail,port,water}, sup: 공사감리
+let B1 = [
+  {label:'10억원 이하',    min:0,     basic:{road:3.78,rail:2.93,port:4.15,water:3.45}, detail:{road:6.16,rail:4.10,port:7.65,water:8.27}, sup:1.66},
+  {label:'20억원 이하',    min:1e9,   basic:{road:3.33,rail:2.69,port:3.64,water:3.07}, detail:{road:5.47,rail:3.88,port:6.74,water:7.28}, sup:1.53},
+  {label:'30억원 이하',    min:2e9,   basic:{road:3.10,rail:2.55,port:3.37,water:2.86}, detail:{road:5.10,rail:3.76,port:6.25,water:6.75}, sup:1.48},
+  {label:'50억원 이하',    min:3e9,   basic:{road:2.82,rail:2.39,port:3.06,water:2.63}, detail:{road:4.67,rail:3.62,port:5.69,water:6.15}, sup:1.45},
+  {label:'100억원 이하',   min:5e9,   basic:{road:2.49,rail:2.19,port:2.68,water:2.34}, detail:{road:4.15,rail:3.43,port:5.01,water:5.41}, sup:1.41},
+  {label:'200억원 이하',   min:1e10,  basic:{road:2.20,rail:2.01,port:2.35,water:2.08}, detail:{road:3.68,rail:3.25,port:4.41,water:4.76}, sup:1.37},
+  {label:'300억원 이하',   min:2e10,  basic:{road:2.04,rail:1.90,port:2.18,water:1.94}, detail:{road:3.43,rail:3.15,port:4.09,water:4.42}, sup:1.35},
+  {label:'500억원 이하',   min:3e10,  basic:{road:1.86,rail:1.78,port:1.98,water:1.78}, detail:{road:3.15,rail:3.03,port:3.73,water:4.03}, sup:1.33},
+  {label:'1,000억원 이하', min:5e10,  basic:{road:1.64,rail:1.63,port:1.74,water:1.58}, detail:{road:2.79,rail:2.87,port:3.28,water:3.54}, sup:1.30},
+  {label:'2,000억원 이하', min:1e11,  basic:{road:1.45,rail:1.50,port:1.52,water:1.41}, detail:{road:2.48,rail:2.72,port:2.89,water:3.12}, sup:1.28},
+  {label:'3,000억원 이하', min:2e11,  basic:{road:1.35,rail:1.42,port:1.41,water:1.32}, detail:{road:2.31,rail:2.64,port:2.68,water:2.89}, sup:1.25},
+  {label:'5,000억원 이하', min:3e11,  basic:{road:1.23,rail:1.33,port:1.28,water:1.21}, detail:{road:2.12,rail:2.54,port:2.44,water:2.64}, sup:1.23},
+  {label:'5,000억원 초과', min:5e11,  isFormula:true, basic:{road:null,rail:null,port:null,water:null}, detail:{road:null,rail:null,port:null,water:null}, sup:null},
+];
+
+// 별표2 통신부문 — min: 구간 하한(원), 구간은 PDF 기준 17개
+// 5천만원 이하 → min:0, 1억원 이하 → min:5e7 ...
+let B2 = [
+  {label:'5천만원 이하',   min:0,     basic:{g1:2.27,g2:4.15,g3:5.02,g4:5.63}, detail:{g1:6.82, g2:12.46,g3:15.07,g4:16.89}, sup:2.70},
+  {label:'1억원 이하',     min:5e7,   basic:{g1:2.13,g2:3.89,g3:4.71,g4:5.28}, detail:{g1:6.41, g2:11.72,g3:14.18,g4:15.89}, sup:2.53},
+  {label:'2억원 이하',     min:1e8,   basic:{g1:1.70,g2:3.10,g3:3.76,g4:4.21}, detail:{g1:5.10, g2: 9.31,g3:11.27,g4:12.63}, sup:2.02},
+  {label:'3억원 이하',     min:2e8,   basic:{g1:1.55,g2:2.83,g3:3.42,g4:3.84}, detail:{g1:4.65, g2: 8.50,g3:10.29,g4:11.53}, sup:1.84},
+  {label:'5억원 이하',     min:3e8,   basic:{g1:1.41,g2:2.58,g3:3.12,g4:3.49}, detail:{g1:4.21, g2: 7.70,g3: 9.32,g4:10.44}, sup:1.68},
+  {label:'10억원 이하',    min:5e8,   basic:{g1:1.24,g2:2.27,g3:2.75,g4:3.08}, detail:{g1:3.73, g2: 6.81,g3: 8.24,g4: 9.23}, sup:1.48},
+  {label:'20억원 이하',    min:1e9,   basic:{g1:1.15,g2:2.10,g3:2.54,g4:2.85}, detail:{g1:3.42, g2: 6.25,g3: 7.56,g4: 8.47}, sup:1.36},
+  {label:'30억원 이하',    min:2e9,   basic:{g1:1.10,g2:2.02,g3:2.44,g4:2.74}, detail:{g1:3.30, g2: 6.04,g3: 7.30,g4: 8.18}, sup:1.31},
+  {label:'50억원 이하',    min:3e9,   basic:{g1:1.08,g2:1.98,g3:2.39,g4:2.68}, detail:{g1:3.25, g2: 5.93,g3: 7.18,g4: 8.05}, sup:1.29},
+  {label:'100억원 이하',   min:5e9,   basic:{g1:1.05,g2:1.92,g3:2.32,g4:2.60}, detail:{g1:3.16, g2: 5.78,g3: 7.00,g4: 7.84}, sup:1.25},
+  {label:'200억원 이하',   min:1e10,  basic:{g1:1.02,g2:1.87,g3:2.26,g4:2.53}, detail:{g1:3.07, g2: 5.61,g3: 6.79,g4: 7.61}, sup:1.22},
+  {label:'300억원 이하',   min:2e10,  basic:{g1:1.01,g2:1.85,g3:2.23,g4:2.50}, detail:{g1:3.05, g2: 5.57,g3: 6.74,g4: 7.55}, sup:1.21},
+  {label:'500억원 이하',   min:3e10,  basic:{g1:1.00,g2:1.83,g3:2.21,g4:2.48}, detail:{g1:2.98, g2: 5.45,g3: 6.59,g4: 7.39}, sup:1.18},
+  {label:'1,000억원 이하', min:5e10,  basic:{g1:0.98,g2:1.79,g3:2.16,g4:2.42}, detail:{g1:2.94, g2: 5.38,g3: 6.50,g4: 7.29}, sup:1.16},
+  {label:'2,000억원 이하', min:1e11,  basic:{g1:0.97,g2:1.76,g3:2.14,g4:2.39}, detail:{g1:2.89, g2: 5.27,g3: 6.38,g4: 7.15}, sup:1.14},
+  {label:'3,000억원 이하', min:2e11,  basic:{g1:0.95,g2:1.74,g3:2.11,g4:2.37}, detail:{g1:2.84, g2: 5.18,g3: 6.27,g4: 7.03}, sup:1.13},
+  {label:'5,000억원 이하', min:3e11,  basic:{g1:0.94,g2:1.72,g3:2.09,g4:2.34}, detail:{g1:2.80, g2: 5.12,g3: 6.20,g4: 6.95}, sup:1.11},
+  {label:'5,000억원 초과', min:5e11,  isFormula:true, basic:{g1:null,g2:null,g3:null,g4:null}, detail:{g1:null,g2:null,g3:null,g4:null}, sup:null},
+];
+
+// 별표3 산업플랜트부문 — 단일 요율(일반산업 기준)
+// 화학·가스×1.250, 부대시설×0.813은 calcB3에서 처리
+let B3 = [
+  {label:'5천만원 이하',   min:0,     basic:3.12, detail:8.01, sup:4.20},
+  {label:'1억원 이하',     min:5e7,   basic:2.91, detail:7.46, sup:3.96},
+  {label:'2억원 이하',     min:1e8,   basic:2.76, detail:7.06, sup:3.55},
+  {label:'3억원 이하',     min:2e8,   basic:2.60, detail:6.66, sup:3.14},
+  {label:'5억원 이하',     min:3e8,   basic:2.47, detail:6.32, sup:2.94},
+  {label:'10억원 이하',    min:5e8,   basic:2.30, detail:5.89, sup:2.66},
+  {label:'20억원 이하',    min:1e9,   basic:2.18, detail:5.58, sup:2.52},
+  {label:'30억원 이하',    min:2e9,   basic:2.05, detail:5.26, sup:2.38},
+  {label:'50억원 이하',    min:3e9,   basic:1.95, detail:4.99, sup:2.29},
+  {label:'100억원 이하',   min:5e9,   basic:1.81, detail:4.65, sup:2.18},
+  {label:'200억원 이하',   min:1e10,  basic:1.72, detail:4.41, sup:2.10},
+  {label:'300억원 이하',   min:2e10,  basic:1.62, detail:4.16, sup:2.02},
+  {label:'500억원 이하',   min:3e10,  basic:1.54, detail:3.94, sup:1.95},
+  {label:'1,000억원 이하', min:5e10,  basic:1.43, detail:3.67, sup:1.86},
+  {label:'2,000억원 이하', min:1e11,  basic:1.36, detail:3.48, sup:1.79},
+  {label:'3,000억원 이하', min:2e11,  basic:1.28, detail:3.28, sup:1.72},
+  {label:'5,000억원 이하', min:3e11,  basic:1.21, detail:3.11, sup:1.66},
+  {label:'5,000억원 초과', min:5e11,  isFormula:true, basic:null, detail:null, sup:null},
+];
+
+// 기본값 스냅샷
+const B1_DEFAULT = JSON.stringify(B1);
+const B2_DEFAULT = JSON.stringify(B2);
+const B3_DEFAULT = JSON.stringify(B3);
+
+// ────────────────────────────────────────────────
+// 공통 유틸
+// ────────────────────────────────────────────────
+const fmt = v => Math.round(v).toLocaleString('ko-KR');
+const p4  = v => v.toFixed(4)+'%';
+const p2  = v => v.toFixed(2)+'%';
+const r5  = v => Math.round(v/1e5)*1e5;
+
+function toKor(n){
+  if(!n||n<=0) return '';
+  let r=Math.round(n);
+  const jo=Math.floor(r/1e12); r%=1e12;
+  const uk=Math.floor(r/1e8);  r%=1e8;
+  const man=Math.floor(r/1e4); r%=1e4;
+  const won=r;
+  const parts=[];
+  if(jo)  parts.push(jo+'조');
+  if(uk)  parts.push(uk+'억');
+  if(man) parts.push(man+'만');
+  if(won) parts.push(won);
+  return parts.join('')+'원';
+}
+
+function findIdx(rates, cost){
+  let idx=0;
+  for(let i=rates.length-1;i>=0;i--){if(cost>=rates[i].min){idx=i;break;}}
+  return idx;
+}
+
+function interp(cost, X1, X2, Y1, Y2){
+  if(X1===X2) return Y2;
+  return Y2 - (cost-X2)*(Y2-Y1)/(X1-X2);
+}
+
+// 발주방식 배율 정보
+const MODE_INFO = {
+  'basic':    {base:'basic',  mult:1.0, label:'기본설계',          desc:'기본설계 요율 × 1.0'},
+  'detail':   {base:'detail', mult:1.0, label:'실시설계',          desc:'실시설계 요율 × 1.0'},
+  'sup':      {base:'sup',    mult:1.0, label:'공사감리',          desc:'공사감리 요율 × 1.0 (비상주)'},
+  'c-detail': {base:'detail', mult:1.4, label:'기본+실시 동시',    desc:'실시설계 요율 × 1.4 (제13조1호)'},
+  'c-basic':  {base:'basic',  mult:1.3, label:'타당성+기본설계',   desc:'기본설계 요율 × 1.3 (제13조2호)'},
+  'd-only':   {base:'detail', mult:1.3, label:'실시만(기본없이)',  desc:'실시설계 요율 × 1.3 (제13조3호)'},
+};
+
+// ────────────────────────────────────────────────
+// 공통 계산 엔진
+// ────────────────────────────────────────────────
+function calcCore(rates, cost, sectFn, mode, typeMultiplier){
+  const mi = MODE_INFO[mode];
+  const base = mi.base;
+  const idx  = findIdx(rates, cost);
+  const row  = rates[idx];
+
+  let Y2, Y1, X2=row.min, X1, rateRaw;
+
+  if(row.isFormula){
+    // 5,000억 초과: 직전 구간 요율로 extrapolate (단순 처리)
+    rateRaw = sectFn(rates[idx-1], base) || 0;
+  } else {
+    Y2 = sectFn(row, base);
+    if(Y2 == null) return null; // 해당 요율 없음
+
+    if(idx < rates.length-1 && !rates[idx+1].isFormula){
+      X1 = rates[idx+1].min;
+      Y1 = sectFn(rates[idx+1], base);
+      if(Y1==null) Y1=Y2;
+    } else {
+      X1 = row.min===0 ? 1e9 : row.min*2;
+      Y1 = Y2;
+    }
+    rateRaw = interp(cost, X1, X2, Y1, Y2);
+  }
+
+  const rate = rateRaw * mi.mult * (typeMultiplier||1);
+  return {rate, rateRaw, mult:mi.mult*( typeMultiplier||1), idx,
+          X1:X1||X2, X2, Y1:Y1||Y2, Y2,
+          isFormula:!!row.isFormula, label:mi.label, desc:mi.desc};
+}
+
+// ────────────────────────────────────────────────
+// 별표1 — 건설부문
+// ────────────────────────────────────────────────
+let b1Type='road', b1Mode='detail', b1ActiveIdx=-1;
+
+function setB1Type(t){
+  b1Type=t;
+  document.querySelectorAll('#b1-type-btns .sb').forEach(el=>{
+    el.className='sb'+(el.dataset.v===t?' on-blue':'');
+  });
+  // 안내 문구
+  const noteEl=document.getElementById('b1-type-note');
+  if(t==='etc'){
+    noteEl.textContent='※ 전기·건축·기계설비 등 요율표 미작성 분야 → 도로 요율 자동 적용 (별표1 비고5)';
+    noteEl.style.display='';
+  } else {
+    noteEl.style.display='none';
+  }
+  calcB1();
+}
+function setB1Mode(m){
+  b1Mode=m;
+  document.querySelectorAll('#b1-mode-btns .sb').forEach(el=>{
+    el.className='sb'+(el.dataset.v===m?' on-blue':'');
+  });
+  calcB1();
+}
+
+function calcB1(){
+  const cost = parseFloat(document.getElementById('b1-cost').value.replace(/,/g,''))||0;
+  const pm   = parseFloat(document.getElementById('b1-pm').value)||0;
+  const adj  = parseFloat(document.getElementById('b1-adj').value)||1;
+
+  document.getElementById('b1-costHint').textContent = cost>0?`= ${(cost/1e8).toFixed(4)}억 원`:'—';
+  document.getElementById('b1-costKor').textContent  = cost>0?toKor(cost):'';
+  document.getElementById('b1-modeNote').textContent = MODE_INFO[b1Mode].desc;
+
+  // 기타(전기·건축·기계) → 도로 요율 자동 매핑
+  const effectiveType = b1Type==='etc' ? 'road' : b1Type;
+  const sectFn = (row,base) => base==='sup' ? row.sup : row[base][effectiveType];
+
+  if(cost<=0){ clearB1(); return; }
+
+  const res = calcCore(B1, cost, sectFn, b1Mode, 1);
+  if(!res){ clearB1(); return; }
+
+  b1ActiveIdx = res.idx;
+
+  // X1/X2
+  document.getElementById('b1-x1val').textContent  = fmt(res.X1)+' 원';
+  document.getElementById('b1-x2val').textContent  = fmt(res.X2)+' 원';
+  document.getElementById('b1-x1rate').textContent = 'Y1: '+p2(res.Y1||0);
+  document.getElementById('b1-x2rate').textContent = 'Y2: '+p2(res.Y2||0);
+  const typeLabel = {road:'도로',rail:'철도',port:'항만',water:'상수도',etc:'기타(도로적용)'}[b1Type]||'도로';
+  document.getElementById('b1-yLbl').textContent   = res.label+' 보간 요율 ('+typeLabel+')';
+  document.getElementById('b1-yVal').textContent   = p4(res.rateRaw);
+
+  if(res.mult!==1){
+    document.getElementById('b1-multRow').style.display='';
+    document.getElementById('b1-multLbl').textContent = `× ${res.mult.toFixed(1)} 배율 적용 후`;
+    document.getElementById('b1-yFinal').textContent  = p4(res.rate);
+  } else {
+    document.getElementById('b1-multRow').style.display='none';
+  }
+
+  document.getElementById('b1-fml').innerHTML = res.isFormula
+    ? `5,000억원 초과 — 공식 적용 (요율: ${p4(res.rate)})`
+    : `Y = Y2 − (X − X2) × (Y2 − Y1) / (X1 − X2)<br>`+
+      `<span class="fh">= ${p2(res.Y2)} − (${fmt(cost)} − ${fmt(res.X2)})</span><br>`+
+      `<span style="padding-left:1.2em">× (${p2(res.Y2)} − ${p2(res.Y1)}) / (${fmt(res.X1)} − ${fmt(res.X2)})</span><br>`+
+      `<span class="fr">= ${p4(res.rate)}</span>`;
+
+  const fee = r5(cost*res.rate/100);
+  const hasPm = pm>0;
+  const pmAmt = hasPm ? r5(fee*pm/100) : 0;
+  const pmTot = hasPm ? r5(fee+pmAmt) : fee;
+  const est   = r5(pmTot*adj);
+
+  document.getElementById('b1-r-cost').textContent     = fmt(cost)+' 원';
+  document.getElementById('b1-r-rate-lbl').textContent = `× ${res.label} 요율 (${p4(res.rate)})`;
+  document.getElementById('b1-r-fee').textContent      = fmt(fee)+' 원';
+  document.getElementById('b1-r-design').textContent   = fmt(fee)+' 원';
+  document.getElementById('b1-rr-pm').style.display    = hasPm?'':'none';
+  document.getElementById('b1-rr-pmtot').style.display = hasPm?'':'none';
+  document.getElementById('b1-sr-pm').style.display    = hasPm?'':'none';
+  if(hasPm){
+    document.getElementById('b1-r-pm').textContent    = fmt(pmAmt)+' 원';
+    document.getElementById('b1-r-pmtot').textContent = fmt(pmTot)+' 원';
+    document.getElementById('b1-s-pmrate').textContent= (1+pm/100).toFixed(2);
+    document.getElementById('b1-s-pmtot').textContent = fmt(pmTot)+' 원';
+  }
+  document.getElementById('b1-final').textContent    = fmt(est)+' 원';
+  document.getElementById('b1-finalKor').textContent = toKor(est);
+  document.getElementById('b1-s-design').textContent = fmt(fee)+' 원';
+  document.getElementById('b1-s-adjlbl').textContent = hasPm?'③ 견적 조정 (×'+adj+')':'② 견적 조정 (×'+adj+')';
+  document.getElementById('b1-s-final').textContent  = fmt(est)+' 원';
+  document.getElementById('b1-lnote').textContent    = MODE_INFO[b1Mode].desc;
+
+  if(document.getElementById('panel-rate').classList.contains('on')) buildRateTables();
+}
+
+function clearB1(){
+  b1ActiveIdx=-1;
+  ['b1-x1val','b1-x2val','b1-yVal','b1-yFinal','b1-r-cost','b1-r-fee','b1-r-design','b1-r-pm','b1-r-pmtot','b1-final','b1-s-design','b1-s-pmtot','b1-s-final'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent='—';});
+  document.getElementById('b1-x1rate').textContent='Y1: —';
+  document.getElementById('b1-x2rate').textContent='Y2: —';
+  document.getElementById('b1-final').textContent='—';
+  document.getElementById('b1-finalKor').textContent='공사비를 입력해주세요';
+  document.getElementById('b1-fml').textContent='공사비를 입력하면 수식이 표시됩니다.';
+  document.getElementById('b1-multRow').style.display='none';
+}
+
+// ────────────────────────────────────────────────
+// 별표2 — 통신부문
+// ────────────────────────────────────────────────
+let b2Grp='g2', b2Mode='detail', b2ActiveIdx=-1;
+
+function setB2Grp(g){
+  b2Grp=g;
+  document.querySelectorAll('#b2-grp-btns .sb').forEach(el=>{
+    el.className='sb'+(el.dataset.v===g?' on-green':'');
+  });
+  calcB2();
+}
+function setB2Mode(m){
+  b2Mode=m;
+  document.querySelectorAll('#b2-mode-btns .sb').forEach(el=>{
+    el.className='sb'+(el.dataset.v===m?' on-green':'');
+  });
+  calcB2();
+}
+
+function calcB2(){
+  const cost = parseFloat(document.getElementById('b2-cost').value.replace(/,/g,''))||0;
+  const pm   = parseFloat(document.getElementById('b2-pm').value)||0;
+  const adj  = parseFloat(document.getElementById('b2-adj').value)||1;
+
+  document.getElementById('b2-costHint').textContent = cost>0?`= ${(cost/1e8).toFixed(4)}억 원`:'—';
+  document.getElementById('b2-costKor').textContent  = cost>0?toKor(cost):'';
+  document.getElementById('b2-modeNote').textContent = MODE_INFO[b2Mode].desc;
+
+  const sectFn = (row,base) => base==='sup' ? row.sup : row[base][b2Grp];
+
+  if(cost<=0){ clearB2(); return; }
+
+  const res = calcCore(B2, cost, sectFn, b2Mode, 1);
+  if(!res){ clearB2(); return; }
+
+  b2ActiveIdx = res.idx;
+  document.getElementById('b2-x1val').textContent  = fmt(res.X1)+' 원';
+  document.getElementById('b2-x2val').textContent  = fmt(res.X2)+' 원';
+  document.getElementById('b2-x1rate').textContent = 'Y1: '+p2(res.Y1||0);
+  document.getElementById('b2-x2rate').textContent = 'Y2: '+p2(res.Y2||0);
+  document.getElementById('b2-yLbl').textContent   = res.label+' 보간 요율 ('+b2Grp.toUpperCase()+')';
+  document.getElementById('b2-yVal').textContent   = p4(res.rateRaw);
+  if(res.mult!==1){
+    document.getElementById('b2-multRow').style.display='';
+    document.getElementById('b2-multLbl').textContent=`× ${res.mult.toFixed(1)} 배율 적용 후`;
+    document.getElementById('b2-yFinal').textContent=p4(res.rate);
+  } else { document.getElementById('b2-multRow').style.display='none'; }
+
+  document.getElementById('b2-fml').innerHTML = res.isFormula
+    ? `5,000억원 초과 — 공식 적용 (요율: ${p4(res.rate)})`
+    : `Y = Y2 − (X − X2) × (Y2 − Y1) / (X1 − X2)<br>`+
+      `<span class="fh">= ${p2(res.Y2)} − (${fmt(cost)} − ${fmt(res.X2)})</span><br>`+
+      `<span style="padding-left:1.2em">× (${p2(res.Y2)} − ${p2(res.Y1)}) / (${fmt(res.X1)} − ${fmt(res.X2)})</span><br>`+
+      `<span class="fr">= ${p4(res.rate)}</span>`;
+
+  const fee=r5(cost*res.rate/100);
+  const hasPm=pm>0;
+  const pmAmt=hasPm?r5(fee*pm/100):0;
+  const pmTot=hasPm?r5(fee+pmAmt):fee;
+  const est=r5(pmTot*adj);
+
+  document.getElementById('b2-r-cost').textContent     = fmt(cost)+' 원';
+  document.getElementById('b2-r-rate-lbl').textContent = `× ${res.label} 요율 (${p4(res.rate)})`;
+  document.getElementById('b2-r-fee').textContent      = fmt(fee)+' 원';
+  document.getElementById('b2-r-design').textContent   = fmt(fee)+' 원';
+  document.getElementById('b2-rr-pm').style.display    = hasPm?'':'none';
+  document.getElementById('b2-rr-pmtot').style.display = hasPm?'':'none';
+  document.getElementById('b2-sr-pm').style.display    = hasPm?'':'none';
+  if(hasPm){
+    document.getElementById('b2-r-pm').textContent    = fmt(pmAmt)+' 원';
+    document.getElementById('b2-r-pmtot').textContent = fmt(pmTot)+' 원';
+    document.getElementById('b2-s-pmrate').textContent= (1+pm/100).toFixed(2);
+    document.getElementById('b2-s-pmtot').textContent = fmt(pmTot)+' 원';
+  }
+  document.getElementById('b2-final').textContent    = fmt(est)+' 원';
+  document.getElementById('b2-finalKor').textContent = toKor(est);
+  document.getElementById('b2-s-design').textContent = fmt(fee)+' 원';
+  document.getElementById('b2-s-adjlbl').textContent = hasPm?'③ 견적 조정 (×'+adj+')':'② 견적 조정 (×'+adj+')';
+  document.getElementById('b2-s-final').textContent  = fmt(est)+' 원';
+
+  if(document.getElementById('panel-rate').classList.contains('on')) buildRateTables();
+}
+function clearB2(){
+  b2ActiveIdx=-1;
+  ['b2-x1val','b2-x2val','b2-yVal','b2-yFinal','b2-r-cost','b2-r-fee','b2-r-design','b2-final','b2-s-design','b2-s-final'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent='—';});
+  document.getElementById('b2-finalKor').textContent='공사비를 입력해주세요';
+  document.getElementById('b2-fml').textContent='공사비를 입력하면 수식이 표시됩니다.';
+  document.getElementById('b2-multRow').style.display='none';
+}
+
+// ────────────────────────────────────────────────
+// 별표3 — 산업플랜트
+// ────────────────────────────────────────────────
+let b3Type='gen', b3Mode='detail', b3ActiveIdx=-1;
+const B3_MULT = {gen:1.0, chem:1.25, sub:0.813};
+
+function setB3Type(t){
+  b3Type=t;
+  document.querySelectorAll('#b3-type-btns .sb').forEach(el=>{
+    el.className='sb'+(el.dataset.v===t?' on-purple':'');
+  });
+  calcB3();
+}
+function setB3Mode(m){
+  b3Mode=m;
+  document.querySelectorAll('#b3-mode-btns .sb').forEach(el=>{
+    el.className='sb'+(el.dataset.v===m?' on-purple':'');
+  });
+  calcB3();
+}
+
+function calcB3(){
+  const cost = parseFloat(document.getElementById('b3-cost').value.replace(/,/g,''))||0;
+  const pm   = parseFloat(document.getElementById('b3-pm').value)||0;
+  const adj  = parseFloat(document.getElementById('b3-adj').value)||1;
+
+  document.getElementById('b3-costHint').textContent = cost>0?`= ${(cost/1e8).toFixed(4)}억 원`:'—';
+  document.getElementById('b3-costKor').textContent  = cost>0?toKor(cost):'';
+  document.getElementById('b3-modeNote').textContent = MODE_INFO[b3Mode].desc;
+
+  const sectFn = (row,base) => base==='sup' ? row.sup : row[base];
+  const tMult = B3_MULT[b3Type]||1;
+
+  if(cost<=0){ clearB3(); return; }
+
+  const res = calcCore(B3, cost, sectFn, b3Mode, tMult);
+  if(!res){ clearB3(); return; }
+
+  b3ActiveIdx = res.idx;
+  document.getElementById('b3-x1val').textContent  = fmt(res.X1)+' 원';
+  document.getElementById('b3-x2val').textContent  = fmt(res.X2)+' 원';
+  document.getElementById('b3-x1rate').textContent = 'Y1: '+p2((res.Y1||0)*tMult);
+  document.getElementById('b3-x2rate').textContent = 'Y2: '+p2((res.Y2||0)*tMult);
+  document.getElementById('b3-yLbl').textContent   = res.label+' 보간 요율';
+  document.getElementById('b3-yVal').textContent   = p4(res.rateRaw*tMult);
+  if(res.mult!==tMult||b3Type!=='gen'){
+    document.getElementById('b3-multRow').style.display='';
+    const typeLabel={gen:'일반',chem:'화학·가스(×1.250)',sub:'부대시설(×0.813)'}[b3Type];
+    document.getElementById('b3-multLbl').textContent=`${typeLabel} 적용 후`;
+    document.getElementById('b3-yFinal').textContent=p4(res.rate);
+  } else { document.getElementById('b3-multRow').style.display='none'; }
+
+  document.getElementById('b3-fml').innerHTML = res.isFormula
+    ? `5,000억원 초과 — 공식 적용 (요율: ${p4(res.rate)})`
+    : `Y = Y2 − (X − X2) × (Y2 − Y1) / (X1 − X2)<br>`+
+      `<span class="fh">= ${p2(res.Y2)} − (${fmt(cost)} − ${fmt(res.X2)})</span><br>`+
+      `<span style="padding-left:1.2em">× (${p2(res.Y2)} − ${p2(res.Y1)}) / (${fmt(res.X1)} − ${fmt(res.X2)})</span><br>`+
+      `<span class="fr">= ${p4(res.rate)}</span>`;
+
+  const fee=r5(cost*res.rate/100);
+  const hasPm=pm>0;
+  const pmAmt=hasPm?r5(fee*pm/100):0;
+  const pmTot=hasPm?r5(fee+pmAmt):fee;
+  const est=r5(pmTot*adj);
+
+  document.getElementById('b3-r-cost').textContent     = fmt(cost)+' 원';
+  document.getElementById('b3-r-rate-lbl').textContent = `× ${res.label} 요율 (${p4(res.rate)})`;
+  document.getElementById('b3-r-fee').textContent      = fmt(fee)+' 원';
+  document.getElementById('b3-r-design').textContent   = fmt(fee)+' 원';
+  document.getElementById('b3-rr-pm').style.display    = hasPm?'':'none';
+  document.getElementById('b3-rr-pmtot').style.display = hasPm?'':'none';
+  document.getElementById('b3-sr-pm').style.display    = hasPm?'':'none';
+  if(hasPm){
+    document.getElementById('b3-r-pm').textContent    = fmt(pmAmt)+' 원';
+    document.getElementById('b3-r-pmtot').textContent = fmt(pmTot)+' 원';
+    document.getElementById('b3-s-pmrate').textContent= (1+pm/100).toFixed(2);
+    document.getElementById('b3-s-pmtot').textContent = fmt(pmTot)+' 원';
+  }
+  document.getElementById('b3-final').textContent    = fmt(est)+' 원';
+  document.getElementById('b3-finalKor').textContent = toKor(est);
+  document.getElementById('b3-s-design').textContent = fmt(fee)+' 원';
+  document.getElementById('b3-s-adjlbl').textContent = hasPm?'③ 견적 조정 (×'+adj+')':'② 견적 조정 (×'+adj+')';
+  document.getElementById('b3-s-final').textContent  = fmt(est)+' 원';
+
+  if(document.getElementById('panel-rate').classList.contains('on')) buildRateTables();
+}
+function clearB3(){
+  b3ActiveIdx=-1;
+  ['b3-x1val','b3-x2val','b3-yVal','b3-yFinal','b3-r-cost','b3-r-fee','b3-r-design','b3-final','b3-s-design','b3-s-final'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent='—';});
+  document.getElementById('b3-finalKor').textContent='공사비를 입력해주세요';
+  document.getElementById('b3-fml').textContent='공사비를 입력하면 수식이 표시됩니다.';
+  document.getElementById('b3-multRow').style.display='none';
+}
+
+// ────────────────────────────────────────────────
+// 요율표 빌드
+// ────────────────────────────────────────────────
+function makeEditable(td, rates, i, getter, setter){
+  td.classList.add('ed');
+  td.addEventListener('click',function(){
+    if(this.querySelector('input')) return;
+    const inp=document.createElement('input');
+    inp.className='ci'; inp.value=getter().toFixed(2);
+    this.textContent=''; this.appendChild(inp);
+    inp.focus(); inp.select();
+    const save=()=>{
+      const v=parseFloat(inp.value);
+      if(!isNaN(v)&&v>=0) setter(v);
+      buildRateTables(); calcB1(); calcB2(); calcB3();
+    };
+    inp.addEventListener('blur',save);
+    inp.addEventListener('keydown',e=>{if(e.key==='Enter')inp.blur();});
+  });
+}
+
+function buildRateTables(){
+  // 별표1
+  const tb1=document.getElementById('b1-rateBody'); tb1.innerHTML='';
+  B1.forEach((r,i)=>{
+    const tr=document.createElement('tr');
+    if(i===b1ActiveIdx) tr.classList.add('act');
+    const mark=i===b1ActiveIdx?'◀':'';
+    if(r.isFormula){
+      tr.innerHTML=`<td>${r.label}</td>`+
+        `<td colspan="4" style="text-align:center;color:var(--dim);">멱함수 공식</td>`+
+        `<td colspan="4" style="text-align:center;color:var(--dim);">멱함수 공식</td>`+
+        `<td style="text-align:center;color:var(--dim);">공식</td>`+
+        `<td style="text-align:center;">${mark}</td>`;
+    } else {
+      tr.innerHTML=`<td>${r.label}</td>`+
+        ['road','rail','port','water'].map(k=>`<td class="ed" data-sect="basic" data-k="${k}" data-i="${i}">${r.basic[k].toFixed(2)}%</td>`).join('')+
+        ['road','rail','port','water'].map(k=>`<td class="ed" data-sect="detail" data-k="${k}" data-i="${i}">${r.detail[k].toFixed(2)}%</td>`).join('')+
+        `<td class="ed" data-sect="sup" data-i="${i}">${r.sup.toFixed(2)}%</td>`+
+        `<td style="text-align:center;color:var(--blue);font-size:.72rem;">${mark}</td>`;
+      tr.querySelectorAll('td.ed').forEach(td=>{
+        td.addEventListener('click',function(){
+          if(this.querySelector('input')) return;
+          const inp=document.createElement('input'); inp.className='ci';
+          const ii=+this.dataset.i, sect=this.dataset.sect, k=this.dataset.k;
+          inp.value=(sect==='sup'?B1[ii].sup:B1[ii][sect][k]).toFixed(2);
+          this.textContent=''; this.appendChild(inp); inp.focus(); inp.select();
+          const save=()=>{
+            const v=parseFloat(inp.value);
+            if(!isNaN(v)&&v>=0){ if(sect==='sup') B1[ii].sup=v; else B1[ii][sect][k]=v; }
+            buildRateTables(); calcB1();
+          };
+          inp.addEventListener('blur',save);
+          inp.addEventListener('keydown',e=>{if(e.key==='Enter')inp.blur();});
+        });
+      });
+    }
+    tb1.appendChild(tr);
+  });
+
+  // 별표2
+  const tb2=document.getElementById('b2-rateBody'); tb2.innerHTML='';
+  B2.forEach((r,i)=>{
+    const tr=document.createElement('tr');
+    if(i===b2ActiveIdx) tr.classList.add('act');
+    const mark=i===b2ActiveIdx?'◀':'';
+    if(r.isFormula){
+      tr.innerHTML=`<td>${r.label}</td>`+
+        `<td colspan="4" style="text-align:center;color:var(--dim);">멱함수 공식</td>`+
+        `<td colspan="4" style="text-align:center;color:var(--dim);">멱함수 공식</td>`+
+        `<td style="text-align:center;color:var(--dim);">공식</td>`+
+        `<td style="text-align:center;">${mark}</td>`;
+    } else {
+      tr.innerHTML=`<td>${r.label}</td>`+
+        ['g1','g2','g3','g4'].map(k=>`<td class="ed" data-sect="basic" data-k="${k}" data-i="${i}">${r.basic[k].toFixed(2)}%</td>`).join('')+
+        ['g1','g2','g3','g4'].map(k=>`<td class="ed" data-sect="detail" data-k="${k}" data-i="${i}">${r.detail[k].toFixed(2)}%</td>`).join('')+
+        `<td class="ed" data-sect="sup" data-i="${i}">${r.sup.toFixed(2)}%</td>`+
+        `<td style="text-align:center;color:var(--green);font-size:.72rem;">${mark}</td>`;
+      tr.querySelectorAll('td.ed').forEach(td=>{
+        td.addEventListener('click',function(){
+          if(this.querySelector('input')) return;
+          const inp=document.createElement('input'); inp.className='ci';
+          const ii=+this.dataset.i, sect=this.dataset.sect, k=this.dataset.k;
+          inp.value=(sect==='sup'?B2[ii].sup:B2[ii][sect][k]).toFixed(2);
+          this.textContent=''; this.appendChild(inp); inp.focus(); inp.select();
+          const save=()=>{
+            const v=parseFloat(inp.value);
+            if(!isNaN(v)&&v>=0){ if(sect==='sup') B2[ii].sup=v; else B2[ii][sect][k]=v; }
+            buildRateTables(); calcB2();
+          };
+          inp.addEventListener('blur',save);
+          inp.addEventListener('keydown',e=>{if(e.key==='Enter')inp.blur();});
+        });
+      });
+    }
+    tb2.appendChild(tr);
+  });
+
+  // 별표3
+  const tb3=document.getElementById('b3-rateBody'); tb3.innerHTML='';
+  B3.forEach((r,i)=>{
+    const tr=document.createElement('tr');
+    if(i===b3ActiveIdx) tr.classList.add('act');
+    const mark=i===b3ActiveIdx?'◀':'';
+    if(r.isFormula){
+      tr.innerHTML=`<td>${r.label}</td>`+
+        `<td style="text-align:center;color:var(--dim);">공식</td>`+
+        `<td style="text-align:center;color:var(--dim);">공식</td>`+
+        `<td style="text-align:center;color:var(--dim);">공식</td>`+
+        `<td style="text-align:center;">${mark}</td>`;
+    } else {
+      tr.innerHTML=`<td>${r.label}</td>`+
+        `<td class="ed" data-sect="basic" data-i="${i}">${r.basic.toFixed(2)}%</td>`+
+        `<td class="ed" data-sect="detail" data-i="${i}">${r.detail.toFixed(2)}%</td>`+
+        `<td class="ed" data-sect="sup" data-i="${i}">${r.sup.toFixed(2)}%</td>`+
+        `<td style="text-align:center;color:var(--purple);font-size:.72rem;">${mark}</td>`;
+      tr.querySelectorAll('td.ed').forEach(td=>{
+        td.addEventListener('click',function(){
+          if(this.querySelector('input')) return;
+          const inp=document.createElement('input'); inp.className='ci';
+          const ii=+this.dataset.i, sect=this.dataset.sect;
+          inp.value=B3[ii][sect].toFixed(2);
+          this.textContent=''; this.appendChild(inp); inp.focus(); inp.select();
+          const save=()=>{
+            const v=parseFloat(inp.value);
+            if(!isNaN(v)&&v>=0) B3[ii][sect]=v;
+            buildRateTables(); calcB3();
+          };
+          inp.addEventListener('blur',save);
+          inp.addEventListener('keydown',e=>{if(e.key==='Enter')inp.blur();});
+        });
+      });
+    }
+    tb3.appendChild(tr);
+  });
+}
+
+// ────────────────────────────────────────────────
+// 탭 전환
+// ────────────────────────────────────────────────
+function switchMain(t){
+  document.querySelectorAll('.mtab').forEach(el=>el.classList.remove('on'));
+  document.querySelectorAll('.panel').forEach(el=>el.classList.remove('on'));
+  document.getElementById('mtab-'+t).classList.add('on');
+  document.getElementById('panel-'+t).classList.add('on');
+  if(t==='rate') buildRateTables();
+}
+
+// ────────────────────────────────────────────────
+// JSON 저장 / 불러오기 / 기본값 복원
+// ────────────────────────────────────────────────
+function applyGosiInfo(){
+  const gosi = document.getElementById('ioGosi').value.trim();
+  const year = document.getElementById('ioYear').value.trim();
+  // 헤더 고시 정보 업데이트
+  const subEl = document.querySelector('.hdr-sub strong');
+  if(subEl) subEl.textContent = `근거: 엔지니어링사업대가의 기준 (${gosi}, ${year} 시행)`;
+  // 배지 업데이트
+  const badges = document.querySelectorAll('.bdg');
+  if(badges[0]) badges[0].textContent = gosi;
+  // ioVer 업데이트
+  document.getElementById('ioVer').textContent = `현재 요율 (${year})`;
+  // 하단 푸터 업데이트
+  const footer = document.querySelector('.footer-note');
+  if(footer) footer.innerHTML =
+    `※ 본 산출기는 엔지니어링사업대가의 기준 (${gosi}, ${year} 시행) 별표1~3을 기준으로 제작되었습니다.<br>`+
+    `요율 개정 시 [요율표 편집] 탭에서 수정 후 JSON 내보내기로 관리하세요. 본 산출기는 참고용이며 실제 계약 시 최신 고시를 확인하시기 바랍니다.`;
+  const msg=document.getElementById('gosiMsg');
+  msg.textContent='✓ 헤더 반영 완료'; msg.classList.add('show');
+  setTimeout(()=>msg.classList.remove('show'),2500);
+}
+
+function showMsg(txt, id='ioMsg'){
+  const el=document.getElementById(id);
+  if(!el) return;
+  el.textContent=txt; el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'),2500);
+}
+
+function saveJSON(){
+  const gosi = document.getElementById('ioGosi')?document.getElementById('ioGosi').value:'산업통상자원부고시 제2024-217호';
+  const year  = document.getElementById('ioYear')?document.getElementById('ioYear').value:'2024.12.31';
+  const today = new Date().toISOString().slice(0,10);
+  const data = {
+    _version:'엔지니어링대가_설계비산출기',
+    _saved: today,
+    _고시: gosi,
+    _시행: year,
+    B1, B2, B3
+  };
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`엔지니어링대가_요율_${year.replace(/\./g,'')}.json`;
+  a.click();
+  document.getElementById('ioVer').textContent=`저장됨 (${year})`;
+  showMsg('✓ JSON 내보내기 완료');
+}
+
+function loadJSON(e){
+  const file=e.target.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=function(ev){
+    try{
+      const data=JSON.parse(ev.target.result);
+      if(data.B1) B1=data.B1;
+      if(data.B2) B2=data.B2;
+      if(data.B3) B3=data.B3;
+      // 고시정보 복원
+      if(data._고시 && document.getElementById('ioGosi')) document.getElementById('ioGosi').value=data._고시;
+      if(data._시행 && document.getElementById('ioYear')) document.getElementById('ioYear').value=data._시행;
+      buildRateTables(); calcB1(); calcB2(); calcB3();
+      const ver=data._시행||data._date||file.name;
+      document.getElementById('ioVer').textContent=`불러온 요율 (${ver})`;
+      showMsg('✓ 요율 불러오기 완료 — '+ver);
+    } catch(err){
+      showMsg('⚠ JSON 파일 오류: '+err.message);
+    }
+  };
+  reader.readAsText(file);
+  e.target.value='';
+}
+
+function resetRates(){
+  if(!confirm('요율을 기본값(2024.12.31 고시)으로 복원하시겠습니까?')) return;
+  B1=JSON.parse(B1_DEFAULT);
+  B2=JSON.parse(B2_DEFAULT);
+  B3=JSON.parse(B3_DEFAULT);
+  document.getElementById('ioVer').textContent='기본 요율 (2024.12.31)';
+  buildRateTables(); calcB1(); calcB2(); calcB3();
+  showMsg('✓ 기본값 복원 완료');
+}
+
+// ────────────────────────────────────────────────
+// 입력 이벤트 바인딩
+// ────────────────────────────────────────────────
+function bindCostInput(id, calcFn){
+  document.getElementById(id).addEventListener('input',function(){
+    const raw=this.value.replace(/,/g,'').replace(/[^0-9]/g,'');
+    this.value=raw?parseInt(raw,10).toLocaleString('ko-KR'):'';
+    calcFn();
+  });
+}
+bindCostInput('b1-cost', calcB1);
+bindCostInput('b2-cost', calcB2);
+bindCostInput('b3-cost', calcB3);
+
+['b1-pm','b1-adj'].forEach(id=>document.getElementById(id).addEventListener('input',calcB1));
+['b2-pm','b2-adj'].forEach(id=>document.getElementById(id).addEventListener('input',calcB2));
+['b3-pm','b3-adj'].forEach(id=>document.getElementById(id).addEventListener('input',calcB3));
+
+// 초기 실행
+calcB1(); calcB2(); calcB3();
+</script>
+</body>
+</html>

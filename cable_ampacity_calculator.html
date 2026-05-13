@@ -1,0 +1,1109 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>전기 케이블·버스바 허용전류 계산기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Noto+Sans+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ===== 리셋 & 기본 ===== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:           #f5f4f0;
+  --surface:      #ffffff;
+  --surface2:     #f9f8f5;
+  --border:       #e0ddd5;
+  --border2:      #ccc9c0;
+  --text:         #1a1a18;
+  --muted:        #888880;
+  --muted2:       #b0aea6;
+  --accent:       #e8500a;
+  --accent-light: #fdf0eb;
+  --accent-dark:  #c04008;
+  --ok:           #2e7d32;
+  --ok-bg:        #e8f5e9;
+  --warn:         #e65100;
+  --warn-bg:      #fff3e0;
+  --err:          #c62828;
+  --err-bg:       #fce4ec;
+  --info:         #1565c0;
+  --info-bg:      #e3f2fd;
+  --sans:         'Noto Sans KR', sans-serif;
+  --mono:         'Noto Sans Mono', monospace;
+  --radius:       8px;
+  --radius-lg:    12px;
+  --shadow:       0 1px 3px rgba(0,0,0,.08), 0 1px 8px rgba(0,0,0,.04);
+}
+
+html { font-size: 14px; }
+body {
+  font-family: var(--sans);
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+/* ===== 헤더 ===== */
+.site-header {
+  background: var(--text);
+  color: #fff;
+  padding: 0 24px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 8px rgba(0,0,0,.2);
+}
+.header-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  height: 52px;
+  gap: 16px;
+}
+.site-logo {
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: .04em;
+  color: var(--accent);
+  white-space: nowrap;
+}
+.site-title {
+  font-size: 13px;
+  font-weight: 400;
+  color: rgba(255,255,255,.7);
+  border-left: 1px solid rgba(255,255,255,.2);
+  padding-left: 16px;
+}
+.header-spacer { flex: 1; }
+.header-badge {
+  font-size: 10px;
+  font-family: var(--mono);
+  color: rgba(255,255,255,.4);
+  letter-spacing: .06em;
+}
+
+/* ===== 메인 레이아웃 ===== */
+.main-wrap {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px 20px 60px;
+}
+
+/* ===== 탭 ===== */
+.tabs-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+  border-bottom: 1.5px solid var(--border2);
+  margin-bottom: 20px;
+}
+.tab-btn {
+  padding: 9px 16px;
+  font-size: 12px;
+  font-weight: 500;
+  font-family: var(--sans);
+  color: var(--muted);
+  cursor: pointer;
+  border: none;
+  background: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1.5px;
+  transition: color .15s, border-color .15s;
+  white-space: nowrap;
+}
+.tab-btn:hover { color: var(--text); }
+.tab-btn.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  font-weight: 700;
+}
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* ===== 카드 ===== */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 16px 20px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow);
+}
+.card-title {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.card-title::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+/* ===== 그리드 ===== */
+.g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.g3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+.g4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; }
+.g-res { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; }
+
+/* ===== 폼 요소 ===== */
+.field { display: flex; flex-direction: column; gap: 4px; }
+.field-label {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--muted);
+  letter-spacing: .04em;
+}
+select, input[type="number"] {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 12px;
+  font-family: var(--sans);
+  height: 30px;
+  transition: border-color .15s, box-shadow .15s;
+  -webkit-appearance: none;
+}
+select:focus, input[type="number"]:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-light);
+}
+select { cursor: pointer; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 8px center; padding-right: 28px; }
+input[type="number"]::placeholder { color: var(--muted2); }
+
+/* ===== 결과 박스 ===== */
+.result-main {
+  background: var(--accent-light);
+  border: 1px solid #f0c0a0;
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  margin-bottom: 12px;
+}
+.result-main-label { font-size: 10px; color: var(--muted); margin-bottom: 4px; font-weight: 500; }
+.result-main-val { font-size: 28px; font-weight: 700; font-family: var(--mono); color: var(--accent-dark); line-height: 1.1; }
+.result-main-desc { font-size: 11px; color: var(--muted); margin-top: 4px; line-height: 1.4; }
+
+.res-card-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-bottom: 12px; }
+.res-card { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 12px; }
+.res-card-label { font-size: 10px; color: var(--muted); margin-bottom: 4px; }
+.res-card-val { font-size: 18px; font-weight: 600; font-family: var(--mono); color: var(--text); }
+.res-card-unit { font-size: 10px; color: var(--muted); margin-top: 2px; }
+
+/* ===== 디테일 테이블 ===== */
+.detail-rows { border-top: 1px solid var(--border); padding-top: 10px; }
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 11px;
+}
+.detail-row:last-child { border-bottom: none; }
+.detail-row-label { color: var(--muted); }
+.detail-row-val { font-family: var(--mono); font-weight: 500; font-size: 11px; color: var(--text); }
+
+/* ===== 태그 ===== */
+.tag {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 3px 10px;
+  border-radius: 20px;
+  margin-top: 8px;
+}
+.tag-ok  { background: var(--ok-bg);   color: var(--ok); }
+.tag-warn{ background: var(--warn-bg); color: var(--warn); }
+.tag-err { background: var(--err-bg);  color: var(--err); }
+.tag-info{ background: var(--info-bg); color: var(--info); }
+
+/* ===== 참조표 토글 ===== */
+.ref-toggle-btn {
+  font-size: 11px;
+  color: var(--accent);
+  cursor: pointer;
+  border: none;
+  background: none;
+  padding: 0;
+  font-family: var(--sans);
+  font-weight: 500;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 8px;
+}
+.ref-toggle-btn:hover { color: var(--accent-dark); }
+.ref-area { display: none; margin-top: 10px; overflow-x: auto; }
+
+/* ===== 공통 테이블 ===== */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+.data-table th {
+  background: var(--surface2);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--muted);
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  text-align: right;
+  white-space: nowrap;
+}
+.data-table th:first-child, .data-table th:nth-child(2) { text-align: left; }
+.data-table td {
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  text-align: right;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 11px;
+}
+.data-table td:first-child, .data-table td:nth-child(2) {
+  text-align: left;
+  font-family: var(--sans);
+  font-weight: 500;
+  color: var(--muted);
+}
+.data-table tr:hover td { background: #faf9f6; }
+.data-table tr.row-sel td { background: var(--info-bg); color: var(--info); font-weight: 600; }
+.data-table tr.row-group td {
+  background: var(--surface2);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--muted);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+}
+
+/* ===== 인포 박스 ===== */
+.info-box {
+  background: var(--warn-bg);
+  border: 1px solid #f9c784;
+  border-left: 3px solid var(--warn);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  font-size: 11px;
+  color: #5d4037;
+  line-height: 1.6;
+  margin-bottom: 14px;
+}
+.info-box strong { color: var(--text); }
+.info-box-blue {
+  background: var(--info-bg);
+  border: 1px solid #90caf9;
+  border-left: 3px solid var(--info);
+  color: #0d47a1;
+}
+
+/* ===== 버스바 결과 ===== */
+.bb-result-box {
+  background: var(--ok-bg);
+  border: 1px solid #a5d6a7;
+  border-left: 3px solid var(--ok);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  margin-bottom: 12px;
+}
+.bb-result-box.empty {
+  background: var(--surface2);
+  border-color: var(--border);
+  border-left-color: var(--border2);
+}
+.bb-result-val { font-size: 28px; font-weight: 700; font-family: var(--mono); color: var(--ok); }
+.bb-result-val.empty { font-size: 15px; color: var(--muted); }
+.bb-result-desc { font-size: 11px; color: var(--muted); margin-top: 4px; line-height: 1.4; }
+
+.bb-meta-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-bottom: 12px; }
+.bb-meta-card { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 12px; text-align: center; }
+.bb-meta-val { font-size: 18px; font-weight: 600; font-family: var(--mono); color: var(--text); }
+.bb-meta-label { font-size: 10px; color: var(--muted); margin-top: 3px; }
+
+/* ===== 구분선 ===== */
+.divider { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
+
+/* ===== 노트 ===== */
+.note-text {
+  font-size: 10px;
+  color: var(--muted);
+  line-height: 1.6;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+/* ===== 푸터 ===== */
+.site-footer {
+  background: var(--text);
+  color: rgba(255,255,255,.4);
+  font-size: 10px;
+  text-align: center;
+  padding: 16px;
+  margin-top: 0;
+  line-height: 1.8;
+}
+.site-footer strong { color: rgba(255,255,255,.7); }
+
+/* ===== 반응형 ===== */
+@media (max-width: 700px) {
+  .g2, .g3, .g4, .g-res, .res-card-grid, .bb-meta-grid { grid-template-columns: 1fr; }
+  .main-wrap { padding: 16px 14px 40px; }
+  .result-main-val { font-size: 22px; }
+  .bb-result-val { font-size: 22px; }
+}
+
+/* ===== 인쇄 ===== */
+@media print {
+  .site-header, .tabs-wrap, .ref-toggle-btn, .note-text { display: none; }
+  .tab-panel { display: block !important; }
+  .card { box-shadow: none; border: 1px solid #ccc; break-inside: avoid; }
+  body { background: #fff; }
+}
+</style>
+</head>
+<body>
+
+<!-- 헤더 -->
+<header class="site-header">
+  <div class="header-inner">
+    <div class="site-logo">⚡ E-CALC</div>
+    <div class="site-title">전기 케이블·버스바 허용전류 계산기</div>
+    <div class="header-spacer"></div>
+    <div class="header-badge">KEC · KS C IEC 60364-5-52 · KS D 5530</div>
+  </div>
+</header>
+
+<div class="main-wrap">
+
+  <!-- 탭 -->
+  <div class="tabs-wrap">
+    <button class="tab-btn active" onclick="sw('lv')">저압 0.6/1kV 허용전류 계산</button>
+    <button class="tab-btn" onclick="sw('bb')">Bus-Bar 허용전류</button>
+    <button class="tab-btn" onclick="sw('hv229')">22.9kV CNCV 허용전류 표</button>
+    <button class="tab-btn" onclick="sw('hv66')">6/10kV XLPE 허용전류 표</button>
+  </div>
+
+  <!-- ====================================================== -->
+  <!-- LV 탭                                                  -->
+  <!-- ====================================================== -->
+  <div id="panel-lv" class="tab-panel active">
+
+    <div class="card">
+      <div class="card-title">입력 조건</div>
+      <div class="g2" style="margin-bottom:10px">
+        <div class="field">
+          <span class="field-label">절연체 종류</span>
+          <select id="insul" onchange="calc()">
+            <option value="xlpe">XLPE / 90°C (CV, HFCO, TFR-CV 등)</option>
+            <option value="pvc">PVC / 70°C (IV, VV, F-CV 등)</option>
+          </select>
+        </div>
+        <div class="field">
+          <span class="field-label">심선 구성</span>
+          <select id="cores" onchange="calc()">
+            <option value="3multi">3상 다심 (3C/4C)</option>
+            <option value="1single">3상 단심 (1C × 3)</option>
+            <option value="2multi">단상 다심 (2C)</option>
+            <option value="2single">단상 단심 (1C × 2)</option>
+          </select>
+        </div>
+      </div>
+      <div class="g3" style="margin-bottom:10px">
+        <div class="field">
+          <span class="field-label">공사방법</span>
+          <select id="method" onchange="calc()">
+            <option value="A1">A1 — 단열벽 속 전선관 (단심)</option>
+            <option value="A2">A2 — 단열벽 속 전선관 (다심)</option>
+            <option value="B1">B1 — 벽면 전선관 (단심)</option>
+            <option value="B2">B2 — 벽면 전선관 (다심)</option>
+            <option value="C">C — 벽면 직접 포설 / 비천공 트레이</option>
+            <option value="D1">D1 — 지중 전선관·덕트 내</option>
+            <option value="D2">D2 — 지중 직매</option>
+            <option value="E">E — 천공형 트레이 (다심)</option>
+            <option value="F">F — 천공형 트레이 (단심)</option>
+            <option value="G">G — 애자·자유공기 중</option>
+          </select>
+        </div>
+        <div class="field">
+          <span class="field-label">주위온도</span>
+          <select id="temp" onchange="calc()">
+            <option value="25">25°C</option>
+            <option value="30" selected>30°C (기준)</option>
+            <option value="35">35°C</option>
+            <option value="40">40°C</option>
+            <option value="45">45°C</option>
+            <option value="50">50°C</option>
+            <option value="55">55°C</option>
+            <option value="60">60°C</option>
+          </select>
+        </div>
+        <div class="field">
+          <span class="field-label">복수회로 수 (묶음)</span>
+          <select id="circuits" onchange="calc()">
+            <option value="1">1회로 (단독)</option>
+            <option value="2">2회로</option>
+            <option value="3">3회로</option>
+            <option value="4">4회로</option>
+            <option value="5">5회로</option>
+            <option value="6">6회로</option>
+            <option value="7">7회로</option>
+            <option value="8">8회로</option>
+            <option value="9">9회로</option>
+          </select>
+        </div>
+      </div>
+      <div class="g2">
+        <div class="field">
+          <span class="field-label">케이블 공칭 단면적 (mm²)</span>
+          <select id="size" onchange="calc()">
+            <option>1.5</option><option>2.5</option><option>4</option><option>6</option>
+            <option>10</option><option>16</option><option value="25" selected>25</option>
+            <option>35</option><option>50</option><option>70</option><option>95</option>
+            <option>120</option><option>150</option><option>185</option><option>240</option><option>300</option>
+          </select>
+        </div>
+        <div class="field">
+          <span class="field-label">설계 전류 IB (A) — 비교 판정용</span>
+          <input type="number" id="ib" placeholder="예: 85" oninput="calc()" min="0">
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">보정 허용전류 결과</div>
+      <div class="result-main">
+        <div class="result-main-label">보정 허용전류 Iz (= Iz0 × Ca × Cg)</div>
+        <div class="result-main-val" id="r-iz">— A</div>
+        <div class="result-main-desc" id="r-desc">조건을 선택하면 자동 계산됩니다</div>
+      </div>
+      <div class="res-card-grid">
+        <div class="res-card">
+          <div class="res-card-label">기준 허용전류 Iz0</div>
+          <div class="res-card-val" id="r-iz0">—</div>
+          <div class="res-card-unit">A &nbsp;(30°C 기준)</div>
+        </div>
+        <div class="res-card">
+          <div class="res-card-label">온도 보정계수 Ca</div>
+          <div class="res-card-val" id="r-ca">—</div>
+          <div class="res-card-unit">× 주위온도 보정</div>
+        </div>
+        <div class="res-card">
+          <div class="res-card-label">복수회로 저감계수 Cg</div>
+          <div class="res-card-val" id="r-cg">—</div>
+          <div class="res-card-unit">× 묶음 저감</div>
+        </div>
+      </div>
+      <div class="detail-rows">
+        <div class="detail-row"><span class="detail-row-label">공사방법</span><span class="detail-row-val" id="d-method">—</span></div>
+        <div class="detail-row"><span class="detail-row-label">케이블 단면적</span><span class="detail-row-val" id="d-size">—</span></div>
+        <div class="detail-row"><span class="detail-row-label">총 보정계수 (Ca × Cg)</span><span class="detail-row-val" id="d-total">—</span></div>
+        <div class="detail-row"><span class="detail-row-label">설계전류 IB 여유율</span><span class="detail-row-val" id="d-margin">—</span></div>
+      </div>
+      <div id="d-tag"></div>
+      <div class="note-text">
+        ※ KS C IEC 60364-5-52 부속서 B 기준 (KESC 2026, 표 5-33·5-34·5-35·5-36 적용) &nbsp;|&nbsp;
+        Cu 도체 기준. 기준 주위온도 기중 30°C, 지중 20°C<br>
+        본 계산기는 참고용이며, 최종 설계는 관련 법규 및 전문가 검토가 필요합니다.
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">허용전류 참조표</div>
+      <button class="ref-toggle-btn" onclick="togRef()">▶ 현재 조건 전체 단면적별 허용전류 표 펼치기</button>
+      <div id="ref-area" class="ref-area">
+        <div id="ref-wrap"></div>
+      </div>
+    </div>
+
+  </div><!-- /panel-lv -->
+
+
+  <!-- ====================================================== -->
+  <!-- BUS-BAR 탭                                             -->
+  <!-- ====================================================== -->
+  <div id="panel-bb" class="tab-panel">
+
+    <!-- ① 조건 선택 — 전체 폭 -->
+    <div class="card">
+      <div class="card-title">버스바 조건 선택</div>
+      <div class="g3" style="margin-bottom:10px">
+        <div class="field">
+          <span class="field-label">재질</span>
+          <select id="bb-mat" onchange="bbCalc()">
+            <option value="cu">동 (Cu) — KS D 5530</option>
+            <option value="al">알루미늄 (Al)</option>
+          </select>
+        </div>
+        <div class="field">
+          <span class="field-label">부설 방향</span>
+          <select id="bb-dir" onchange="bbCalc()">
+            <option value="h">수평 부설</option>
+            <option value="v">수직 부설 (+6%)</option>
+          </select>
+        </div>
+        <div class="field">
+          <span class="field-label">병렬 매수</span>
+          <select id="bb-n" onchange="bbCalc()">
+            <option value="1">1매</option>
+            <option value="2">2매</option>
+            <option value="3">3매</option>
+          </select>
+        </div>
+      </div>
+      <div class="g3" style="margin-bottom:10px">
+        <div class="field">
+          <span class="field-label">두께 (mm)</span>
+          <select id="bb-t" onchange="bbUpdateW();bbCalc()">
+            <option value="3">3</option><option value="4">4</option>
+            <option value="5">5</option><option value="6">6</option>
+            <option value="8">8</option><option value="10">10</option>
+          </select>
+        </div>
+        <div class="field">
+          <span class="field-label">폭 (mm)</span>
+          <select id="bb-w" onchange="bbCalc()"></select>
+        </div>
+        <div class="field">
+          <span class="field-label">표면 처리</span>
+          <select id="bb-coat" onchange="bbCalc()">
+            <option value="1.00">무처리 (×1.00)</option>
+            <option value="1.15">은도금 (×1.15)</option>
+            <option value="1.20">흑색 도장 (×1.20)</option>
+          </select>
+        </div>
+      </div>
+      <div class="g2">
+        <div class="field">
+          <span class="field-label">전류 종류</span>
+          <select id="bb-ac" onchange="bbCalc()">
+            <option value="ac">AC (교류)</option>
+            <option value="dc">DC (직류)</option>
+          </select>
+        </div>
+        <div class="field">
+          <span class="field-label">비교 설계전류 (A)</span>
+          <input type="number" id="bb-ib" placeholder="예: 1200" oninput="bbCalc()" min="0">
+        </div>
+      </div>
+    </div>
+
+    <!-- ② 결과 — 전체 폭 -->
+    <div class="card">
+      <div class="card-title">버스바 허용전류 결과</div>
+      <div id="bb-result-box" class="bb-result-box empty">
+        <div class="bb-result-val empty" id="bb-iz">규격을 선택하세요</div>
+        <div class="bb-result-desc" id="bb-desc">—</div>
+      </div>
+      <div class="bb-meta-grid">
+        <div class="bb-meta-card">
+          <div class="bb-meta-val" id="bb-area">—</div>
+          <div class="bb-meta-label">단면적 (mm²)</div>
+        </div>
+        <div class="bb-meta-card">
+          <div class="bb-meta-val" id="bb-density">—</div>
+          <div class="bb-meta-label">전류밀도 (A/mm²)</div>
+        </div>
+        <div class="bb-meta-card">
+          <div class="bb-meta-val" id="bb-coef">—</div>
+          <div class="bb-meta-label">표면처리 계수</div>
+        </div>
+      </div>
+      <div id="bb-tag"></div>
+      <div class="note-text">
+        ※ KS D 5530 기준 (Cu 수평 부설) &nbsp;|&nbsp; 수직 부설 ×1.06 / 은도금 ×1.15 / 흑색도장 ×1.20 적용<br>
+        Al 허용전류 = Cu 허용전류 × 0.65 (근사치). 본 계산기는 참고용이며 최종 설계 시 전문가 검토 필요.
+      </div>
+    </div>
+
+    <!-- ③ 참조표 — 토글 방식 (3개 각각 독립) -->
+    <div class="card">
+      <div class="card-title">허용전류 참조표</div>
+
+      <button class="ref-toggle-btn" onclick="togBBRef('h')" id="bb-tog-h">
+        ▶ 동(Cu) 수평 부설 — KS D 5530 전체 표 펼치기
+      </button>
+      <div id="bb-ref-h" class="ref-area" style="margin-bottom:8px">
+        <table class="data-table" id="bb-table-h"></table>
+      </div>
+
+      <button class="ref-toggle-btn" onclick="togBBRef('v')" id="bb-tog-v" style="margin-top:6px">
+        ▶ 동(Cu) 수직 부설 (×1.06) — 전체 표 펼치기
+      </button>
+      <div id="bb-ref-v" class="ref-area" style="margin-bottom:8px">
+        <table class="data-table" id="bb-table-v"></table>
+      </div>
+
+      <button class="ref-toggle-btn" onclick="togBBRef('al')" id="bb-tog-al" style="margin-top:6px">
+        ▶ 알루미늄(Al) 수평 부설 (Cu × 0.65) — 전체 표 펼치기
+      </button>
+      <div id="bb-ref-al" class="ref-area">
+        <table class="data-table" id="bb-table-al"></table>
+        <div class="note-text">※ Al 버스바 비중 2.7 g/cm³ (Cu 8.93 g/cm³). Al 허용전류는 제조사 사양을 우선 적용하십시오.</div>
+      </div>
+    </div>
+
+  </div><!-- /panel-bb -->
+
+
+  <!-- ====================================================== -->
+  <!-- 22.9kV 탭                                              -->
+  <!-- ====================================================== -->
+  <div id="panel-hv229" class="tab-panel">
+
+    <div class="info-box">
+      <strong>포설 기준</strong> &nbsp;|&nbsp; 기중 <strong>40°C</strong> · 지중 <strong>25°C</strong> · 매설깊이 1.4m · 토양열저항 <strong>1.0 K·m/W</strong> · 도체최고온도 90°C<br>
+      출처: 가온전선 카탈로그 (KS C IEC 60502-2) — 22.9kV-y 특고압 배전 케이블
+    </div>
+
+    <div class="card" style="overflow-x:auto">
+      <div class="card-title">FR CNCO-W / TR CNCE-W — Cu 도체 (다심)</div>
+      <table class="data-table">
+        <thead><tr><th style="text-align:left">단면적(mm²)</th><th>38</th><th>60</th><th>100</th><th>150</th><th>200</th><th>250</th><th>325</th><th>400</th><th>500</th><th>600</th></tr></thead>
+        <tbody><tr><td>허용전류 (A)</td><td>168</td><td>220</td><td>287</td><td>354</td><td>408</td><td>448</td><td>496</td><td>531</td><td>557</td><td>579</td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="card" style="overflow-x:auto">
+      <div class="card-title">FR CNCO-W/AL / TR CNCE-W/AL — Al 도체 (단심)</div>
+      <table class="data-table">
+        <thead><tr><th style="text-align:left">단면적(mm²)</th><th>95</th><th>240</th><th>400</th><th>500</th><th>630</th></tr></thead>
+        <tbody><tr><td>허용전류 (A)</td><td>227</td><td>378</td><td>473</td><td>527</td><td>577</td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="card" style="overflow-x:auto">
+      <div class="card-title">보정계수 — 토양 온도</div>
+      <table class="data-table">
+        <thead><tr><th style="text-align:left">토양온도</th><th>10°C</th><th>15°C</th><th>20°C</th><th>30°C</th><th>35°C</th><th>40°C</th><th>45°C</th><th>50°C</th></tr></thead>
+        <tbody><tr><td>보정계수</td><td>1.11</td><td>1.08</td><td>1.04</td><td>0.96</td><td>0.92</td><td>0.88</td><td>0.83</td><td>0.78</td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="card" style="overflow-x:auto">
+      <div class="card-title">보정계수 — 토양 열저항 (°C·m/W)</div>
+      <table class="data-table">
+        <thead><tr><th style="text-align:left">열저항</th><th>0.7</th><th>1.0 (기준)</th><th>1.2</th><th>1.5</th><th>2.0</th><th>2.5</th><th>3.0</th></tr></thead>
+        <tbody><tr><td>보정계수</td><td>1.14</td><td>1.00</td><td>0.93</td><td>0.84</td><td>0.74</td><td>0.67</td><td>0.61</td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="card" style="overflow-x:auto">
+      <div class="card-title">보정계수 — 매설깊이</div>
+      <table class="data-table">
+        <thead><tr><th style="text-align:left">깊이(m)</th><th>0.5</th><th>0.6</th><th>1.0</th><th>1.25</th><th>1.5</th><th>2.0</th><th>2.5</th><th>3.0</th></tr></thead>
+        <tbody>
+          <tr><td>직매 ≤185</td><td>1.04</td><td>1.02</td><td>0.98</td><td>0.96</td><td>0.95</td><td>0.93</td><td>0.91</td><td>0.90</td></tr>
+          <tr><td>직매 &gt;185</td><td>1.06</td><td>1.04</td><td>0.97</td><td>0.95</td><td>0.93</td><td>0.90</td><td>0.88</td><td>0.86</td></tr>
+          <tr><td>덕트 ≤185</td><td>1.04</td><td>1.02</td><td>0.98</td><td>0.96</td><td>0.95</td><td>0.93</td><td>0.91</td><td>0.90</td></tr>
+          <tr><td>덕트 &gt;185</td><td>1.05</td><td>1.03</td><td>0.97</td><td>0.95</td><td>0.93</td><td>0.91</td><td>0.89</td><td>0.88</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note-text" style="border:none;padding:0;margin-top:-8px">
+      ※ 가온전선 카탈로그 (KS C IEC 60502-2) 기준. 참고용이며 최종 설계 시 제조사 기술자료를 반드시 확인하십시오.
+    </div>
+
+  </div><!-- /panel-hv229 -->
+
+
+  <!-- ====================================================== -->
+  <!-- 6/10kV 탭                                              -->
+  <!-- ====================================================== -->
+  <div id="panel-hv66" class="tab-panel">
+
+    <div class="info-box">
+      <strong>포설 기준</strong> &nbsp;|&nbsp; 기중 <strong>30°C</strong> · 지중 <strong>20°C</strong> · 매설깊이 0.8m · 토양열저항 <strong>1.5 K·m/W</strong> (덕트 1.2 K·m/W) · 도체최고온도 90°C<br>
+      출처: 가온전선 카탈로그 (KS C IEC 60502-2) — 6/10kV XLPE 절연 케이블 (3.6/6kV ~ 18/30kV 포함)
+    </div>
+
+    <div class="card" style="overflow-x:auto">
+      <div class="card-title">단심 3선식 (1C×3) — 기중 / 관로 / 직매 허용전류 (단위: A)</div>
+      <table class="data-table" id="t66-main"></table>
+    </div>
+
+    <div class="card" style="overflow-x:auto">
+      <div class="card-title">주위온도 보정계수</div>
+      <table class="data-table">
+        <thead><tr><th style="text-align:left">온도</th><th>20</th><th>25</th><th>30(기준)</th><th>35</th><th>40</th><th>45</th><th>50</th><th>55</th><th>60</th></tr></thead>
+        <tbody>
+          <tr><td>기중포설</td><td>1.08</td><td>1.04</td><td>1.00</td><td>0.96</td><td>0.91</td><td>0.87</td><td>0.82</td><td>0.76</td><td>0.71</td></tr>
+          <tr><td>직매·관로</td><td>1.00</td><td>0.96</td><td>0.93</td><td>0.89</td><td>0.85</td><td>0.80</td><td>0.76</td><td>—</td><td>—</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card" style="overflow-x:auto">
+      <div class="card-title">토양 열저항률 보정계수</div>
+      <table class="data-table">
+        <thead><tr><th style="text-align:left">K·m/W</th><th>0.7</th><th>0.8</th><th>0.9</th><th>1.0</th><th>2.0</th><th>2.5</th><th>3.0</th></tr></thead>
+        <tbody>
+          <tr><td>보정 (덕트)</td><td>1.12</td><td>1.11</td><td>1.09</td><td>1.08</td><td>0.90</td><td>0.83</td><td>0.77</td></tr>
+          <tr><td>보정 (직매)</td><td>1.23</td><td>1.19</td><td>1.16</td><td>1.13</td><td>0.88</td><td>0.79</td><td>0.73</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note-text" style="border:none;padding:0;margin-top:-8px">
+      ※ 가온전선 카탈로그 (KS C IEC 60502-2) 기준. 참고용이며 최종 설계 시 제조사 기술자료를 반드시 확인하십시오.
+    </div>
+
+  </div><!-- /panel-hv66 -->
+
+</div><!-- /main-wrap -->
+
+<footer class="site-footer">
+  <strong>전기 케이블·버스바 허용전류 계산기</strong><br>
+  KS C IEC 60364-5-52 · KS C IEC 60502-2 · KS D 5530 · KESC 2026 기준 &nbsp;|&nbsp;
+  가온전선 카탈로그 참조<br>
+  본 계산기는 참고용이며, 최종 설계는 관련 법규 및 공인 전기기술사의 검토가 필요합니다.
+</footer>
+
+<script>
+/* ============================================================ */
+/* LV 데이터                                                    */
+/* ============================================================ */
+const SIZES=[1.5,2.5,4,6,10,16,25,35,50,70,95,120,150,185,240,300];
+const IZ={
+  xlpe:{
+    "3multi":{A1:[22,30,40,51,70,94,119,147,178,226,274,316,361,412,484,555],A2:[22,30,40,51,70,94,119,147,178,226,274,316,361,412,484,555],B1:[26,36,49,63,86,115,149,185,225,289,352,410,473,542,641,741],B2:[26,36,49,63,86,115,149,185,225,289,352,410,473,542,641,741],C:[31,42,57,73,100,133,173,213,260,334,409,481,557,641,761,881],D1:[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],D2:[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],E:[36,49,66,83,113,150,192,235,286,362,441,516,590,670,786,900],F:[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],G:[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null]},
+    "1single":{A1:[22,30,40,51,70,94,119,147,178,226,274,316,361,412,484,555],A2:[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],B1:[28,38,52,68,90,120,156,194,238,303,367,424,485,548,641,741],B2:[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],C:[31,42,57,73,100,133,176,218,267,344,422,500,582,671,795,920],D1:[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],D2:[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],E:[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],F:[40,54,73,95,130,172,220,271,330,427,523,618,714,825,980,1130],G:[46,63,85,110,150,200,260,320,390,510,635,750,855,1000,1185,1335]},
+    "2multi":{A1:[25,34,45,57,76,100,127,158,192,246,298,346,394,447,523,598],A2:[25,34,45,57,76,100,127,158,192,246,298,346,394,447,523,598],B1:[30,40,54,71,96,130,169,207,253,324,394,463,533,614,729,842],B2:[30,40,54,71,96,130,169,207,253,324,394,463,533,614,729,842],C:[36,49,66,83,113,151,196,238,289,369,447,523,596,677,797,915],D1:[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],D2:[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],E:[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],F:[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],G:[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null]},
+    "2single":{A1:[25,34,45,57,76,100,127,158,192,246,298,346,394,447,523,598],A2:[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],B1:[30,40,54,71,96,130,173,214,261,335,410,484,557,647,770,891],B2:[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],C:[36,49,66,83,113,151,198,245,298,381,463,546,629,724,856,988],D1:[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],D2:[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],E:[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],F:[44,59,80,104,143,192,250,308,375,481,587,695,806,937,1120,1306],G:[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null]}
+  },
+  pvc:{
+    "3multi":{A1:[13.5,18,24,31,42,56,73,89,108,136,164,188,216,245,286,328],A2:[13.5,18,24,31,42,56,73,89,108,136,164,188,216,245,286,328],B1:[17.5,24,32,41,57,76,99,121,145,183,220,253,290,329,386,442],B2:[17.5,24,32,41,57,76,99,121,145,183,220,253,290,329,386,442],C:[19.5,27,36,46,63,85,112,138,168,213,258,299,344,392,461,530],D1:[22,29,38,46,63,81,103,125,150,192,230,264,300,340,398,455],D2:[22,29,38,46,63,81,103,125,150,192,230,264,300,340,398,455],E:[22,30,40,51,70,94,119,147,178,226,274,316,361,412,484,555],F:[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],G:[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null]},
+    "1single":{A1:[13.5,18,24,31,42,56,73,89,108,136,164,188,216,245,286,328],A2:[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],B1:[19.5,26,35,45,61,81,106,131,158,200,241,278,318,362,424,486],B2:[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],C:[22,30,40,51,70,94,119,147,178,226,274,316,361,412,484,555],D1:[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],D2:[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],E:[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],F:[26,36,49,63,86,115,149,185,225,289,352,410,473,542,641,741],G:[33,45,60,78,107,143,186,230,282,365,448,530,617,718,856,994]},
+    "2multi":{A1:[14.5,19.5,26,34,46,61,80,99,119,151,182,210,240,273,320,367],A2:[14.5,19.5,26,34,46,61,80,99,119,151,182,210,240,273,320,367],B1:[22,29,38,47,65,87,114,140,169,213,257,296,335,384,451,519],B2:[22,29,38,47,65,87,114,140,169,213,257,296,335,384,451,519],C:[24,32,43,54,75,100,127,157,190,242,295,341,386,442,520,598],D1:[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],D2:[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],E:[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],F:[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],G:[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null]},
+    "2single":{A1:[14.5,19.5,26,34,46,61,80,99,119,151,182,210,240,273,320,367],A2:[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],B1:[22,29,38,47,65,87,114,140,169,213,257,296,335,384,451,519],B2:[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],C:[24,32,43,54,75,100,127,157,190,242,295,341,386,442,520,598],D1:[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],D2:[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],E:[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],F:[28,38,52,67,92,123,160,195,237,301,365,424,483,555,650,746],G:[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null]}
+  }
+};
+const CA={
+  xlpe:{25:1.04,30:1.00,35:0.96,40:0.91,45:0.87,50:0.82,55:0.76,60:0.71},
+  pvc: {25:1.04,30:1.00,35:0.94,40:0.87,45:0.79,50:0.71,55:0.61,60:0.50}
+};
+const CG={
+  "A1-1":[1,.80,.70,.65,.60,.57,.54,.52,.50],
+  "A2-1":[1,.80,.70,.65,.60,.57,.54,.52,.50],
+  "B1-1":[1,.80,.70,.65,.60,.57,.54,.52,.50],
+  "B2-1":[1,.80,.70,.65,.60,.57,.54,.52,.50],
+  "C-2": [1,.85,.79,.75,.73,.72,.72,.71,.70],
+  "E-4": [1,.88,.82,.77,.75,.73,.73,.72,.72],
+  "F-4": [1,.88,.82,.77,.75,.73,.73,.72,.72],
+  "D1-A":[1,.85,.75,.70,.65,.60,.57,.54,.52],
+  "D2-1":[1,.75,.65,.60,.55,.50,.45,.43,.41],
+  "G":   [1,1,1,1,1,1,1,1,1]
+};
+const ML={
+  A1:"A1 — 단열벽 속 전선관 (단심)",A2:"A2 — 단열벽 속 전선관 (다심)",
+  B1:"B1 — 벽면 전선관 (단심)",B2:"B2 — 벽면 전선관 (다심)",
+  C:"C — 벽면 직접 포설 / 비천공 트레이",
+  D1:"D1 — 지중 전선관·덕트 내",D2:"D2 — 지중 직매",
+  E:"E — 천공형 트레이 (다심)",F:"F — 천공형 트레이 (단심)",
+  G:"G — 애자·자유공기 중"
+};
+function gk(m){return{A1:"A1-1",A2:"A2-1",B1:"B1-1",B2:"B2-1",C:"C-2",D1:"D1-A",D2:"D2-1",E:"E-4",F:"F-4",G:"G"}[m]||"A1-1";}
+
+let refVis=false;
+function calc(){
+  const insul=document.getElementById("insul").value;
+  const cores=document.getElementById("cores").value;
+  const method=document.getElementById("method").value;
+  const temp=parseInt(document.getElementById("temp").value);
+  const nc=parseInt(document.getElementById("circuits").value)-1;
+  const size=parseFloat(document.getElementById("size").value);
+  const ibv=document.getElementById("ib").value;
+  const ib=ibv?parseFloat(ibv):null;
+  const si=SIZES.indexOf(size);
+  const row=IZ[insul][cores][method];
+  const iz0=row?row[si]:null;
+  const ca=CA[insul][temp]||1;
+  const cga=CG[gk(method)];
+  const cg=cga?cga[Math.min(nc,cga.length-1)]:1;
+
+  document.getElementById("r-ca").textContent=ca.toFixed(2);
+  document.getElementById("r-cg").textContent=cg.toFixed(2);
+
+  if(iz0===null||iz0===undefined){
+    document.getElementById("r-iz").textContent="적용 불가";
+    document.getElementById("r-iz0").textContent="—";
+    document.getElementById("r-desc").textContent="해당 공사방법 / 심선 조합은 이 표에 정의되지 않습니다";
+    document.getElementById("d-method").textContent=ML[method];
+    document.getElementById("d-size").textContent=size+" mm²";
+    document.getElementById("d-total").textContent="—";
+    document.getElementById("d-margin").textContent="—";
+    document.getElementById("d-tag").innerHTML="";
+    if(refVis)buildRef();return;
+  }
+  const iz=iz0*ca*cg;
+  document.getElementById("r-iz").textContent=iz.toFixed(1)+" A";
+  document.getElementById("r-iz0").textContent=iz0;
+  const coresLabel={"3multi":"3상 다심","1single":"3상 단심","2multi":"단상 다심","2single":"단상 단심"};
+  document.getElementById("r-desc").textContent=`${insul==="xlpe"?"XLPE 90°C":"PVC 70°C"} / ${size} mm² / ${coresLabel[cores]} / ${ML[method].split("—")[0].trim()} / ${document.getElementById("circuits").options[nc].text}`;
+  document.getElementById("d-method").textContent=ML[method];
+  document.getElementById("d-size").textContent=size+" mm²";
+  document.getElementById("d-total").textContent=(ca*cg).toFixed(3);
+  if(ib!==null){
+    const m=((iz-ib)/ib*100);
+    document.getElementById("d-margin").textContent=(m>=0?"+":"")+m.toFixed(1)+"% &nbsp;(IB="+ib.toFixed(0)+"A, Iz="+iz.toFixed(1)+"A)";
+    document.getElementById("d-tag").innerHTML=
+      iz>=ib&&m>=10?`<span class="tag tag-ok">✓ 적합 — 여유 ${m.toFixed(1)}%</span>`:
+      iz>=ib?`<span class="tag tag-warn">△ 적합하나 여유 부족 (${m.toFixed(1)}%)</span>`:
+      `<span class="tag tag-err">✗ 허용전류 초과 — 단면적 증가 필요</span>`;
+  } else {
+    document.getElementById("d-margin").textContent="IB 미입력";
+    document.getElementById("d-tag").innerHTML="";
+  }
+  if(refVis)buildRef();
+}
+
+function togRef(){
+  refVis=!refVis;
+  document.getElementById("ref-area").style.display=refVis?"block":"none";
+  document.querySelector(".ref-toggle-btn").textContent=refVis?"▼ 참조표 접기":"▶ 현재 조건 전체 단면적별 허용전류 표 펼치기";
+  if(refVis)buildRef();
+}
+
+function buildRef(){
+  const insul=document.getElementById("insul").value;
+  const cores=document.getElementById("cores").value;
+  const method=document.getElementById("method").value;
+  const selSize=parseFloat(document.getElementById("size").value);
+  const ca=CA[insul][parseInt(document.getElementById("temp").value)]||1;
+  const nc=parseInt(document.getElementById("circuits").value)-1;
+  const cga=CG[gk(method)];
+  const cg=cga?cga[Math.min(nc,cga.length-1)]:1;
+  const row=IZ[insul][cores][method];
+  let h=`<table class="data-table"><thead><tr><th>mm²</th><th>Iz0 (A)</th><th>× Ca ${ca.toFixed(2)}</th><th>× Cg ${cg.toFixed(2)}</th><th>Iz (A)</th></tr></thead><tbody>`;
+  SIZES.forEach((s,i)=>{
+    const v=row?row[i]:null;
+    const sel=s===selSize?" class='row-sel'":"";
+    h+=`<tr${sel}><td>${s}</td><td>${v||"—"}</td><td>${v?(v*ca).toFixed(1):"—"}</td><td>${v?(v*cg).toFixed(1):"—"}</td><td>${v?(v*ca*cg).toFixed(1):"—"}</td></tr>`;
+  });
+  document.getElementById("ref-wrap").innerHTML=h+"</tbody></table>";
+}
+
+/* ============================================================ */
+/* BUS-BAR 데이터 (KS D 5530 Cu 수평부설)                      */
+/* ============================================================ */
+const BB_CU=[
+  {t:3,w:20,a:60,dc1:225,ac1:225,dc2:null,ac2:null,dc3:null,ac3:null},
+  {t:3,w:25,a:75,dc1:275,ac1:275,dc2:null,ac2:null,dc3:null,ac3:null},
+  {t:3,w:30,a:90,dc1:320,ac1:320,dc2:null,ac2:null,dc3:null,ac3:null},
+  {t:3,w:50,a:150,dc1:430,ac1:425,dc2:null,ac2:null,dc3:null,ac3:null},
+  {t:4,w:30,a:120,dc1:380,ac1:375,dc2:null,ac2:null,dc3:null,ac3:null},
+  {t:4,w:40,a:160,dc1:485,ac1:430,dc2:null,ac2:null,dc3:null,ac3:null},
+  {t:5,w:30,a:150,dc1:430,ac1:425,dc2:null,ac2:null,dc3:null,ac3:null},
+  {t:5,w:40,a:200,dc1:550,ac1:520,dc2:null,ac2:null,dc3:null,ac3:null},
+  {t:5,w:50,a:250,dc1:660,ac1:650,dc2:null,ac2:null,dc3:null,ac3:null},
+  {t:5,w:60,a:300,dc1:780,ac1:760,dc2:null,ac2:null,dc3:null,ac3:null},
+  {t:5,w:75,a:375,dc1:950,ac1:730,dc2:1920,ac2:1790,dc3:null,ac3:null},
+  {t:6,w:30,a:180,dc1:480,ac1:470,dc2:null,ac2:null,dc3:null,ac3:null},
+  {t:6,w:40,a:240,dc1:610,ac1:600,dc2:null,ac2:null,dc3:null,ac3:null},
+  {t:6,w:50,a:300,dc1:730,ac1:720,dc2:null,ac2:null,dc3:null,ac3:null},
+  {t:6,w:60,a:360,dc1:860,ac1:840,dc2:null,ac2:null,dc3:null,ac3:null},
+  {t:6,w:75,a:450,dc1:1050,ac1:1010,dc2:2090,ac2:1910,dc3:null,ac3:null},
+  {t:6,w:80,a:480,dc1:1110,ac1:1070,dc2:2190,ac2:2000,dc3:null,ac3:null},
+  {t:6,w:100,a:600,dc1:1350,ac1:1280,dc2:2620,ac2:3330,dc3:3670,ac3:3060},
+  {t:8,w:30,a:240,dc1:570,ac1:560,dc2:null,ac2:2330,dc3:null,ac3:null},
+  {t:8,w:40,a:320,dc1:720,ac1:700,dc2:null,ac2:null,dc3:null,ac3:null},
+  {t:8,w:50,a:400,dc1:860,ac1:840,dc2:null,ac2:null,dc3:null,ac3:null},
+  {t:8,w:60,a:480,dc1:1010,ac1:970,dc2:null,ac2:null,dc3:null,ac3:null},
+  {t:8,w:75,a:600,dc1:1220,ac1:1160,dc2:2390,ac2:2120,dc3:null,ac3:null},
+  {t:8,w:80,a:640,dc1:1290,ac1:1220,dc2:2150,ac2:2210,dc3:null,ac3:null},
+  {t:8,w:100,a:800,dc1:1530,ac1:1470,dc2:2290,ac2:2560,dc3:4230,ac3:3330},
+  {t:10,w:40,a:400,dc1:830,ac1:800,dc2:1730,ac2:1600,dc3:null,ac3:null},
+  {t:10,w:50,a:500,dc1:990,ac1:950,dc2:2010,ac2:1810,dc3:null,ac3:null},
+  {t:10,w:60,a:600,dc1:1150,ac1:1090,dc2:2280,ac2:2010,dc3:null,ac3:null},
+  {t:10,w:75,a:750,dc1:1390,ac1:1290,dc2:2680,ac2:2290,dc3:null,ac3:null},
+  {t:10,w:80,a:800,dc1:1460,ac1:1360,dc2:2810,ac2:2380,dc3:null,ac3:null},
+  {t:10,w:100,a:1000,dc1:1780,ac1:1620,dc2:3310,ac2:2730,dc3:4750,ac3:3490},
+  {t:10,w:120,a:1200,dc1:1970,ac1:1850,dc2:3770,ac2:3000,dc3:5480,ac3:3800},
+  {t:10,w:150,a:1500,dc1:2550,ac1:2260,dc2:4550,ac2:3590,dc3:6440,ac3:4450},
+];
+const BB_WIDTHS={3:[20,25,30,50],4:[30,40],5:[30,40,50,60,75],6:[30,40,50,60,75,80,100],8:[30,40,50,60,75,80,100],10:[40,50,60,75,80,100,120,150]};
+
+function bbUpdateW(){
+  const t=parseInt(document.getElementById("bb-t").value);
+  const ws=BB_WIDTHS[t]||[];
+  const sel=document.getElementById("bb-w");
+  sel.innerHTML=ws.map(w=>`<option value="${w}">${w}</option>`).join('');
+}
+
+function bbCalc(){
+  const mat=document.getElementById("bb-mat").value;
+  const dir=document.getElementById("bb-dir").value;
+  const n=parseInt(document.getElementById("bb-n").value);
+  const t=parseInt(document.getElementById("bb-t").value);
+  const w=parseInt(document.getElementById("bb-w").value);
+  const coat=parseFloat(document.getElementById("bb-coat").value);
+  const isAC=document.getElementById("bb-ac").value==="ac";
+  const ibv=document.getElementById("bb-ib").value;
+  const ib=ibv?parseFloat(ibv):null;
+  const entry=BB_CU.find(r=>r.t===t&&r.w===w);
+  if(!entry){
+    document.getElementById("bb-iz").textContent="해당 규격 없음";
+    document.getElementById("bb-desc").textContent="—";
+    return;
+  }
+  const area=entry.a*n;
+  let base=null;
+  if(n===1)base=isAC?entry.ac1:entry.dc1;
+  else if(n===2)base=isAC?entry.ac2:entry.dc2;
+  else if(n===3)base=isAC?entry.ac3:entry.dc3;
+
+  const box=document.getElementById("bb-result-box");
+  const valEl=document.getElementById("bb-iz");
+  if(!base){
+    box.className="bb-result-box empty";
+    valEl.className="bb-result-val empty";
+    valEl.textContent=`${n}매 데이터 없음 (KS D 5530)`;
+    document.getElementById("bb-desc").textContent="해당 매수의 KS D 5530 표 데이터가 없습니다";
+    document.getElementById("bb-area").textContent="—";
+    document.getElementById("bb-density").textContent="—";
+    document.getElementById("bb-coef").textContent=coat.toFixed(2);
+    document.getElementById("bb-tag").innerHTML="";
+    return;
+  }
+  const dirF=dir==='v'?1.06:1.0;
+  const matF=mat==='al'?0.65:1.0;
+  const iz=Math.round(base*coat*dirF*matF);
+  const density=(iz/area).toFixed(2);
+  box.className="bb-result-box";
+  valEl.className="bb-result-val";
+  valEl.textContent=iz.toLocaleString()+" A";
+  const matLabel=mat==='cu'?'Cu':'Al';
+  const dirLabel=dir==='h'?'수평':'수직';
+  const acLabel=isAC?'AC':'DC';
+  document.getElementById("bb-desc").textContent=
+    `${matLabel} ${t}×${w} mm / ${n}매 / ${dirLabel} / ${acLabel}`+
+    (dir==='v'?' (×1.06 적용)':'')+
+    (mat==='al'?' (×0.65 적용)':'')+
+    (coat!==1.0?` / 표면처리 ×${coat}`:'');
+  document.getElementById("bb-area").textContent=(entry.a*n).toLocaleString();
+  document.getElementById("bb-density").textContent=density;
+  document.getElementById("bb-coef").textContent=coat.toFixed(2);
+  if(ib!==null){
+    const m=((iz-ib)/iz*100);
+    document.getElementById("bb-tag").innerHTML=
+      iz>=ib&&m>=10?`<span class="tag tag-ok">✓ 적합 — 여유 ${m.toFixed(1)}%</span>`:
+      iz>=ib?`<span class="tag tag-warn">△ 적합하나 여유 부족 (${m.toFixed(1)}%)</span>`:
+      `<span class="tag tag-err">✗ 허용전류 초과 — 규격 증가 필요</span>`;
+  } else {document.getElementById("bb-tag").innerHTML="";}
+}
+
+function buildBBTables(){
+  const hdr=`<thead><tr><th>두께(mm)</th><th>폭(mm)</th><th>단면적(mm²)</th><th>1매 DC</th><th>1매 AC</th><th>2매 DC</th><th>2매 AC</th><th>3매 DC</th><th>3매 AC</th></tr></thead><tbody>`;
+  const f=v=>v?v.toLocaleString():'—';
+  let hH=hdr, hV=hdr;
+  let prevT=null;
+  BB_CU.forEach(r=>{
+    if(r.t!==prevT){
+      const gRow=`<tr class="row-group"><td colspan="9">${r.t} mm</td></tr>`;
+      hH+=gRow; hV+=gRow; prevT=r.t;
+    }
+    const base=`<tr><td>${r.t}</td><td>${r.w}</td><td>${r.a}</td>`;
+    hH+=base+`<td>${f(r.dc1)}</td><td>${f(r.ac1)}</td><td>${f(r.dc2)}</td><td>${f(r.ac2)}</td><td>${f(r.dc3)}</td><td>${f(r.ac3)}</td></tr>`;
+    const fv=v=>v?Math.round(v*1.06).toLocaleString():'—';
+    hV+=base+`<td>${fv(r.dc1)}</td><td>${fv(r.ac1)}</td><td>${fv(r.dc2)}</td><td>${fv(r.ac2)}</td><td>${fv(r.dc3)}</td><td>${fv(r.ac3)}</td></tr>`;
+  });
+  document.getElementById('bb-table-h').innerHTML=hH+'</tbody>';
+  document.getElementById('bb-table-v').innerHTML=hV+'</tbody>';
+
+  const hdrAl=`<thead><tr><th>두께(mm)</th><th>폭(mm)</th><th>단면적(mm²)</th><th>1매 DC</th><th>1매 AC</th><th>2매 DC</th><th>2매 AC</th></tr></thead><tbody>`;
+  let hA=hdrAl; prevT=null;
+  BB_CU.forEach(r=>{
+    if(r.t!==prevT){hA+=`<tr class="row-group"><td colspan="7">${r.t} mm</td></tr>`;prevT=r.t;}
+    const fa=v=>v?Math.round(v*0.65).toLocaleString():'—';
+    hA+=`<tr><td>${r.t}</td><td>${r.w}</td><td>${r.a}</td><td>${fa(r.dc1)}</td><td>${fa(r.ac1)}</td><td>${fa(r.dc2)}</td><td>${fa(r.ac2)}</td></tr>`;
+  });
+  document.getElementById('bb-table-al').innerHTML=hA+'</tbody>';
+}
+
+/* ============================================================ */
+/* 6/10kV 표                                                    */
+/* ============================================================ */
+const D66={
+  sz:[16,25,35,50,70,95,120,150,185,240,300,400],
+  air:{tri:[125,163,198,238,296,361,417,473,543,641,735,845],
+       flat:[128,167,203,243,303,369,426,481,550,647,739,837],
+       flatsp:[150,196,238,286,356,434,500,559,637,745,846,938]},
+  duct:{tri:[103,132,157,186,227,271,308,343,387,447,504,564],
+        flat:[104,133,159,188,229,274,311,347,391,453,510,571]},
+  direct:{tri:[109,140,166,196,239,285,323,361,406,469,526,590],
+          flat:[113,144,172,203,246,293,332,366,410,470,524,572]}
+};
+function build66(){
+  let h=`<thead><tr>
+    <th style="text-align:left">mm²</th>
+    <th>기중<br>Trefoil</th><th>기중<br>Flat</th><th>기중<br>Flat-S</th>
+    <th>관로<br>Trefoil</th><th>관로<br>Flat</th>
+    <th>직매<br>Trefoil</th><th>직매<br>Flat</th>
+  </tr></thead><tbody>`;
+  D66.sz.forEach((s,i)=>{
+    h+=`<tr><td>${s}</td>
+      <td>${D66.air.tri[i]}</td><td>${D66.air.flat[i]}</td><td>${D66.air.flatsp[i]}</td>
+      <td>${D66.duct.tri[i]||'—'}</td><td>${D66.duct.flat[i]||'—'}</td>
+      <td>${D66.direct.tri[i]||'—'}</td><td>${D66.direct.flat[i]||'—'}</td>
+    </tr>`;
+  });
+  document.getElementById('t66-main').innerHTML=h+'</tbody>';
+}
+
+/* ============================================================ */
+/* 버스바 참조표 토글 (수평 / 수직 / Al 각각 독립)              */
+/* ============================================================ */
+const bbRefState={h:false,v:false,al:false};
+const bbRefLabel={
+  h:'동(Cu) 수평 부설 — KS D 5530 전체 표',
+  v:'동(Cu) 수직 부설 (×1.06) — 전체 표',
+  al:'알루미늄(Al) 수평 부설 (Cu × 0.65) — 전체 표'
+};
+function togBBRef(key){
+  bbRefState[key]=!bbRefState[key];
+  const open=bbRefState[key];
+  document.getElementById('bb-ref-'+key).style.display=open?'block':'none';
+  document.getElementById('bb-tog-'+key).textContent=
+    (open?'▼ ':'▶ ')+bbRefLabel[key]+(open?' 접기':' 펼치기');
+}
+
+/* ============================================================ */
+/* 탭 전환                                                      */
+/* ============================================================ */
+function sw(id){
+  const ids=['lv','bb','hv229','hv66'];
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',ids[i]===id));
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('panel-'+id).classList.add('active');
+}
+
+/* ============================================================ */
+/* 초기화                                                       */
+/* ============================================================ */
+bbUpdateW();
+calc();
+buildBBTables();
+build66();
+</script>
+</body>
+</html>

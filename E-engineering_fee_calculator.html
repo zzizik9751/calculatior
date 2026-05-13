@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>전기분야 설계비 산출기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Noto+Sans+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ══ 디자인 토큰 ══ */
+:root {
+  --bg:#f5f4f0; --surf:#ffffff; --surf2:#f8f7f4; --surf3:#f0ede8;
+  --border:#e0ddd5; --border2:#c8c4bc;
+  --accent:#e8500a; --accent2:#d0440a; --accent-light:#fdf0eb;
+  --green:#2e7d32; --green2:#388e3c; --green-light:#e8f5e9;
+  --yellow:#8a6200; --orange:#c45000;
+  --purple:#5c35a0;
+  --text:#1a1a18; --sub:#666660; --dim:#999990;
+  --head-bg:#e8500a;
+  --mono:'Noto Sans Mono',monospace; --sans:'Noto Sans KR',sans-serif;
+  --radius:10px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{
+  font-family:var(--sans);
+  background:var(--bg);
+  color:var(--text);
+  min-height:100vh;
+  padding:28px 16px 80px;
+  font-size:14px;
+}
+
+/* ── 헤더 ── */
+.hdr{max-width:960px;margin:0 auto 0;}
+.hdr-inner{
+  background:var(--head-bg);
+  border-radius:var(--radius) var(--radius) 0 0;
+  padding:18px 24px 16px;
+  display:flex;align-items:flex-start;justify-content:space-between;
+  gap:12px;
+}
+.hdr h1{font-size:1.15rem;font-weight:700;color:#ffffff;letter-spacing:-.01em;}
+.hdr p{font-size:.72rem;color:rgba(255,255,255,.75);margin-top:4px;line-height:1.75;}
+.hdr p strong{color:#ffffff;}
+.hdr-badges{display:flex;gap:5px;flex-shrink:0;margin-top:2px;flex-wrap:wrap;}
+.bdg{font-size:.6rem;padding:3px 9px;border-radius:4px;font-weight:600;letter-spacing:.04em;white-space:nowrap;}
+.bdg-b{background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.3);}
+.bdg-b a{color:#fff;text-decoration:none;}
+.bdg-b a:hover{text-decoration:underline;}
+.bdg-g{background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.25);}
+
+/* ── 탭 ── */
+.tabs{max-width:960px;margin:0 auto 0;display:flex;gap:0;background:var(--head-bg);}
+.tabs-inner{display:flex;gap:2px;padding:0 24px;border-top:1px solid rgba(255,255,255,.15);}
+.tab{
+  padding:9px 20px;font-size:.78rem;font-weight:500;cursor:pointer;
+  color:rgba(255,255,255,.55);border:none;background:none;
+  border-bottom:2px solid transparent;transition:all .15s;user-select:none;
+}
+.tab:hover{color:rgba(255,255,255,.85);}
+.tab.on{color:#ffffff;border-bottom:2px solid #ffffff;font-weight:700;}
+
+/* ── 탭 아래 구분선 ── */
+.tab-divider{max-width:960px;margin:0 auto 16px;height:3px;background:var(--head-bg);}
+
+.panel{display:none;max-width:960px;margin:0 auto;}
+.panel.on{display:block;}
+
+/* ── 그리드 ── */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+@media(max-width:640px){.g2{grid-template-columns:1fr;}}
+.s2{grid-column:1/-1;}
+
+/* ── 카드 ── */
+.card{
+  background:var(--surf);border:1px solid var(--border);
+  border-radius:var(--radius);padding:16px 18px;
+  box-shadow:0 1px 3px rgba(0,0,0,.05);
+}
+.ct{
+  font-size:.68rem;font-weight:700;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--accent);
+  margin-bottom:12px;padding-bottom:8px;
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:7px;
+}
+.ct::before{content:'';width:3px;height:14px;border-radius:2px;background:var(--accent);flex-shrink:0;}
+
+/* ── 발주방식 버튼 ── */
+.mode-wrap{display:flex;flex-direction:column;gap:6px;}
+.mode-row1{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;}
+.mode-row2{display:grid;grid-template-columns:1fr;gap:6px;}
+.mb{
+  padding:10px 8px;border-radius:6px;
+  border:1px solid var(--border);background:var(--surf2);
+  color:var(--sub);cursor:pointer;text-align:center;
+  font-size:.78rem;font-weight:500;transition:all .15s;user-select:none;line-height:1.5;
+}
+.mb .ms{font-size:.63rem;display:block;margin-top:2px;color:var(--dim);}
+.mb:hover{border-color:var(--border2);background:var(--surf3);}
+.mb.on-basic   {background:var(--accent-light);border-color:var(--accent);color:var(--accent);font-weight:700;}
+.mb.on-basic    .ms{color:var(--accent2);}
+.mb.on-detail  {background:var(--accent-light);border-color:var(--accent);color:var(--accent);font-weight:700;}
+.mb.on-detail   .ms{color:var(--accent2);}
+.mb.on-combined{background:#fff4ed;border-color:#c45000;color:var(--orange);font-weight:700;}
+.mb.on-combined .ms{color:var(--orange);}
+.mb.on-super   {background:#fffbeb;border-color:#8a6200;color:var(--yellow);font-weight:700;}
+.mb.on-super    .ms{color:var(--yellow);}
+
+/* ── 입력 ── */
+.lbl{display:block;font-size:.73rem;color:var(--sub);margin-bottom:5px;font-weight:600;}
+.lbl-note{font-size:.63rem;color:var(--dim);display:block;margin-top:2px;font-weight:400;line-height:1.5;}
+.irow{
+  display:flex;align-items:center;gap:8px;
+  background:var(--bg);border:1px solid var(--border);
+  border-radius:6px;padding:0 11px;transition:border-color .15s;
+}
+.irow:focus-within{border-color:var(--accent);box-shadow:0 0 0 2px rgba(232,80,10,.1);}
+.irow input{
+  flex:1;background:none;border:none;outline:none;
+  font-family:var(--mono);font-size:.95rem;
+  font-weight:600;color:var(--text);padding:9px 0;
+}
+.unit{font-size:.7rem;color:var(--dim);white-space:nowrap;}
+.hint{font-size:.68rem;color:var(--dim);margin-top:4px;font-family:var(--mono);}
+.hint-kor{font-size:.75rem;color:var(--accent);margin-top:2px;font-weight:600;}
+
+/* ── X1/X2 ── */
+.bkg{display:grid;grid-template-columns:1fr 1fr;gap:7px;}
+.bk{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:9px 12px;}
+.bkl{font-size:.61rem;color:var(--dim);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px;font-weight:600;}
+.bkv{font-family:var(--mono);font-size:.85rem;font-weight:700;color:var(--accent);}
+.bkr{font-size:.68rem;color:var(--sub);margin-top:2px;font-family:var(--mono);}
+
+/* ── 결과 행 ── */
+.rr{display:flex;justify-content:space-between;align-items:baseline;padding:5px 0;border-bottom:1px solid var(--border);}
+.rr:last-child{border-bottom:none;}
+.rrl{font-size:.74rem;color:var(--sub);}
+.rrv{font-family:var(--mono);font-size:.85rem;font-weight:700;}
+.ca{color:var(--accent);}.cg{color:var(--green2);}.co{color:var(--orange);}.cy{color:var(--yellow);}.cp{color:var(--purple);}
+
+/* ── 수식 ── */
+.fml{
+  background:var(--accent-light);border:1px solid #f0c8b0;
+  border-radius:6px;padding:11px 13px;
+  font-family:var(--mono);font-size:.72rem;
+  color:var(--sub);line-height:2.1;
+}
+.fh{color:var(--accent);font-weight:700;}.fr{color:var(--green2);font-weight:700;}
+
+/* ── 가산 할증 박스 ── */
+.pm-box{
+  background:#faf7ff;border:1px solid #d4c8f0;
+  border-radius:6px;padding:12px 14px;margin-top:4px;
+}
+.pm-row{display:flex;align-items:center;gap:10px;}
+.pm-irow{
+  display:flex;align-items:center;gap:8px;
+  background:var(--surf);border:1px solid #c0aae8;
+  border-radius:6px;padding:0 11px;flex:1;transition:border-color .15s;
+}
+.pm-irow:focus-within{border-color:var(--purple);box-shadow:0 0 0 2px rgba(92,53,160,.1);}
+.pm-irow input{
+  flex:1;background:none;border:none;outline:none;
+  font-family:var(--mono);font-size:.95rem;
+  font-weight:700;color:var(--purple);padding:9px 0;
+}
+.pm-note{font-size:.63rem;color:var(--dim);margin-top:5px;line-height:1.6;}
+
+/* ── 최종 금액 ── */
+.final{
+  background:var(--head-bg);
+  border-radius:var(--radius);padding:16px 18px;
+  box-shadow:0 2px 8px rgba(232,80,10,.2);
+}
+.final .fl{font-size:.63rem;color:rgba(255,255,255,.7);letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px;}
+.final .fa{font-family:var(--mono);font-size:1.5rem;font-weight:700;color:#ffffff;}
+.final .fk{font-size:.74rem;color:rgba(255,255,255,.8);margin-top:4px;}
+.final .fv{font-size:.63rem;color:rgba(255,255,255,.5);margin-top:3px;}
+hr.dv{border:none;border-top:1px solid var(--border);margin:10px 0;}
+
+/* ── 흐름 요약 박스 ── */
+.flow-box{
+  margin-top:10px;background:var(--surf2);
+  border:1px solid var(--border);border-radius:6px;padding:11px 13px;
+}
+.flow-title{font-size:.63rem;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;font-weight:700;margin-bottom:7px;}
+
+.lnote{font-size:.67rem;color:var(--sub);margin-top:10px;line-height:1.7;border-left:2px solid var(--accent);padding:5px 10px;}
+
+/* ── 요율표 ── */
+.rnote{font-size:.71rem;color:var(--sub);margin-bottom:14px;line-height:1.7;background:var(--accent-light);border-left:3px solid var(--accent);padding:9px 13px;border-radius:0 6px 6px 0;}
+.rnote strong{color:var(--text);}
+table.rt{width:100%;border-collapse:collapse;font-size:.75rem;}
+table.rt th{background:var(--head-bg);color:#ffffff;font-weight:600;padding:8px 10px;text-align:center;white-space:nowrap;}
+table.rt th.tg{color:#ffe0c0;}table.rt th.tb{color:#ffe0c0;}table.rt th.to{color:#ffc880;}
+table.rt td{padding:6px 10px;border-bottom:1px solid var(--border);font-family:var(--mono);text-align:right;color:var(--sub);}
+table.rt td:first-child{font-family:var(--sans);text-align:left;color:var(--text);white-space:nowrap;}
+table.rt tr:nth-child(even) td{background:var(--surf2);}
+table.rt tr.act td{background:var(--accent-light);color:var(--text);font-weight:700;}
+table.rt tr.act td:first-child{color:var(--accent);}
+table.rt td.ed{cursor:pointer;}table.rt td.ed:hover{background:var(--accent-light);}
+table.rt td input.ci{background:var(--surf);border:1px solid var(--accent);outline:none;font-family:var(--mono);font-size:.74rem;color:var(--accent);width:64px;padding:2px 4px;border-radius:3px;text-align:right;}
+.ehint{font-size:.64rem;color:var(--dim);margin-top:7px;}
+
+/* ── 하단 주석 ── */
+.footer-note{
+  max-width:960px;margin:18px auto 0;
+  font-size:.68rem;color:var(--dim);
+  border-top:1px solid var(--border);
+  padding-top:10px;line-height:1.8;
+}
+
+/* ── 푸터 ── */
+.footer-note{
+  max-width:960px;margin:32px auto 0;
+  text-align:center;
+  font-size:.68rem;color:var(--dim);
+  line-height:1.8;
+  padding:12px 0 4px;
+  border-top:1px solid var(--border);
+}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-inner">
+    <div>
+      <h1>전기분야 설계비 산출기</h1>
+      <p>
+        <strong>전력시설물공사 설계 및 설계감리 요율 (제18조제2항 관련 별표 1)</strong><br>
+        공사비 × 해당 업무 요율 = 설계비 &nbsp;·&nbsp; 기술료는 요율에 포함 (별도 가산 없음)<br>
+        비고: 기본+실시설계 동시발주 → 실시설계 요율 × 1.3배
+      </p>
+    </div>
+    <div class="hdr-badges">
+      <span class="bdg bdg-b"><a href="https://www.law.go.kr/LSW//admRulInfoP.do?admRulSeq=2100000248040&chrClsCd=010201" target="_blank" rel="noopener">전력기술관리법 운영요령</a></span>
+      <span class="bdg bdg-g">별표 1 기준</span>
+    </div>
+  </div>
+</div>
+
+<div style="max-width:960px;margin:0 auto;">
+  <div style="background:var(--head-bg);padding:0 24px;display:flex;gap:0;border-top:1px solid rgba(255,255,255,.12);">
+    <div class="tab on" id="tab-calc" onclick="switchTab('calc')">산출 계산기</div>
+    <div class="tab"    id="tab-rate" onclick="switchTab('rate')">요율표 편집</div>
+  </div>
+</div>
+<div class="tab-divider"></div>
+
+<div class="panel on" id="panel-calc">
+  <div class="g2">
+
+    <!-- ① 공사비 -->
+    <div class="card">
+      <div class="ct">① 공사비 입력</div>
+      <label class="lbl">공사비 (부가세·용지비·보상비 제외)</label>
+      <div class="irow">
+        <input type="text" id="costInput" placeholder="0" inputmode="numeric" autocomplete="off">
+        <span class="unit">원</span>
+      </div>
+      <div class="hint" id="costHint">—</div>
+      <div class="hint-kor" id="costKor"></div>
+    </div>
+
+    <!-- ② 발주방식 -->
+    <div class="card">
+      <div class="ct">② 발주 방식</div>
+      <div class="mode-wrap">
+        <!-- 1열: 기본설계 / 실시설계 / 설계감리 -->
+        <div class="mode-row1">
+          <div class="mb" id="mb-basic" onclick="setMode('basic')">
+            기본설계
+            <span class="ms">기본설계 요율</span>
+          </div>
+          <div class="mb on-detail" id="mb-detail" onclick="setMode('detail')">
+            실시설계
+            <span class="ms">실시설계 요율</span>
+          </div>
+          <div class="mb" id="mb-super" onclick="setMode('super')">
+            설계감리
+            <span class="ms">감리 요율</span>
+          </div>
+        </div>
+        <!-- 2열: 기본+실시설계 (넓게) -->
+        <div class="mode-row2">
+          <div class="mb" id="mb-combined" onclick="setMode('combined')">
+            기본 + 실시설계
+            <span class="ms">실시설계 요율 × 1.3배 (비고2)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ③ X1/X2 -->
+    <div class="card">
+      <div class="ct">③ X1 / X2 자동산출</div>
+      <div class="bkg">
+        <div class="bk">
+          <div class="bkl">X1 · 큰 금액 (구간 상한)</div>
+          <div class="bkv" id="x1val">—</div>
+          <div class="bkr" id="x1rate">Y1: —</div>
+        </div>
+        <div class="bk">
+          <div class="bkl">X2 · 작은 금액 (구간 하한)</div>
+          <div class="bkv" id="x2val">—</div>
+          <div class="bkr" id="x2rate">Y2: —</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ④ 직선보간 -->
+    <div class="card">
+      <div class="ct">④ 직선보간 요율 산정</div>
+      <div class="fml" id="fml">공사비를 입력하면 수식이 표시됩니다.</div>
+      <div style="margin-top:10px;">
+        <div class="rr"><span class="rrl" id="yLbl">보간 요율</span><span class="rrv ca" id="yVal">—</span></div>
+        <div class="rr" id="multRow" style="display:none;">
+          <span class="rrl" style="color:var(--orange);">× 1.3 (동시발주 비고2)</span>
+          <span class="rrv co" id="yMult">—</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ⑤ 설계비 산출 + 추가업무비 + 조정 -->
+    <div class="card s2">
+      <div class="ct">⑤ 설계비 산출</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start;">
+
+        <div>
+          <!-- 기본 산출 -->
+          <div class="rr"><span class="rrl">공사비</span><span class="rrv" id="r_cost">—</span></div>
+          <div class="rr"><span class="rrl" id="r_rate_lbl">× 요율</span><span class="rrv ca" id="r_rate">—</span></div>
+          <hr class="dv">
+          <div class="rr"><span class="rrl">산출 설계비</span><span class="rrv cg" id="r_design">—</span></div>
+
+          <!-- 추가업무비 -->
+          <div style="margin-top:14px;">
+            <label class="lbl">가산 할증
+              <span class="lbl-note">※ PM비·지방·해외 현장 등 업무 여건에 따른 할증</span>
+            </label>
+            <div class="pm-box">
+              <div class="pm-row">
+                <div class="pm-irow">
+                  <input type="text" id="pmInput" placeholder="0" inputmode="decimal" autocomplete="off">
+                  <span class="unit" style="color:var(--purple);">%</span>
+                </div>
+                <span style="font-size:.8rem;color:var(--sub);white-space:nowrap;padding-left:4px;">가산</span>
+              </div>
+              <div class="pm-note">예) 30 입력 → 산출 설계비 × 1.30 적용</div>
+            </div>
+            <div class="rr" id="rr_pm" style="margin-top:8px;display:none;">
+              <span class="rrl" style="color:var(--purple);">+ 가산 할증</span>
+              <span class="rrv cp" id="r_pm">—</span>
+            </div>
+            <div class="rr" id="rr_pm_total" style="display:none;">
+              <span class="rrl">가산 할증 적용 소계</span>
+              <span class="rrv" id="r_pm_total">—</span>
+            </div>
+          </div>
+
+          <!-- 견적 조정 비율 -->
+          <div style="margin-top:14px;">
+            <label class="lbl">견적 조정 비율 (협의)</label>
+            <div class="irow">
+              <input type="text" id="adjInput" value="1.00" autocomplete="off" style="color:var(--orange);">
+              <span class="unit" style="color:var(--orange);">× 배율</span>
+            </div>
+          </div>
+
+          <div class="lnote" id="modeNote" style="margin-top:12px;"></div>
+        </div>
+
+        <div>
+          <div class="final">
+            <div class="fl">견적 제출 금액</div>
+            <div class="fa" id="finalAmt">—</div>
+            <div class="fk" id="finalKor">공사비를 입력해주세요</div>
+            <div class="fv">VAT 별도 · 10만원 단위 반올림</div>
+          </div>
+
+          <!-- 산출 흐름 요약 -->
+          <div class="flow-box">
+            <div class="flow-title">산출 흐름</div>
+            <div class="rr"><span class="rrl">① 산출 설계비</span><span class="rrv cg" id="s_design">—</span></div>
+            <div class="rr" id="sr_pm" style="display:none;"><span class="rrl" style="color:var(--purple);">② 가산 할증 (×<span id="s_pm_rate">—</span>)</span><span class="rrv cp" id="s_pm_total">—</span></div>
+            <div class="rr"><span class="rrl" id="s_adj_lbl">② 견적 조정</span><span class="rrv co" id="s_final">—</span></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- 요율표 패널 -->
+<div class="panel" id="panel-rate">
+  <div class="card">
+    <div class="ct">전력시설물공사 설계 요율표 (별표 1)</div>
+    <div class="rnote">
+      <strong>근거: 전력기술관리법 운영요령 제18조제2항 관련 별표 1</strong><br>
+      기후에너지환경부고시 제2025-61호 (2025.12.18. 개정)<br>
+      ※ 기술료는 요율에 포함 — 별도 가산 없음<br>
+      ※ 기본+실시 동시발주 → 실시설계 요율 × <strong>1.3배</strong><br>
+      ※ 셀 클릭 → 수정 → Enter 저장
+    </div>
+    <div style="overflow-x:auto;">
+      <table class="rt">
+        <thead>
+          <tr>
+            <th>공사비 규모</th>
+            <th class="tg">기본설계 (%)</th>
+            <th class="tb">실시설계 (%)</th>
+            <th class="to">설계감리 (%)</th>
+            <th>계 (%)</th>
+            <th>현재 구간</th>
+          </tr>
+        </thead>
+        <tbody id="rateBody"></tbody>
+      </table>
+    </div>
+    <div class="ehint">※ 연도별 고시 변경 시 해당 셀 클릭 후 수정하세요.</div>
+  </div>
+</div>
+
+<script>
+let RATES = [
+  {label:'2,000만원까지', min:0,    basic:4.49, detail:13.48, sup:2.24, tot:20.21},
+  {label:'3,000만원까지', min:2e7,  basic:3.64, detail:10.89, sup:1.81, tot:16.34},
+  {label:'5,000만원까지', min:3e7,  basic:2.54, detail: 7.61, sup:1.27, tot:11.41},
+  {label:'1억원까지',     min:5e7,  basic:2.38, detail: 7.12, sup:1.18, tot:10.69},
+  {label:'2억원까지',     min:1e8,  basic:1.90, detail: 5.69, sup:0.95, tot: 8.53},
+  {label:'3억원까지',     min:2e8,  basic:1.73, detail: 5.19, sup:0.86, tot: 7.78},
+  {label:'5억원까지',     min:3e8,  basic:1.58, detail: 4.70, sup:0.78, tot: 7.06},
+  {label:'10억원까지',    min:5e8,  basic:1.39, detail: 4.16, sup:0.69, tot: 6.23},
+  {label:'20억원까지',    min:1e9,  basic:1.28, detail: 3.82, sup:0.64, tot: 5.73},
+  {label:'30억원까지',    min:2e9,  basic:1.23, detail: 3.68, sup:0.62, tot: 5.53},
+  {label:'50억원까지',    min:3e9,  basic:1.21, detail: 3.63, sup:0.60, tot: 5.44},
+  {label:'100억원까지',   min:5e9,  basic:1.17, detail: 3.53, sup:0.58, tot: 5.28},
+  {label:'200억원까지',   min:1e10, basic:1.14, detail: 3.42, sup:0.57, tot: 5.13},
+  {label:'300억원까지',   min:2e10, basic:1.13, detail: 3.40, sup:0.56, tot: 5.08},
+  {label:'500억원까지',   min:3e10, basic:1.11, detail: 3.33, sup:0.55, tot: 4.99},
+  {label:'1,000억원까지', min:5e10, basic:1.09, detail: 3.28, sup:0.53, tot: 4.91},
+  {label:'2,000억원까지', min:1e11, basic:1.08, detail: 3.22, sup:0.52, tot: 4.82},
+  {label:'3,000억원까지', min:2e11, basic:1.07, detail: 3.16, sup:0.51, tot: 4.74},
+  {label:'5,000억원까지', min:3e11, basic:1.05, detail: 3.13, sup:0.50, tot: 4.68},
+];
+
+const MODES = {
+  basic:    {rateKey:'basic',  mult:1.0, label:'기본설계',         desc:'기본설계 요율 적용. 기술료 포함.'},
+  detail:   {rateKey:'detail', mult:1.0, label:'실시설계',         desc:'실시설계 요율 적용. 기술료 포함.'},
+  super:    {rateKey:'sup',    mult:1.0, label:'설계감리',         desc:'설계감리 요율 적용.'},
+  combined: {rateKey:'detail', mult:1.3, label:'기본+실시설계',    desc:'실시설계 요율 × 1.3배 (비고2). 기본설계비 별도 산출 없음.'},
+};
+
+let curMode='detail', activeIdx=-1;
+
+// ── 탭 ──
+function switchTab(t){
+  document.querySelectorAll('.tab').forEach(el=>el.classList.remove('on'));
+  document.querySelectorAll('.panel').forEach(el=>el.classList.remove('on'));
+  document.getElementById('tab-'+t).classList.add('on');
+  document.getElementById('panel-'+t).classList.add('on');
+  if(t==='rate') buildRateTable();
+}
+
+// ── 발주방식 ──
+function setMode(m){
+  curMode=m;
+  const cls={basic:'on-basic',detail:'on-detail',super:'on-super',combined:'on-combined'};
+  Object.keys(MODES).forEach(k=>{
+    document.getElementById('mb-'+k).className='mb'+(k===m?' '+cls[k]:'');
+  });
+  calc();
+}
+
+// ── 포맷 ──
+const fmt=v=>Math.round(v).toLocaleString('ko-KR');
+const p4=v=>v.toFixed(4)+'%';
+const p2=v=>v.toFixed(2)+'%';
+const r5=v=>Math.round(v/1e5)*1e5;
+
+// ── 한글 금액 ──
+function toKor(n){
+  if(!n||n<=0) return '';
+  const units=['','만','억','조'];
+  const nums=['영','일','이','삼','사','오','육','칠','팔','구'];
+  const parts=[];
+  const d=[1e12,1e8,1e4,1];
+  const u=['조','억','만',''];
+  let r=Math.round(n);
+  // 억/만 단위로 분해
+  const jo=Math.floor(r/1e12); r%=1e12;
+  const uk=Math.floor(r/1e8);  r%=1e8;
+  const man=Math.floor(r/1e4); r%=1e4;
+  const won=r;
+  if(jo)  parts.push(jo+'조');
+  if(uk)  parts.push(uk+'억');
+  if(man) parts.push(man+'만');
+  if(won) parts.push(won);
+  if(!parts.length) return '영';
+  return parts.join('')+'원';
+}
+
+// ── X1/X2 산출 ──
+function findIdx(cost){
+  let idx=0;
+  for(let i=RATES.length-1;i>=0;i--){if(cost>=RATES[i].min){idx=i;break;}}
+  return idx;
+}
+function getXY(cost,key){
+  const idx=findIdx(cost);
+  const X2=RATES[idx].min;
+  const X1=idx<RATES.length-1?RATES[idx+1].min:RATES[idx].min*10;
+  const Y1=RATES[idx][key];
+  const Y2=idx>0?RATES[idx-1][key]:RATES[idx][key];
+  return {idx,X1,X2,Y1,Y2};
+}
+function interpXY(cost,X1,X2,Y1,Y2){
+  if(X1===X2) return Y1;
+  return Y2-(cost-X2)*(Y2-Y1)/(X1-X2);
+}
+
+// ── 메인 계산 ──
+function calc(){
+  const cost=parseFloat(document.getElementById('costInput').value.replace(/,/g,''))||0;
+  const pmPct=parseFloat(document.getElementById('pmInput').value)||0;
+  const adj=parseFloat(document.getElementById('adjInput').value)||1;
+  const mode=MODES[curMode];
+
+  // 공사비 표시
+  document.getElementById('costHint').textContent=cost>0?`= ${(cost/1e8).toFixed(4)}억 원`:'—';
+  document.getElementById('costKor').textContent=cost>0?toKor(cost):'';
+
+  const IDS=['x1val','x2val','yVal','yMult','r_cost','r_rate','r_design','r_pm','r_pm_total','finalAmt','finalKor','s_design','s_pm_total','s_final'];
+  if(cost<=0){
+    activeIdx=-1;
+    IDS.forEach(id=>{const el=document.getElementById(id);if(el)el.textContent='—';});
+    document.getElementById('x1rate').textContent='Y1: —';
+    document.getElementById('x2rate').textContent='Y2: —';
+    document.getElementById('fml').textContent='공사비를 입력하면 수식이 표시됩니다.';
+    document.getElementById('multRow').style.display='none';
+    document.getElementById('rr_pm').style.display='none';
+    document.getElementById('rr_pm_total').style.display='none';
+    document.getElementById('sr_pm').style.display='none';
+    document.getElementById('modeNote').textContent=mode.desc;
+    if(document.getElementById('panel-rate').classList.contains('on')) buildRateTable();
+    return;
+  }
+
+  const rk=mode.rateKey;
+  const {idx,X1,X2,Y1,Y2}=getXY(cost,rk);
+  activeIdx=idx;
+
+  document.getElementById('x1val').textContent=fmt(X1)+' 원';
+  document.getElementById('x2val').textContent=fmt(X2)+' 원';
+  document.getElementById('x1rate').textContent='Y1: '+p2(Y1);
+  document.getElementById('x2rate').textContent='Y2: '+p2(Y2);
+
+  const yI=interpXY(cost,X1,X2,Y1,Y2);
+  const yA=yI*mode.mult;
+
+  document.getElementById('yLbl').textContent='보간 요율 ('+mode.label+')';
+  document.getElementById('yVal').textContent=p4(yI);
+  if(curMode==='combined'){
+    document.getElementById('multRow').style.display='';
+    document.getElementById('yMult').textContent=p4(yA);
+  } else {
+    document.getElementById('multRow').style.display='none';
+  }
+
+  document.getElementById('fml').innerHTML=
+    `Y = Y2 − (X − X2) × (Y2 − Y1) / (X1 − X2)<br>`+
+    `<span class="fh">= ${p2(Y2)} − (${fmt(cost)} − ${fmt(X2)})</span><br>`+
+    `<span style="padding-left:1.2em">× (${p2(Y2)} − ${p2(Y1)}) / (${fmt(X1)} − ${fmt(X2)})</span><br>`+
+    (curMode==='combined'
+      ?`<span class="fr">= ${p4(yI)} × 1.3 = ${p4(yA)}</span>`
+      :`<span class="fr">= ${p4(yA)}</span>`);
+
+  // 산출 설계비
+  const designFee=r5(cost*yA/100);
+
+  // 추가업무비
+  const hasPm=pmPct>0;
+  const pmAmt=hasPm?r5(designFee*pmPct/100):0;
+  const pmTotal=hasPm?r5(designFee+pmAmt):designFee;
+
+  document.getElementById('r_cost').textContent=fmt(cost)+' 원';
+  document.getElementById('r_rate_lbl').textContent=`× ${mode.label} 요율 (${p4(yA)})`;
+  document.getElementById('r_rate').textContent=fmt(designFee)+' 원';
+  document.getElementById('r_design').textContent=fmt(designFee)+' 원';
+
+  document.getElementById('rr_pm').style.display=hasPm?'':'none';
+  document.getElementById('rr_pm_total').style.display=hasPm?'':'none';
+  document.getElementById('sr_pm').style.display=hasPm?'':'none';
+  if(hasPm){
+    document.getElementById('r_pm').textContent=fmt(pmAmt)+' 원';
+    document.getElementById('r_pm_total').textContent=fmt(pmTotal)+' 원';
+    document.getElementById('s_pm_rate').textContent=(1+pmPct/100).toFixed(2);
+    document.getElementById('s_pm_total').textContent=fmt(pmTotal)+' 원';
+  }
+
+  // 최종 견적
+  const est=r5(pmTotal*adj);
+  document.getElementById('finalAmt').textContent=fmt(est)+' 원';
+  document.getElementById('finalKor').textContent=toKor(est);
+
+  // 흐름 요약
+  document.getElementById('s_design').textContent=fmt(designFee)+' 원';
+  document.getElementById('s_adj_lbl').textContent=hasPm?'③ 견적 조정 (×'+adj+')':'② 견적 조정 (×'+adj+')';
+  document.getElementById('s_final').textContent=fmt(est)+' 원';
+
+  document.getElementById('modeNote').textContent=mode.desc;
+
+  if(document.getElementById('panel-rate').classList.contains('on')) buildRateTable();
+}
+
+// ── 요율표 ──
+function buildRateTable(){
+  const tb=document.getElementById('rateBody');
+  tb.innerHTML='';
+  RATES.forEach((r,i)=>{
+    const tr=document.createElement('tr');
+    if(i===activeIdx) tr.classList.add('act');
+    const mark=i===activeIdx?'◀ 현재 구간':'';
+    tr.innerHTML=
+      `<td>${r.label}</td>`+
+      `<td class="ed" data-i="${i}" data-k="basic">${r.basic.toFixed(2)}%</td>`+
+      `<td class="ed" data-i="${i}" data-k="detail">${r.detail.toFixed(2)}%</td>`+
+      `<td class="ed" data-i="${i}" data-k="sup">${r.sup.toFixed(2)}%</td>`+
+      `<td>${r.tot.toFixed(2)}%</td>`+
+      `<td style="text-align:center;color:var(--accent);font-family:'Noto Sans KR',sans-serif;font-size:.74rem;">${mark}</td>`;
+    tb.appendChild(tr);
+    tr.querySelectorAll('td.ed').forEach(td=>{
+      td.addEventListener('click',function(){
+        if(this.querySelector('input')) return;
+        const idx=+this.dataset.i,key=this.dataset.k;
+        const inp=document.createElement('input');
+        inp.className='ci';inp.value=RATES[idx][key].toFixed(2);
+        this.textContent='';this.appendChild(inp);
+        inp.focus();inp.select();
+        const save=()=>{const v=parseFloat(inp.value);if(!isNaN(v)&&v>0)RATES[idx][key]=v;buildRateTable();calc();};
+        inp.addEventListener('blur',save);
+        inp.addEventListener('keydown',e=>{if(e.key==='Enter')inp.blur();});
+      });
+    });
+  });
+}
+
+// ── 입력 이벤트 ──
+document.getElementById('costInput').addEventListener('input',function(){
+  const raw=this.value.replace(/,/g,'').replace(/[^0-9]/g,'');
+  this.value=raw?parseInt(raw,10).toLocaleString('ko-KR'):'';
+  calc();
+});
+document.getElementById('pmInput').addEventListener('input',calc);
+document.getElementById('adjInput').addEventListener('input',calc);
+
+setMode('detail');
+calc();
+</script>
+
+<div class="footer-note">
+  ※ 본 계산기는 (주)협우지여에서 만들었으며, 요율은 2025년 고시(기후에너지환경부고시 제2025-61호)를 참고하였으니 반드시 최신 요율을 확인 바랍니다.
+</div>
+
+</body>
+</html>

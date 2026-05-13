@@ -1,0 +1,1250 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>풀박스 크기 산정 계산서</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Noto+Sans+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:      #f5f4f0;
+  --surface: #ffffff;
+  --surface2:#faf9f7;
+  --border:  #e0ddd5;
+  --text:    #1a1a18;
+  --muted:   #888880;
+  --accent:  #e8500a;
+  --acc-lt:  #fdf0eb;
+  --nec:     #1a5276;
+  --nec-lt:  #eaf2fb;
+  --jp:      #1e6b3a;
+  --jp-lt:   #eaf5ee;
+  --ok:      #1e7e45;
+  --sm:      #6c3483;
+  --sm-lt:   #f5eef8;
+  --adopt:   #b7770d;
+  --adopt-lt:#fff8e6;
+  --mono: 'Noto Sans Mono', monospace;
+  --sans: 'Noto Sans KR', sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--sans); background: var(--bg); color: var(--text); min-height: 100vh; padding: 20px 16px 60px; }
+
+/* ── 헤더 ── */
+.page-header {
+  max-width: 1000px; margin: 0 auto 20px;
+  border-bottom: 2.5px solid var(--text);
+  padding-bottom: 12px;
+  display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 10px;
+}
+.page-header h1 { font-size: 20px; font-weight: 700; letter-spacing: -0.3px; }
+.page-header .sub { font-size: 11px; color: var(--muted); font-family: var(--mono); margin-top: 3px; }
+.badge { padding: 3px 9px; border-radius: 4px; font-size: 11px; font-weight: 700; font-family: var(--mono); }
+.b-nec { background: var(--nec); color: #fff; }
+.b-jp  { background: var(--jp);  color: #fff; }
+
+/* ── 탭 ── */
+.tab-bar {
+  max-width: 1000px; margin: 0 auto 18px;
+  display: flex; gap: 4px;
+}
+.tab-btn {
+  padding: 9px 24px; border: 2px solid var(--border);
+  background: var(--surface); border-radius: 7px 7px 0 0;
+  font-size: 13px; font-weight: 600; cursor: pointer;
+  font-family: var(--sans); color: var(--muted);
+  transition: all 0.15s;
+}
+.tab-btn.active { background: var(--nec); color: #fff; border-color: var(--nec); }
+.tab-content { display: none; max-width: 1000px; margin: 0 auto; }
+.tab-content.active { display: block; }
+
+/* ── 카드 ── */
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px 22px; margin-bottom: 16px; }
+.card-title {
+  font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
+  font-family: var(--mono); color: var(--muted);
+  display: flex; align-items: center; gap: 8px; margin-bottom: 16px;
+}
+.card-title::after { content:''; flex:1; height:1px; background:var(--border); }
+.card-title .dot { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
+
+/* ── 공통 테이블 ── */
+.tbl-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+th {
+  padding: 8px 11px; font-size: 11px; font-weight: 700;
+  font-family: var(--mono); letter-spacing: 0.3px;
+  border: 1px solid var(--border); text-align: center; white-space: nowrap;
+}
+td { padding: 7px 11px; border: 1px solid var(--border); text-align: center; font-family: var(--mono); white-space: nowrap; }
+tbody tr:hover td { background: #f5f3ef; }
+.th-base { background: var(--surface2); }
+.th-nec  { background: var(--nec); color: #fff; }
+.th-jp   { background: var(--jp);  color: #fff; }
+.td-size { font-weight: 700; background: var(--surface2); }
+.td-nec  { color: var(--nec); font-weight: 600; }
+.td-jp   { color: var(--jp);  font-weight: 600; }
+.td-prod { background: #fff8e6; color: #7a5000; font-weight: 700; }
+.td-ok   { background: #eaf5ee; color: #1e7e45; font-weight: 600; }
+
+/* ── 탭2 입력 ── */
+.input-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.input-table th {
+  background: var(--nec); color: #fff; padding: 9px 12px;
+  font-size: 11px; font-family: var(--mono); font-weight: 700;
+  border: 1px solid #1a3a5c; text-align: center;
+}
+.input-table td {
+  padding: 6px 8px; border: 1px solid var(--border);
+  text-align: center; vertical-align: middle;
+}
+.input-table tbody tr:nth-child(even) td { background: var(--surface2); }
+.input-table input[type="number"] {
+  width: 60px; padding: 5px 6px; border: 1px solid var(--border);
+  border-radius: 4px; font-size: 13px; font-family: var(--mono);
+  text-align: center; background: var(--surface);
+}
+.input-table input[type="number"]:focus { outline: none; border-color: var(--nec); }
+.input-table select {
+  padding: 5px 6px; border: 1px solid var(--border);
+  border-radius: 4px; font-size: 12px; font-family: var(--sans);
+  background: var(--surface);
+}
+.input-table select:focus { outline: none; border-color: var(--nec); }
+
+/* 단수 선택 */
+.dan-row { display: flex; gap: 8px; align-items: center; margin-bottom: 14px; flex-wrap: wrap; }
+.dan-btn {
+  padding: 7px 18px; border: 2px solid var(--border);
+  border-radius: 6px; font-size: 13px; font-weight: 600;
+  cursor: pointer; background: var(--surface); color: var(--muted);
+  font-family: var(--sans); transition: all 0.15s;
+}
+.dan-btn.active { background: var(--nec); color: #fff; border-color: var(--nec); }
+
+/* 버튼 */
+.btn { padding: 10px 22px; border: none; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; font-family: var(--sans); transition: opacity 0.15s, transform 0.1s; }
+.btn:active { transform: scale(0.97); }
+.btn-primary { background: var(--nec); color: #fff; }
+.btn-accent  { background: var(--accent); color: #fff; }
+.btn-secondary { background: var(--border); color: var(--text); }
+.btn-danger  { background: #e74c3c; color: #fff; font-size: 12px; padding: 5px 10px; }
+
+/* 결과 미리보기 */
+.result-preview {
+  background: var(--nec-lt); border: 2px solid var(--nec);
+  border-radius: 8px; padding: 16px 18px; margin: 14px 0;
+  display: none;
+}
+.result-preview.show { display: block; }
+.result-preview .r-title { font-size: 11px; font-weight: 700; color: var(--nec); font-family: var(--mono); letter-spacing: 1px; margin-bottom: 10px; }
+.result-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.result-box { background: var(--surface); border-radius: 6px; padding: 10px; text-align: center; border: 1px solid var(--border); }
+.result-box .rb-label { font-size: 10px; color: var(--muted); font-family: var(--mono); margin-bottom: 4px; }
+.result-box .rb-val { font-size: 20px; font-weight: 700; font-family: var(--mono); color: var(--nec); }
+.result-box .rb-unit { font-size: 11px; color: var(--muted); }
+.result-box.prod { background: #fff8e6; border-color: #e8d080; }
+.result-box.prod .rb-val { color: #7a5000; font-size: 16px; }
+
+/* JP 참고값 */
+.jp-ref { background: var(--jp-lt); border: 1px solid #a8d8b8; border-radius: 6px; padding: 10px 14px; margin-top: 10px; font-size: 12px; color: var(--jp); font-family: var(--mono); }
+
+/* ── 누적 결과 ── */
+.history-wrap { margin-top: 4px; }
+.history-item {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 8px; padding: 14px 16px; margin-bottom: 10px;
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+}
+.hi-num { font-size: 11px; font-weight: 700; font-family: var(--mono); color: var(--muted); min-width: 28px; }
+.hi-desc { font-size: 12px; color: var(--muted); flex: 1; min-width: 150px; }
+.hi-dims { display: flex; gap: 8px; flex-wrap: wrap; }
+.hi-chip {
+  background: var(--nec-lt); border: 1px solid #a8c8e8;
+  border-radius: 4px; padding: 3px 8px;
+  font-size: 12px; font-family: var(--mono); color: var(--nec); font-weight: 600;
+}
+.hi-chip.prod { background: #fff8e6; border-color: #e8d080; color: #7a5000; font-weight: 700; }
+.hi-chip.jp   { background: var(--jp-lt); border-color: #a8d8b8; color: var(--jp); }
+.history-empty { text-align: center; padding: 30px; color: var(--muted); font-size: 13px; }
+
+/* ── 탭3 전용 ── */
+.th-sm   { background: var(--sm);    color:#fff; }
+.th-adopt{ background: var(--adopt); color:#fff; }
+.td-sm   { color:var(--sm); font-weight:600; }
+.td-adopt-hi { background:var(--adopt-lt); color:var(--adopt); font-weight:700; border:2px solid #e8c84a !important; }
+.td-adopt-lo { color:var(--muted); }
+
+/* 라디오 카드 */
+.radio-group { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:4px; }
+.radio-card {
+  display:flex; align-items:center; gap:8px;
+  padding:9px 16px; border:2px solid var(--border);
+  border-radius:8px; cursor:pointer; font-size:13px;
+  font-weight:600; font-family:var(--sans);
+  background:var(--surface); color:var(--muted);
+  transition:all 0.15s; user-select:none;
+}
+.radio-card input[type=radio]{ display:none; }
+.radio-card.checked-nec { border-color:var(--nec); background:var(--nec-lt); color:var(--nec); }
+.radio-card.checked-sm  { border-color:var(--sm);  background:var(--sm-lt);  color:var(--sm); }
+.radio-card.checked-cmp { border-color:var(--adopt);background:var(--adopt-lt);color:var(--adopt); }
+
+/* 선정값 강조 박스 */
+.adopt-box {
+  display:inline-flex; flex-direction:column; align-items:center;
+  gap:2px; padding:4px 10px;
+  border-radius:6px;
+}
+.adopt-box .ab-val  { font-size:15px; font-weight:700; line-height:1; }
+.adopt-box .ab-type { font-size:10px; font-weight:600; opacity:0.8; }
+.adopt-nec  { background:var(--nec-lt); color:var(--nec); border:1.5px solid #a8c8e8; }
+.adopt-sm   { background:var(--sm-lt);  color:var(--sm);  border:1.5px solid #d5a8e8; }
+.adopt-cmp  { background:var(--adopt-lt);color:var(--adopt);border:2px solid #e8c84a; }
+
+/* ── 기준 명기 박스 ── */
+.basis-box {
+  max-width:1000px; margin:0 auto 14px;
+  border-radius:8px; padding:12px 18px;
+  border-left:4px solid;
+}
+.basis-nec { background:var(--nec-lt); border-color:var(--nec); }
+.basis-sm  { background:var(--sm-lt);  border-color:var(--sm); }
+.basis-title {
+  font-size:11px; font-weight:700; font-family:var(--mono);
+  letter-spacing:.5px; margin-bottom:6px;
+}
+.basis-nec .basis-title { color:var(--nec); }
+.basis-sm  .basis-title { color:var(--sm); }
+.basis-body {
+  font-size:11.5px; color:var(--text); line-height:1.9;
+  display:flex; flex-wrap:wrap; gap:4px 0; align-items:center;
+}
+.basis-sep { margin:0 10px; color:var(--border); font-size:14px; }
+
+/* ── 누적 테이블 ── */
+.accum-wrap { overflow-x:auto; margin-top:4px; }
+.accum-table { width:100%; border-collapse:collapse; font-size:12px; font-family:var(--mono); }
+.accum-table th {
+  padding:7px 10px; font-size:10.5px; font-weight:700;
+  border:1px solid var(--border); text-align:center;
+  white-space:nowrap; position:sticky; top:0; z-index:1;
+}
+.accum-table td {
+  padding:6px 10px; border:1px solid var(--border);
+  text-align:center; white-space:nowrap;
+}
+.accum-table tbody tr:hover td { background:#f5f3ef; }
+.accum-table .th-no   { background:var(--surface2); width:40px; }
+.accum-table .th-nec  { background:var(--nec); color:#fff; }
+.accum-table .th-sm   { background:var(--sm);  color:#fff; }
+.accum-table .th-base { background:var(--surface2); }
+.accum-table .td-str  { color:var(--nec); font-weight:600; }
+.accum-table .td-crv  { color:var(--sm);  font-weight:600; }
+.accum-table .td-no   { font-weight:700; color:var(--muted); background:var(--surface2); }
+.accum-table .td-prod { background:#fff8e6; color:#7a5000; font-weight:700; }
+.accum-empty { text-align:center; padding:30px; color:var(--muted); font-size:13px; }
+.accum-method-label {
+  font-size:11px; font-weight:700; font-family:var(--mono);
+  padding:6px 14px; border-radius:5px; margin-bottom:8px;
+  display:inline-block;
+}
+.accum-method-nec { background:var(--nec-lt); color:var(--nec); border:1px solid #a8c8e8; }
+.accum-method-sm  { background:var(--sm-lt);  color:var(--sm);  border:1px solid #d5a8e8; }
+
+.note-box { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 12px 16px; font-size: 11.5px; color: var(--muted); margin-top: 12px; line-height: 1.8; }
+.note-box strong { color: var(--text); }
+
+@media (max-width: 640px) {
+  .result-grid { grid-template-columns: repeat(2, 1fr); }
+  .page-header { flex-direction: column; align-items: flex-start; }
+}
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <div>
+    <h1>풀박스 크기 산정 계산서</h1>
+    <div class="sub">후강전선관(RMC/GRS) 기준 · NEC 314.28 준용 · 국내 법적 기준 없음</div>
+  </div>
+  <div style="display:flex;gap:6px;">
+    <span class="badge b-nec">NEC 314.28</span>
+  </div>
+</div>
+
+<!-- 탭 버튼 -->
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="switchTab(0)">📋 규격별 선정표</button>
+  <button class="tab-btn" onclick="switchTab(1)">📄 풀박스 계산서 (NEC 기준)</button>
+  <button class="tab-btn" onclick="switchTab(2)">📄 풀박스 계산서 (KEC 기준)</button>
+</div>
+
+<!-- ════════════════════════════════════════ -->
+<!-- 탭 1 — 규격별 선정표                    -->
+<!-- ════════════════════════════════════════ -->
+<div class="tab-content active" id="tab0">
+  <div class="card">
+    <div class="card-title"><span class="dot" style="background:var(--nec)"></span>NEC 314.28 · 후강전선관 규격별 풀박스 최소 치수 (단일관 1본 기준)</div>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th class="th-base" rowspan="2">호칭<br>(mm)</th>
+            <th class="th-base" rowspan="2">외경<br>(mm)</th>
+            <th class="th-base" rowspan="2">h 부싱<br>(mm)</th>
+            <th class="th-nec" colspan="3">직선 배선 (A)(1) — 호칭 × 8</th>
+            <th class="th-nec" colspan="3">곡선 배선 (A)(2) — 호칭 × 6</th>
+          </tr>
+          <tr>
+            <th class="th-nec">최소 치수<br>(mm)</th>
+            <th class="th-nec">깊이 D<br>(mm)</th>
+            <th class="th-nec">풀박스<br>TYPE</th>
+            <th class="th-nec">최소 치수<br>(mm)</th>
+            <th class="th-nec">깊이 D<br>(mm)</th>
+            <th class="th-nec">풀박스<br>TYPE</th>
+          </tr>
+        </thead>
+        <tbody id="ref-tbody"></tbody>
+      </table>
+    </div>
+    <div class="note-box">
+      <strong>※ NEC 314.28(A)(1)</strong> 직선: 최대 전선관 호칭 × 8배 이상<br>
+      <strong>※ NEC 314.28(A)(2)</strong> 곡선: 최대 전선관 호칭 × 6배 (복수 전선관 시 동일 벽면 나머지 호칭 합산)<br>
+      <strong>※ 깊이(D)</strong> NEC 규정 없음 → 현장 실무: 외경+(h×2) / 단일관 1단 기준<br>
+      <strong>※ TYPE 표기</strong> 100mm 이하=P0, 150=P1, 200=P2, 300=P3, 400=P4, 500=P5, 600=P6... / 깊이: -1=100, -2=200, -3=300
+    </div>
+  </div>
+
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════ -->
+<!-- 탭 2 — 풀박스 계산서 (NEC 기준)          -->
+<!-- ════════════════════════════════════════ -->
+<div class="tab-content" id="tab1">
+
+  <!-- 기준 명기 -->
+  <div class="basis-box basis-nec">
+    <div class="basis-title">📐 NEC 314.28 적용 기준</div>
+    <div class="basis-body">
+      <span><strong>직선 배선</strong> — 최대 전선관 호칭 × 8</span>
+      <span class="basis-sep">|</span>
+      <span><strong>곡선 배선</strong> — 최대 전선관 호칭 × 6 + 동일 면 나머지 호칭 합산</span>
+      <span class="basis-sep">|</span>
+      <span><strong>깊이 D</strong> — 전선관 외경 + h부싱×2 (단수별 산정)</span>
+    </div>
+  </div>
+
+  <!-- 입력 카드 -->
+  <div class="card">
+    <div class="card-title"><span class="dot" style="background:var(--nec)"></span>전선관 입력 (본수 0 = 미사용)</div>
+
+    <!-- 단수 선택 -->
+    <div class="dan-row">
+      <span style="font-size:13px; font-weight:600; color:var(--muted);">전선관 단수:</span>
+      <button class="dan-btn active" onclick="setDan(1,this)">1단</button>
+      <button class="dan-btn" onclick="setDan(2,this)">2단</button>
+      <button class="dan-btn" onclick="setDan(3,this)">3단</button>
+    </div>
+
+    <div class="tbl-wrap">
+      <table class="input-table">
+        <thead>
+          <tr>
+            <th>호칭 (mm)</th>
+            <th>외경 (mm)</th>
+            <th>h 부싱 (mm)</th>
+            <th>직선 본수</th>
+            <th>곡선 본수</th>
+          </tr>
+        </thead>
+        <tbody id="input-tbody"></tbody>
+      </table>
+    </div>
+
+    <div style="display:flex; gap:10px; margin-top:14px; flex-wrap:wrap;">
+      <button class="btn btn-primary" onclick="calculate()">계 산</button>
+      <button class="btn btn-secondary" onclick="resetInputs()">초기화</button>
+    </div>
+  </div>
+
+  <!-- 결과 미리보기 -->
+  <div class="result-preview" id="result-preview">
+    <div class="r-title">▶ NEC 314.28 계산 결과</div>
+    <div class="result-grid">
+      <div class="result-box">
+        <div class="rb-label">직선 W</div>
+        <div class="rb-val" id="r-w">—</div>
+        <div class="rb-unit">mm</div>
+      </div>
+      <div class="result-box">
+        <div class="rb-label">곡선 L</div>
+        <div class="rb-val" id="r-l">—</div>
+        <div class="rb-unit">mm</div>
+      </div>
+      <div class="result-box">
+        <div class="rb-label">깊이 D</div>
+        <div class="rb-val" id="r-d">—</div>
+        <div class="rb-unit">mm</div>
+      </div>
+      <div class="result-box prod">
+        <div class="rb-label">기성품 선정</div>
+        <div class="rb-val" id="r-prod">—</div>
+        <div class="rb-unit" id="r-prod-sub"></div>
+      </div>
+    </div>
+    <div class="jp-ref" id="r-jp"></div>
+    <div style="margin-top:12px; display:flex; gap:10px;">
+      <button class="btn btn-accent" onclick="addResult()">✓ 확인 → 결과 추가</button>
+    </div>
+  </div>
+
+  <!-- 누적 결과 -->
+  <div class="card">
+    <div class="card-title"><span class="dot" style="background:var(--accent)"></span>계산 결과 누적</div>
+    <div class="history-wrap" id="history-wrap">
+      <div class="history-empty" id="history-empty">계산 후 [확인 → 결과 추가] 버튼을 누르면 여기에 쌓입니다.</div>
+    </div>
+    <div style="margin-top:10px; display:flex; gap:10px;">
+      <button class="btn btn-secondary" onclick="clearHistory()">전체 삭제</button>
+    </div>
+  </div>
+
+</div><!-- /tab1 -->
+
+<!-- ════════════════════════════════════════ -->
+<!-- 탭 3 — 풀박스 계산서 (KEC 기준)          -->
+<!-- ════════════════════════════════════════ -->
+<div class="tab-content" id="tab2">
+
+  <!-- 기준 명기 -->
+  <div class="basis-box basis-sm">
+    <div class="basis-title">📐 KEC 곡률반경 적용 기준</div>
+    <div class="basis-body">
+      <span><strong>굴곡반경</strong> — r = 케이블 완성 외경 × 5</span>
+      <span class="basis-sep">|</span>
+      <span><strong>직선 배선</strong> — A = 4r + 2h (h = 20mm)</span>
+      <span class="basis-sep">|</span>
+      <span><strong>곡선 배선</strong> — A = 3r + Σℓ (ℓ: 전선관 호칭별 삽입길이)</span>
+      <span class="basis-sep">|</span>
+      <span><strong>전선관 선정</strong> — KEC 1/3 점유율(33%) 이하</span>
+    </div>
+  </div>
+
+  <!-- 입력 카드 -->
+  <div class="card">
+    <div class="card-title"><span class="dot" style="background:var(--sm)"></span>풀박스 선정 기준 및 케이블 조건</div>
+
+    <!-- ① 풀박스 선정 기준 (최우선) -->
+    <div style="margin-bottom:20px;">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);font-family:var(--mono);letter-spacing:.5px;margin-bottom:10px;">① 풀박스 선정 기준</div>
+      <div class="radio-group">
+        <label class="radio-card checked-sm" id="rc-sm" onclick="t3setMethod('sm',this)">
+          <input type="radio" name="t3method" value="sm" checked>
+          🟣 KEC 곡률반경 기준
+        </label>
+        <label class="radio-card" id="rc-nec" onclick="t3setMethod('nec',this)">
+          <input type="radio" name="t3method" value="nec">
+          🔵 NEC 314.28
+        </label>
+      </div>
+      <div style="margin-top:8px;font-size:11px;color:var(--muted);" id="t3-method-desc">
+        KEC 곡률반경 — r=케이블 외경×5. 직선(4r+2h)과 곡선(3r+Σℓ)을 각각 계산하여 선정합니다.
+      </div>
+    </div>
+
+    <!-- ② 케이블 조건: 전원방식 → 종류 → 규격 -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:16px;">
+
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <label style="font-size:11px;font-weight:700;color:var(--muted);font-family:var(--mono);letter-spacing:.5px;">② 전원 방식</label>
+        <select id="t3-power" onchange="t3preview()" style="padding:9px 12px;border:1.5px solid var(--border);border-radius:6px;font-size:13px;font-family:var(--mono);background:var(--surface);">
+          <option value="1P2W">1상 2선 (1P2W)</option>
+          <option value="3P3W">3상 3선 (3P3W)</option>
+          <option value="3P4W">3상 4선 (3P4W)</option>
+        </select>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <label style="font-size:11px;font-weight:700;color:var(--muted);font-family:var(--mono);letter-spacing:.5px;">③ 케이블 종류</label>
+        <select id="t3-ctype" onchange="t3preview()" style="padding:9px 12px;border:1.5px solid var(--border);border-radius:6px;font-size:13px;font-family:var(--mono);background:var(--surface);">
+          <option value="HFCO">F-CV / HF-CO</option>
+          <option value="FFR">F-FR-8 / NFR-8</option>
+          <option value="HIV">HIV 연선</option>
+        </select>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <label style="font-size:11px;font-weight:700;color:var(--muted);font-family:var(--mono);letter-spacing:.5px;">④ 케이블 규격</label>
+        <select id="t3-sq" onchange="t3preview()" style="padding:9px 12px;border:1.5px solid var(--border);border-radius:6px;font-size:13px;font-family:var(--mono);background:var(--surface);">
+          <option value="4">4 SQ</option>
+          <option value="6">6 SQ</option>
+          <option value="10">10 SQ</option>
+          <option value="16">16 SQ</option>
+          <option value="25">25 SQ</option>
+          <option value="35">35 SQ</option>
+          <option value="50">50 SQ</option>
+          <option value="70">70 SQ</option>
+          <option value="95">95 SQ</option>
+          <option value="120">120 SQ</option>
+          <option value="150">150 SQ</option>
+          <option value="185">185 SQ</option>
+          <option value="240">240 SQ</option>
+          <option value="300">300 SQ</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- ⑤ 케이블 구성 미리보기 + 단심/다심 선택 -->
+    <div id="t3-preview-box" style="display:none;background:var(--nec-lt);border:1.5px solid #a8c8e8;border-radius:8px;padding:14px 18px;margin-bottom:16px;">
+      <div style="font-size:11px;font-weight:700;color:var(--nec);font-family:var(--mono);letter-spacing:.5px;margin-bottom:10px;">⑤ 케이블 구성 확인 · 선택</div>
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+        <!-- 기본 구성 표시 -->
+        <div style="display:flex;flex-direction:column;gap:3px;">
+          <span style="font-size:10px;color:var(--muted);font-family:var(--mono);">기본 구성 (다심)</span>
+          <span id="t3-prev-default" style="font-size:15px;font-weight:700;font-family:var(--mono);color:var(--nec);">—</span>
+        </div>
+        <!-- 단심 선택 가능 여부 -->
+        <div id="t3-prev-1c-wrap" style="display:flex;flex-direction:column;gap:3px;">
+          <span style="font-size:10px;color:var(--muted);font-family:var(--mono);">단심 구성</span>
+          <span id="t3-prev-1c" style="font-size:15px;font-weight:700;font-family:var(--mono);color:var(--sm);">—</span>
+        </div>
+        <!-- 선택 버튼 -->
+        <div style="display:flex;gap:8px;margin-left:auto;">
+          <button class="dan-btn active" id="btn-multi" onclick="t3setCoreType('multi',this)">다심</button>
+          <button class="dan-btn" id="btn-single" onclick="t3setCoreType('single',this)">단심</button>
+        </div>
+      </div>
+      <!-- 선택된 구성 요약 -->
+      <div id="t3-prev-selected" style="margin-top:10px;padding:8px 12px;background:var(--surface);border-radius:6px;font-size:12px;font-family:var(--mono);color:var(--text);"></div>
+    </div>
+
+    <div style="display:flex;gap:10px;">
+      <button class="btn btn-primary" onclick="t3calc()">계 산</button>
+      <button class="btn btn-secondary" onclick="t3reset()">초기화</button>
+    </div>
+  </div>
+
+  <!-- 결과 카드 -->
+  <div class="card" id="t3-result-card" style="display:none;">
+    <div class="card-title" id="t3-result-title">
+      <span class="dot" style="background:var(--accent)"></span>계산 결과
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead id="t3-thead"></thead>
+        <tbody id="t3-tbody"></tbody>
+      </table>
+    </div>
+    <div class="note-box" id="t3-note"></div>
+    <div style="margin-top:12px;display:flex;gap:10px;">
+      <button class="btn btn-accent" onclick="t3addHistory()">✓ 확인 → 결과 추가</button>
+    </div>
+  </div>
+
+  <!-- 누적 결과 -->
+  <div class="card">
+    <div class="card-title"><span class="dot" style="background:var(--accent)"></span>계산 결과 누적</div>
+    <!-- 선정 기준 레이블 -->
+    <div id="t3-accum-method-label"></div>
+    <!-- 엑셀식 누적 테이블 -->
+    <div class="accum-wrap">
+      <table class="accum-table" id="t3-accum-table" style="display:none;">
+        <thead id="t3-accum-thead"></thead>
+        <tbody id="t3-accum-tbody"></tbody>
+      </table>
+      <div class="accum-empty" id="t3-history-empty">계산 후 [확인 → 결과 추가] 버튼을 누르면 여기에 쌓입니다.</div>
+    </div>
+    <div style="margin-top:10px;display:flex;gap:8px;">
+      <button class="btn btn-secondary" onclick="t3clearHistory()">전체 삭제</button>
+    </div>
+  </div>
+
+</div><!-- /tab2 -->
+
+<div style="max-width:1000px; margin:10px auto; font-size:11px; color:var(--muted); padding:8px 14px; border:1px solid var(--border); border-radius:6px; background:var(--surface);">
+  ※ 본 계산기는 참고용이며 NEC 314.28을 국내 준용 기준으로 적용합니다. 최종 설계는 전문 전기기술사의 검토가 필요합니다.
+</div>
+
+<script>
+// ── 데이터
+const CONDUITS = [
+  { size:16,  od:21.0,  h:14   },
+  { size:22,  od:26.5,  h:14   },
+  { size:28,  od:33.3,  h:17   },
+  { size:36,  od:41.9,  h:18.5 },
+  { size:42,  od:47.8,  h:21.5 },
+  { size:54,  od:59.9,  h:22.5 },
+  { size:70,  od:75.2,  h:29   },
+  { size:82,  od:88.9,  h:30   },
+  { size:104, od:114.3, h:34   },
+];
+
+// 기성품 계열 (W=L 정사각 기준, mm)
+const PROD_SQ = [100,150,200,250,300,350,400,450,500,600,700,800,900,1000,1100,1200,1300,1400];
+// 기성품 깊이 계열
+const PROD_D  = [75,100,150,200,300,400,500];
+
+let currentDan = 1;
+let history = [];
+let lastResult = null;
+
+// ── 탭 전환
+function switchTab(idx) {
+  document.querySelectorAll('.tab-content').forEach((t,i) => t.classList.toggle('active', i===idx));
+  document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', i===idx));
+}
+
+// ── 단수 선택
+function setDan(n, el) {
+  currentDan = n;
+  document.querySelectorAll('.dan-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+}
+
+// ── 기성품 선정
+function pickProd(val, arr) {
+  return arr.find(v => v >= val) || arr[arr.length-1] + '+';
+}
+
+// ── 탭1 선정표 렌더
+// 크기: 100이하=P0, 150=P1, 200=P2, 300=P3, 400=P4, 500=P5, 600=P6, 700=P7...
+// 깊이: 100이하=-1, 150=-1, 200=-2, 300=-3, 400=-4, 500=-5
+function sizeToPN(val) {
+  const SQ = [100,150,200,300,400,500,600,700,800,900,1000,1100,1200,1300,1400];
+  const PN = [0,  1,  2,  3,  4,  5,  6,  7,  8,  9,  10,  11,  12,  13,  14 ];
+  for(let i=0;i<SQ.length;i++) { if(val<=SQ[i]) return PN[i]; }
+  return Math.ceil(val/100);
+}
+function depthToDS(d) {
+  if(d<=100)  return 1;
+  if(d<=200)  return 2;
+  if(d<=300)  return 3;
+  if(d<=400)  return 4;
+  return 5;
+}
+function makeType(sq, d) {
+  return `P${sizeToPN(sq)}-${depthToDS(d)}`;
+}
+
+// ── 탭1 선정표 렌더
+function renderRefTable() {
+  const tbody = document.getElementById('ref-tbody');
+  tbody.innerHTML = CONDUITS.map(c => {
+    const straight = c.size * 8;           // 직선 최소 치수
+    const curve    = c.size * 6;           // 곡선 최소 치수
+    const d1 = Math.ceil(c.od + c.h*2);   // 1단 깊이
+
+    // 직선: 기성품 크기 선정
+    const strSq = pickProd(straight, PROD_SQ);
+    const strD  = pickProd(d1, PROD_D);
+    const strType = makeType(strSq, strD);
+
+    // 곡선: 기성품 크기 선정
+    const crvSq = pickProd(curve, PROD_SQ);
+    const crvD  = pickProd(d1, PROD_D);
+    const crvType = makeType(crvSq, crvD);
+
+    return `<tr>
+      <td class="td-size">${c.size}</td>
+      <td>${c.od.toFixed(1)}</td>
+      <td>${c.h}</td>
+      <td class="td-nec">${straight}</td>
+      <td class="td-nec">${strD}</td>
+      <td class="td-prod">${strType}</td>
+      <td class="td-nec">${curve}</td>
+      <td class="td-nec">${crvD}</td>
+      <td class="td-prod">${crvType}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── 탭2 입력 테이블 렌더
+function renderInputTable() {
+  const tbody = document.getElementById('input-tbody');
+  tbody.innerHTML = CONDUITS.map((c,i) => `
+    <tr>
+      <td class="td-size">${c.size}</td>
+      <td>${c.od.toFixed(1)}</td>
+      <td>${c.h}</td>
+      <td><input type="number" id="str-${i}" value="0" min="0" max="20" oninput="onInputChange()"></td>
+      <td><input type="number" id="crv-${i}" value="0" min="0" max="20" oninput="onInputChange()"></td>
+    </tr>
+  `).join('');
+}
+
+function onInputChange() {
+  // 입력 바뀌면 미리보기 숨김
+  document.getElementById('result-preview').classList.remove('show');
+  lastResult = null;
+}
+
+function resetInputs() {
+  CONDUITS.forEach((_,i) => {
+    document.getElementById(`str-${i}`).value = 0;
+    document.getElementById(`crv-${i}`).value = 0;
+  });
+  document.getElementById('result-preview').classList.remove('show');
+  lastResult = null;
+}
+
+// ── 계산
+function calculate() {
+  // 입력 수집
+  let strEntries = []; // { size, od, h, qty }
+  let crvEntries = [];
+  CONDUITS.forEach((c,i) => {
+    const sq = parseInt(document.getElementById(`str-${i}`).value) || 0;
+    const cq = parseInt(document.getElementById(`crv-${i}`).value) || 0;
+    if(sq > 0) strEntries.push({...c, qty:sq});
+    if(cq > 0) crvEntries.push({...c, qty:cq});
+  });
+
+  if(strEntries.length === 0 && crvEntries.length === 0) {
+    alert('전선관 본수를 입력해 주세요.');
+    return;
+  }
+
+  // NEC (A)(1) 직선: W = 최대 호칭 × 8
+  let W = 0;
+  if(strEntries.length > 0) {
+    const maxStr = Math.max(...strEntries.map(e => e.size));
+    W = maxStr * 8;
+  }
+
+  // NEC (A)(2) 곡선: L = 최대호칭×6 + Σ나머지
+  let L = 0;
+  if(crvEntries.length > 0) {
+    // 각 호칭별 총 본수 flat list
+    let flat = [];
+    crvEntries.forEach(e => { for(let i=0;i<e.qty;i++) flat.push(e.size); });
+    flat.sort((a,b) => b-a);
+    const maxCrv = flat[0];
+    const sumOthers = flat.slice(1).reduce((a,b)=>a+b,0);
+    L = maxCrv * 6 + sumOthers;
+  }
+
+  // 깊이 D
+  // 모든 전선관 중 최대 외경, h 기준
+  const allEntries = [...strEntries, ...crvEntries];
+  const maxOd = allEntries.length > 0 ? Math.max(...allEntries.map(e=>e.od)) : 0;
+  const maxH  = allEntries.length > 0 ? Math.max(...allEntries.map(e=>e.h))  : 0;
+  let D = 0;
+  if(currentDan === 1) D = Math.ceil(maxOd + maxH*2);
+  if(currentDan === 2) D = Math.ceil(maxOd*2 + 200 + maxH*2);
+  if(currentDan === 3) D = Math.ceil(maxOd*3 + 400 + maxH*2);
+
+  // 기성품 선정
+  const maxWL = Math.max(W, L);
+  const prodSq = pickProd(maxWL, PROD_SQ);
+  const prodD  = pickProd(D, PROD_D);
+
+  // 결과 저장
+  lastResult = {
+    W, L, D,
+    prodSq, prodD,
+    dan: currentDan,
+    strEntries: [...strEntries],
+    crvEntries: [...crvEntries],
+  };
+
+  // 미리보기 표시
+  document.getElementById('r-w').textContent    = W || '—';
+  document.getElementById('r-l').textContent    = L || '—';
+  document.getElementById('r-d').textContent    = D;
+  document.getElementById('r-prod').textContent = `${makeType(prodSq, prodD)}`;
+  document.getElementById('r-prod-sub').textContent = `${prodSq}SQ × ${prodD}mm`;
+  document.getElementById('r-jp').textContent = '';
+
+  document.getElementById('result-preview').classList.add('show');
+}
+
+// ── 결과 추가
+function addResult() {
+  if(!lastResult) return;
+  const r = lastResult;
+  history.push({...r, no: history.length+1});
+  renderHistory();
+  // 미리보기 숨김
+  document.getElementById('result-preview').classList.remove('show');
+  lastResult = null;
+}
+
+// ── 설명 문자열 생성
+function makeDesc(r) {
+  let parts = [];
+  r.strEntries.forEach(e => parts.push(`${e.size}C×${e.qty}(직선)`));
+  r.crvEntries.forEach(e => parts.push(`${e.size}C×${e.qty}(곡선)`));
+  return parts.join(' + ') || '—';
+}
+
+// ── 히스토리 렌더
+function renderHistory() {
+  const wrap = document.getElementById('history-wrap');
+  const empty = document.getElementById('history-empty');
+  if(history.length === 0) {
+    empty.style.display = 'block';
+    wrap.querySelectorAll('.history-item').forEach(el => el.remove());
+    return;
+  }
+  empty.style.display = 'none';
+  wrap.querySelectorAll('.history-item').forEach(el => el.remove());
+  history.forEach(r => {
+    const div = document.createElement('div');
+    div.className = 'history-item';
+    div.dataset.no = r.no;
+    div.innerHTML = `
+      <span class="hi-num">#${r.no}</span>
+      <span class="hi-desc">${makeDesc(r)} · ${r.dan}단</span>
+      <div class="hi-dims">
+        ${r.W ? `<span class="hi-chip">직선W=${r.W}</span>` : ''}
+        ${r.L ? `<span class="hi-chip">곡선L=${r.L}</span>` : ''}
+        <span class="hi-chip">D=${r.D}</span>
+        <span class="hi-chip prod">▶ ${makeType(r.prodSq, r.prodD)} (${r.prodSq}SQ × ${r.prodD}mm)</span>
+      </div>
+      <button class="btn btn-danger" onclick="removeHistory(${r.no})">삭제</button>
+    `;
+    wrap.appendChild(div);
+  });
+}
+
+function removeHistory(no) {
+  history = history.filter(r => r.no !== no);
+  renderHistory();
+}
+
+function clearHistory() {
+  if(history.length === 0) return;
+  if(confirm('전체 결과를 삭제하시겠습니까?')) {
+    history = [];
+    renderHistory();
+  }
+}
+
+// ══════════════════════════════════════════
+// 탭3 — 케이블 기반 전선관·풀박스 선정 (v4)
+// ══════════════════════════════════════════
+
+// 가온케이블 HF-CO 외경 (mm)
+const T3_OD = {
+  HFCO: {
+    '1C':{4:7.0,6:7.5,10:8.5,16:9.0,25:11.0,35:12.0,50:13.0,70:15.0,95:17.0,120:19.0,150:21.0,185:23.0,240:25.5,300:28.0},
+    '2C':{4:12.0,6:13.5,10:15.0,16:16.5,25:19.5,35:22.0,50:24.5,70:28.0,95:32.0,120:35.5,150:39.5,185:44.0,240:49.5,300:54.5},
+    '3C':{4:13.0,6:14.0,10:16.0,16:17.5,25:21.0,35:23.5,50:26.0,70:30.0,95:34.0,120:38.0,150:42.5,185:47.0,240:53.0,300:58.5},
+    '4C':{4:14.0,6:15.5,10:17.5,16:19.0,25:23.0,35:25.5,50:28.5,70:33.5,95:38.0,120:42.5,150:47.5,185:52.5,240:59.0,300:65.0},
+  }
+};
+T3_OD.FFR = T3_OD.HFCO;
+T3_OD.HIV = {'1C': T3_OD.HFCO['1C']};
+
+// F-GV 외경 (mm)
+const T3_GVOD = {4:8.0,6:8.5,10:9.5,16:11.0,25:12.0,35:14.0,50:16.0,70:18.5,95:20.0,120:22.0,150:24.0,185:26.0,240:29.0,300:32.0};
+
+// 전선관 내경·외경·h 데이터
+const T3_CONDS = [
+  {size:16, id:15.8, od:21.0,  h:14  },
+  {size:22, id:20.9, od:26.5,  h:14  },
+  {size:28, id:26.6, od:33.3,  h:17  },
+  {size:36, id:35.1, od:41.9,  h:18.5},
+  {size:42, id:40.9, od:47.8,  h:21.5},
+  {size:54, id:52.5, od:59.9,  h:22.5},
+  {size:70, id:68.9, od:75.2,  h:29  },
+  {size:82, id:85.4, od:88.9,  h:30  },
+  {size:104,id:110.1,od:114.3, h:34  },
+];
+
+// 서울메트로 전선관 호칭별 ℓ (삽입길이, mm)
+const SM_L = {16:40,22:45,28:50,36:55,42:60,54:65,70:75,82:85,104:100};
+const SM_H = 20; // 벽두께 여유(mm)
+
+// 선정 방식 상태
+let t3method   = 'sm';    // 'nec' | 'sm'  ← KEC 기본값
+let t3coreType = 'multi';  // 'multi' | 'single'  (사용자가 선택)
+let t3lastResult = null;
+let t3history    = [];
+
+// 방식 설명
+const METHOD_DESC = {
+  nec: 'NEC 314.28 — 직선(호칭×8)과 곡선(호칭×6)을 각각 계산하여 선정합니다.',
+  sm:  'KEC 곡률반경 — r=케이블 외경×5. 직선(4r+2h)과 곡선(3r+Σℓ)을 각각 계산하여 선정합니다.',
+};
+
+function t3setMethod(v, el) {
+  t3method = v;
+  ['nec','sm'].forEach(k => {
+    document.getElementById('rc-'+k).classList.remove('checked-nec','checked-sm');
+  });
+  el.classList.add('checked-'+v);
+  document.getElementById('t3-method-desc').textContent = METHOD_DESC[v];
+}
+
+// 코어 타입 선택 (다심/단심)
+function t3setCoreType(type, el) {
+  t3coreType = type;
+  ['multi','single'].forEach(k => {
+    document.getElementById('btn-'+k).classList.toggle('active', k===type);
+  });
+  t3updatePreviewSelected();
+}
+
+// 전원방식→코어수 문자열
+function t3getCores(power, ctype) {
+  if(ctype === 'HIV') return '1C';
+  return {'1P2W':'2C','3P3W':'3C','3P4W':'4C'}[power] || '1C';
+}
+function t3getMulti(power) { return {'1P2W':2,'3P3W':3,'3P4W':4}[power] || 1; }
+
+// 선택 요약 텍스트 갱신
+function t3updatePreviewSelected() {
+  const power  = document.getElementById('t3-power').value;
+  const ctype  = document.getElementById('t3-ctype').value;
+  const sq     = parseInt(document.getElementById('t3-sq').value);
+  const multi  = t3getMulti(power);
+  const defCores = ctype==='HIV' ? '1C' : t3getCores(power, ctype);
+  const isHIV    = ctype === 'HIV';
+
+  let coreStr, odKey;
+  if(t3coreType === 'single' && !isHIV) {
+    coreStr = `1C × ${multi}본 (단심 선택)`;
+    odKey   = '1C';
+  } else {
+    coreStr = sq >= 50
+      ? `1C × ${multi}본 (50SQ 이상 단심)`
+      : isHIV ? `1C × ${multi}본 (HIV)` : `${defCores} × 1본 (다심)`;
+    odKey = sq >= 50 || isHIV ? '1C' : defCores;
+  }
+
+  const ctLabel = {'HFCO':'F-CV/HF-CO','FFR':'F-FR-8/NFR-8','HIV':'HIV 연선'}[ctype];
+  const odTable = T3_OD[ctype][odKey];
+  const od      = odTable && odTable[sq] ? `  ·  외경 ${odTable[sq]} mm` : '';
+  const gvSq    = t3gvSize(sq);
+
+  document.getElementById('t3-prev-selected').innerHTML =
+    `<strong>선택 구성:</strong> ${sq}SQ ${ctLabel} ${coreStr}${od}　|　접지선 F-GV ${gvSq}SQ`;
+}
+
+// 케이블 미리보기 (드롭다운 변경 시 즉시 실행)
+function t3preview() {
+  const power  = document.getElementById('t3-power').value;
+  const ctype  = document.getElementById('t3-ctype').value;
+  const sq     = parseInt(document.getElementById('t3-sq').value);
+  const multi  = t3getMulti(power);
+  const defCores = ctype==='HIV' ? '1C' : t3getCores(power, ctype);
+  const isHIV    = ctype === 'HIV';
+
+  // 기본(다심) 표시
+  const defLabel = sq >= 50
+    ? `1C × ${multi}본` : isHIV
+    ? `1C × ${multi}본` : `${defCores} × 1본`;
+  document.getElementById('t3-prev-default').textContent = `${sq}SQ-${defLabel}`;
+
+  // 단심 표시
+  const singleLabel = `1C × ${multi}본`;
+  document.getElementById('t3-prev-1c').textContent = `${sq}SQ-${singleLabel}`;
+
+  // HIV이거나 50SQ이상이면 단심만 가능 → 버튼 비활성
+  const forceSingle = isHIV || sq >= 50;
+  document.getElementById('btn-multi').disabled = forceSingle;
+  document.getElementById('btn-multi').style.opacity = forceSingle ? '0.4' : '1';
+  if(forceSingle) {
+    t3coreType = 'single';
+    document.getElementById('btn-multi').classList.remove('active');
+    document.getElementById('btn-single').classList.add('active');
+  }
+
+  document.getElementById('t3-preview-box').style.display = 'block';
+  t3updatePreviewSelected();
+}
+
+function t3circArea(d) { return Math.PI * Math.pow(d/2, 2); }
+
+// KEC 142.3.2 접지선 굵기
+function t3gvSize(s) {
+  if(s <= 16) return s;
+  if(s <= 35) return 16;
+  const raw = s / 2;
+  const stds = [2.5,4,6,10,16,25,35,50,70,95,120,150,185,240,300];
+  return stds.find(v => v >= raw) || stds[stds.length-1];
+}
+
+// 전선관 선정 (KEC 1/3 기준)
+function t3selectCond(totalArea) {
+  const minID = Math.sqrt(totalArea * 3 * 4 / Math.PI);
+  return T3_CONDS.find(c => c.id >= minID) || T3_CONDS[T3_CONDS.length-1];
+}
+
+// 깊이 D (단일 회로 1단 고정)
+function calcDepth(cond) { return Math.ceil(cond.od + cond.h * 2); }
+
+// NEC 치수 계산
+function calcNEC(condSize) {
+  return {
+    str: condSize * 8,
+    crv: condSize * 6,
+  };
+}
+
+// KEC 곡률반경(서울메트로) 치수 계산
+function calcSM(cableOD, condSize) {
+  const r   = cableOD * 5;
+  const ell = SM_L[condSize] || 60;
+  return {
+    str: Math.ceil(4*r + 2*SM_H),
+    crv: Math.ceil(3*r + ell),
+    r: r.toFixed(1), ell, h: SM_H,
+    fStr: `4×${r.toFixed(0)}+2×${SM_H}`,
+    fCrv: `3×${r.toFixed(0)}+${ell}`,
+  };
+}
+
+// 결과 행 단일 계산
+function t3calcRow(sq, ctype, power) {
+  const isLarge  = sq >= 50;
+  const isHIV    = ctype === 'HIV';
+  const forceSingle = isLarge || isHIV;
+  // 단심 선택 여부 반영
+  const useSingle = forceSingle || t3coreType === 'single';
+  const cores     = useSingle ? '1C' : t3getCores(power, ctype);
+  const multi     = useSingle ? t3getMulti(power) : 1;
+  const odTable   = T3_OD[ctype][cores];
+  if(!odTable || !odTable[sq]) return null;
+  const cableOD   = odTable[sq];
+  const gvSq      = t3gvSize(sq);
+  const gvOD      = T3_GVOD[gvSq];
+  if(!gvOD) return null;
+  const cableArea = t3circArea(cableOD) * multi;
+  const gvArea    = t3circArea(gvOD);
+  const totalArea = cableArea + gvArea;
+  const cond      = t3selectCond(totalArea);
+  const fillRate  = (totalArea / t3circArea(cond.id) * 100).toFixed(1);
+  const D         = calcDepth(cond);
+  const nec       = calcNEC(cond.size);
+  const sm        = calcSM(cableOD, cond.size);
+  // 구성 문자열
+  const coreTypeLabel = useSingle && !forceSingle ? ' (단심 선택)' : '';
+  const cableStr = multi > 1
+    ? `${sq}SQ-1C×${multi}본${coreTypeLabel}`
+    : `${sq}SQ-${cores}`;
+  return { sq, cableStr, cableOD, gvSq, gvOD,
+    cableArea: cableArea.toFixed(1), gvArea: gvArea.toFixed(1),
+    totalArea: totalArea.toFixed(1), cond, fillRate, D, nec, sm };
+}
+
+// 기성품 선정 포함 셀 생성 헬퍼
+function adoptCell(val, D, cls) {
+  const sq   = pickProd(val, PROD_SQ);
+  const d    = pickProd(D, PROD_D);
+  const type = makeType(sq, d);
+  return `<div class="adopt-box ${cls}"><span class="ab-val">${val}</span><span class="ab-type">${type}</span></div>`;
+}
+
+// 결과 테이블 헤더/행 렌더
+function t3renderTable(rows, method, power) {
+
+  if(method === 'nec') {
+    // ── NEC: 계산 치수 2열 + 선정 2열(직선/곡선 각각)
+    document.getElementById('t3-thead').innerHTML = `
+      <tr>
+        <th class="th-base" rowspan="2">공칭<br>단면적</th>
+        <th class="th-base" rowspan="2">케이블 구성</th>
+        <th class="th-base" rowspan="2">외경<br>(mm)</th>
+        <th class="th-base" rowspan="2">접지선<br>F-GV</th>
+        <th class="th-base" rowspan="2">전선관<br>호칭</th>
+        <th class="th-base" rowspan="2">점유율</th>
+        <th class="th-nec" colspan="2">NEC 314.28 계산 치수 (mm)</th>
+        <th class="th-nec" colspan="2">풀박스 선정</th>
+      </tr>
+      <tr>
+        <th class="th-nec">직선 (호칭×8)</th>
+        <th class="th-nec">곡선 (호칭×6)</th>
+        <th class="th-nec">직선 선정</th>
+        <th class="th-nec">곡선 선정</th>
+      </tr>`;
+    document.getElementById('t3-tbody').innerHTML = rows.map(r => `<tr>
+        <td class="td-size">${r.sq}SQ</td>
+        <td>${r.cableStr}</td>
+        <td>${r.cableOD}</td>
+        <td class="td-ok">${r.gvSq}SQ</td>
+        <td class="td-prod">${r.cond.size}C</td>
+        <td>${r.fillRate}%</td>
+        <td class="td-nec">${r.nec.str}</td>
+        <td class="td-nec">${r.nec.crv}</td>
+        <td>${adoptCell(r.nec.str, r.D, 'adopt-nec')}</td>
+        <td>${adoptCell(r.nec.crv, r.D, 'adopt-nec')}</td>
+      </tr>`).join('');
+
+  } else if(method === 'sm') {
+    // ── KEC: 계산 치수 2열 + 선정 2열(직선/곡선 각각)
+    document.getElementById('t3-thead').innerHTML = `
+      <tr>
+        <th class="th-base" rowspan="2">공칭<br>단면적</th>
+        <th class="th-base" rowspan="2">케이블 구성</th>
+        <th class="th-base" rowspan="2">외경<br>(mm)</th>
+        <th class="th-base" rowspan="2">접지선<br>F-GV</th>
+        <th class="th-base" rowspan="2">전선관<br>호칭</th>
+        <th class="th-base" rowspan="2">r=외경×5<br>(mm)</th>
+        <th class="th-sm" colspan="2">KEC 곡률반경 계산 치수 (mm)</th>
+        <th class="th-sm" colspan="2">풀박스 선정</th>
+      </tr>
+      <tr>
+        <th class="th-sm">직선 (4r+2h)</th>
+        <th class="th-sm">곡선 (3r+Σℓ)</th>
+        <th class="th-sm">직선 선정</th>
+        <th class="th-sm">곡선 선정</th>
+      </tr>`;
+    document.getElementById('t3-tbody').innerHTML = rows.map(r => `<tr>
+        <td class="td-size">${r.sq}SQ</td>
+        <td>${r.cableStr}</td>
+        <td>${r.cableOD}</td>
+        <td class="td-ok">${r.gvSq}SQ</td>
+        <td class="td-prod">${r.cond.size}C</td>
+        <td class="td-sm">${r.sm.r}</td>
+        <td class="td-sm">${r.sm.str}<br><small style="color:var(--muted);font-size:10px;">${r.sm.fStr}</small></td>
+        <td class="td-sm">${r.sm.crv}<br><small style="color:var(--muted);font-size:10px;">${r.sm.fCrv}</small></td>
+        <td>${adoptCell(r.sm.str, r.D, 'adopt-sm')}</td>
+        <td>${adoptCell(r.sm.crv, r.D, 'adopt-sm')}</td>
+      </tr>`).join('');
+
+  } // end sm
+
+} // end t3renderTable
+
+function t3calc() {
+  const power  = document.getElementById('t3-power').value;
+  const ctype  = document.getElementById('t3-ctype').value;
+  const sq     = parseInt(document.getElementById('t3-sq').value);
+  const method = t3method;
+
+  const ctypeLabel = {'HFCO':'F-CV/HF-CO','FFR':'F-FR-8/NFR-8','HIV':'HIV 연선'}[ctype];
+  const powerLabel = {'1P2W':'1상 2선','3P3W':'3상 3선','3P4W':'3상 4선'}[power];
+  const methodLabel= {'nec':'NEC 314.28','sm':'KEC 곡률반경'}[method];
+
+  // 단일 규격 계산
+  const row = t3calcRow(sq, ctype, power);
+  if(!row) { alert('해당 조합의 외경 데이터가 없습니다.'); return; }
+
+  const rows = [row];
+  t3renderTable(rows, method, power);
+
+  // 선정 기준 명기
+  const methodNotes = {
+    nec: `<strong>※ 선정 기준</strong> — NEC 314.28(A)(1) 직선: 전선관 호칭×8 / NEC 314.28(A)(2) 곡선: 전선관 호칭×6`,
+    sm:  `<strong>※ 선정 기준</strong> — KEC 곡률반경: r = 케이블 외경 × 5<br>
+          직선: A = 4r + 2h (h=${SM_H}mm) / 곡선: A = 3r + Σℓ (ℓ: 전선관 호칭별 삽입길이)<br>
+          ℓ 기준 — 16C:40 / 22C:45 / 28C:50 / 36C:55 / 42C:60 / 54C:65 / 70C:75 / 82C:85 / 104C:100 (mm)`,
+  };
+
+  const coreNote = (t3coreType==='single' && row.sq<=35 && row.ctype!=='HIV')
+    ? `단심 선택 적용 — ${row.sq}SQ 1C×${t3getMulti(power)}본 + F-GV 1본`
+    : row.sq >= 50
+      ? `50SQ 이상 단심 — 1C×${t3getMulti(power)}본 + F-GV 1본`
+      : `다심 — ${row.cableStr} + F-GV 1본`;
+
+  document.getElementById('t3-note').innerHTML = `
+    ${methodNotes[method]}<br>
+    <strong>※ 케이블 구성</strong> — ${coreNote}<br>
+    <strong>※ 접지선</strong> — KEC 142.3.2: S≤16→동일, 16&lt;S≤35→16SQ, S&gt;35→S/2 절상<br>
+    <strong>※ 전선관 선정</strong> — KEC 1/3 점유율(33%) 이하 / 외경: 가온케이블 카탈로그 기준<br>
+    <strong>※ 깊이 D</strong> — 단일 회로 1단 기준: 전선관 외경 + h부싱×2`;
+
+  document.getElementById('t3-result-title').innerHTML =
+    `<span class="dot" style="background:var(--accent)"></span>${sq}SQ · ${ctypeLabel} · ${powerLabel} · <span style="color:var(--accent)">[${methodLabel}]</span>`;
+  document.getElementById('t3-result-card').style.display = 'block';
+  t3lastResult = { sq, ctype, power, method, coreType: t3coreType, ctypeLabel, powerLabel, methodLabel, row };
+}
+
+function t3addHistory() {
+  if(!t3lastResult) return;
+  t3history.push({...t3lastResult, no: t3history.length+1});
+  t3renderHistory();
+  document.getElementById('t3-result-card').style.display = 'none';
+  t3lastResult = null;
+}
+
+function t3renderHistory() {
+  const empty  = document.getElementById('t3-history-empty');
+  const table  = document.getElementById('t3-accum-table');
+  const thead  = document.getElementById('t3-accum-thead');
+  const tbody  = document.getElementById('t3-accum-tbody');
+  const mlabel = document.getElementById('t3-accum-method-label');
+
+  if(t3history.length === 0) {
+    empty.style.display  = 'block';
+    table.style.display  = 'none';
+    mlabel.innerHTML     = '';
+    return;
+  }
+
+  empty.style.display = 'none';
+  table.style.display = '';
+
+  // 선정 기준 레이블 (마지막 추가 기준 표시)
+  const lastMethod = t3history[t3history.length-1].method;
+  const mCls  = lastMethod==='nec' ? 'accum-method-nec' : 'accum-method-sm';
+  const mText = lastMethod==='nec' ? '🔵 NEC 314.28 기준' : '🟣 KEC 곡률반경 기준';
+  mlabel.innerHTML = `<span class="accum-method-label ${mCls}">${mText}</span>`;
+
+  // 헤더 (방식에 따라 달라짐)
+  const isNec = lastMethod === 'nec';
+  const thColor = isNec ? 'th-nec' : 'th-sm';
+  thead.innerHTML = `
+    <tr>
+      <th class="th-no">No.</th>
+      <th class="th-base">케이블 종류</th>
+      <th class="th-base">전원방식</th>
+      <th class="th-base">규격</th>
+      <th class="th-base">케이블 구성</th>
+      <th class="th-base">외경(mm)</th>
+      <th class="th-base">접지선</th>
+      <th class="th-base">전선관</th>
+      <th class="${thColor}">직선 치수(mm)</th>
+      <th class="${thColor}">직선 TYPE</th>
+      <th class="${thColor}">곡선 치수(mm)</th>
+      <th class="${thColor}">곡선 TYPE</th>
+      <th class="th-base">삭제</th>
+    </tr>`;
+
+  tbody.innerHTML = t3history.map(r => {
+    const row    = r.row;
+    const strVal = r.method==='nec' ? row.nec.str : row.sm.str;
+    const crvVal = r.method==='nec' ? row.nec.crv : row.sm.crv;
+    const strType= makeType(pickProd(strVal, PROD_SQ), pickProd(row.D, PROD_D));
+    const crvType= makeType(pickProd(crvVal, PROD_SQ), pickProd(row.D, PROD_D));
+    const rCls   = r.method==='nec' ? 'td-str' : 'td-crv';
+    return `<tr>
+      <td class="td-no">${r.no}</td>
+      <td>${r.ctypeLabel}</td>
+      <td>${r.powerLabel}</td>
+      <td style="font-weight:700;">${r.sq}SQ</td>
+      <td>${row.cableStr}</td>
+      <td>${row.cableOD}</td>
+      <td class="td-ok">${row.gvSq}SQ</td>
+      <td class="td-prod">${row.cond.size}C</td>
+      <td class="${rCls}">${strVal}</td>
+      <td class="td-prod">${strType}</td>
+      <td class="${rCls}">${crvVal}</td>
+      <td class="td-prod">${crvType}</td>
+      <td><button class="btn btn-danger" onclick="t3removeHistory(${r.no})">✕</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function t3removeHistory(no) { t3history = t3history.filter(r => r.no!==no); t3renderHistory(); }
+function t3clearHistory() { if(!t3history.length) return; if(confirm('전체 삭제?')) { t3history=[]; t3renderHistory(); } }
+function t3reset() {
+  document.getElementById('t3-result-card').style.display = 'none';
+  document.getElementById('t3-preview-box').style.display = 'none';
+  t3coreType = 'multi';
+  document.getElementById('btn-multi').classList.add('active');
+  document.getElementById('btn-single').classList.remove('active');
+  t3lastResult = null;
+}
+
+// ── 초기화
+renderRefTable();
+renderInputTable();
+</script>
+</body>
+</html>

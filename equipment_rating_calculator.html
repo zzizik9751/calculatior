@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>수변전설비 계산서</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Noto+Sans+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ══ 디자인 토큰 — 이 블록만 교체하면 전체 테마 변경 ══ */
+:root {
+  --bg:#f5f4f0; --surface:#ffffff; --border:#e0ddd5;
+  --text:#1a1a18; --muted:#888880;
+  --accent:#e8500a; --accent-dark:#d0440a; --accent-light:#fdf0eb;
+  --ok:#2e7d32; --ok-light:#e8f5e9;
+  --warn:#e65100; --warn-light:#fff3e0;
+  --mono:'Noto Sans Mono',monospace; --sans:'Noto Sans KR',sans-serif;
+  --radius:10px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14px;padding:28px 16px 80px;}
+.wrapper{max-width:980px;margin:0 auto;}
+
+/* 페이지 헤더 */
+.page-header{display:flex;align-items:baseline;gap:12px;margin-bottom:28px;padding-bottom:14px;border-bottom:2px solid var(--accent);}
+.page-header h1{font-size:20px;font-weight:700;}
+.page-header .sub{font-family:var(--mono);font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;}
+.print-date{display:none;}
+
+/* 카드 */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:22px;margin-bottom:18px;}
+.card-title{font-family:var(--mono);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:18px;}
+
+/* 섹션 타이틀 */
+.section-title{font-size:13px;font-weight:700;color:var(--accent);border-left:3px solid var(--accent);padding-left:10px;margin:22px 0 14px;}
+
+/* 입력 */
+.input-grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;}
+.field{display:flex;flex-direction:column;gap:5px;}
+.field label{font-size:12px;font-weight:500;color:var(--muted);}
+.field input,.field select{font-family:var(--mono);font-size:14px;font-weight:500;color:var(--text);background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:9px 12px;outline:none;transition:border-color .15s;width:100%;}
+.field input:focus,.field select:focus{border-color:var(--accent);background:#fff;}
+
+/* 변압기 뱅크 */
+.tr-list{display:flex;flex-direction:column;gap:10px;margin-bottom:12px;}
+.tr-item-wrap{display:flex;flex-direction:column;gap:0;}
+.tr-item{background:var(--bg);border:1px solid var(--border);border-radius:8px 8px 0 0;padding:11px 15px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.tr-item:only-child,.tr-item-wrap:last-child .tr-item{border-radius:8px;}
+.tr-item-wrap .panel-list~*{border-radius:0;}
+.tr-badge{background:var(--accent);color:#fff;border-radius:5px;font-family:var(--mono);font-size:11px;font-weight:600;padding:4px 10px;white-space:nowrap;min-width:42px;text-align:center;}
+.tr-field{display:flex;flex-direction:column;gap:3px;flex:1;min-width:110px;}
+.tr-field label{font-size:11px;color:var(--muted);font-family:var(--mono);}
+.tr-field input,.tr-field select{font-family:var(--mono);font-size:13px;font-weight:500;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:7px 10px;outline:none;width:100%;transition:border-color .15s;}
+.tr-field input:focus,.tr-field select:focus{border-color:var(--accent);}
+.tr-kva-display{font-family:var(--mono);font-size:18px;font-weight:700;color:var(--accent);min-width:90px;text-align:right;}
+.btn-remove{background:none;border:1px solid var(--border);border-radius:5px;color:#bbb;cursor:pointer;padding:6px 10px;font-size:15px;transition:all .15s;line-height:1;}
+.btn-remove:hover{border-color:#e53935;color:#e53935;background:#fce4ec;}
+.btn-add-panel{background:#fff8f5;color:var(--accent);border:1px solid #f5c9b0;border-radius:5px;padding:5px 12px;font-size:12px;font-weight:600;font-family:var(--sans);cursor:pointer;white-space:nowrap;transition:background .15s;}
+.btn-add-panel:hover{background:var(--accent-light);}
+
+/* 저압반 패널 */
+.panel-list{border:1px solid var(--border);border-top:none;border-radius:0 0 8px 8px;background:#fefcfa;padding:8px 12px 4px;}
+.panel-item{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:6px 0;border-bottom:1px solid var(--border);}
+.panel-item:last-of-type{border-bottom:none;}
+.panel-badge{background:#b84008;color:#fff;border-radius:5px;font-family:var(--mono);font-size:10px;font-weight:600;padding:3px 8px;white-space:nowrap;min-width:40px;text-align:center;}
+.btn-add-tr{background:var(--accent-light);color:var(--accent);border:1.5px dashed var(--accent);border-radius:8px;padding:10px;width:100%;font-size:13px;font-weight:600;font-family:var(--sans);cursor:pointer;transition:background .15s;display:flex;align-items:center;justify-content:center;gap:6px;}
+.btn-add-tr:hover{background:#fbe0d0;}
+
+/* 수전용량 요약 */
+.kva-summary{background:var(--accent-light);border:1px solid #f5c9b0;border-radius:var(--radius);padding:16px 20px;display:flex;align-items:center;gap:20px;flex-wrap:wrap;margin-top:14px;}
+.kva-auto{flex:1;}
+.kva-auto-label{font-size:10px;color:var(--muted);font-family:var(--mono);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;}
+.kva-auto-val{font-family:var(--mono);font-size:26px;font-weight:600;color:var(--accent);line-height:1;}
+.kva-auto-unit{font-family:var(--mono);font-size:13px;color:var(--muted);margin-left:4px;}
+.kva-divider{width:1px;height:52px;background:#f0c8a8;}
+.kva-override{flex:1.5;}
+.kva-override-label{font-size:10px;color:var(--muted);font-family:var(--mono);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;}
+.kva-override-row{display:flex;align-items:center;gap:10px;}
+.kva-override-row input{max-width:150px;font-family:var(--mono);font-size:20px;font-weight:600;color:var(--accent);background:var(--surface);border:1px solid #f0c8a8;border-radius:6px;padding:7px 12px;outline:none;transition:border-color .15s;}
+.kva-override-row input:focus{border-color:var(--accent);}
+.kva-diff{font-size:11px;padding:3px 8px;border-radius:4px;font-family:var(--mono);white-space:nowrap;}
+.kva-diff.same{background:var(--ok-light);color:var(--ok);}
+.kva-diff.over{background:var(--warn-light);color:var(--warn);}
+.kva-diff.under{background:#fff8e1;color:#f9a825;}
+
+/* 변압기 표준용량 안내 */
+.tr-std-note{background:#f8f7f4;border:1px solid var(--border);border-radius:8px;padding:12px 16px;margin-top:14px;font-size:11px;color:var(--muted);font-family:var(--mono);line-height:1.9;}
+.tr-std-note strong{color:var(--text);font-weight:600;}
+
+/* 버튼 */
+.calc-btn{margin-top:18px;width:100%;padding:12px;background:var(--accent);color:#fff;font-family:var(--sans);font-size:14px;font-weight:700;border:none;border-radius:8px;cursor:pointer;transition:background .15s;letter-spacing:.04em;}
+.calc-btn:hover{background:var(--accent-dark);}
+.calc-btn:active{transform:scale(.98);}
+.print-btn{margin-top:10px;width:100%;padding:10px;background:var(--surface);color:var(--accent);font-family:var(--sans);font-size:13px;font-weight:600;border:1.5px solid var(--accent);border-radius:8px;cursor:pointer;transition:all .15s;}
+.print-btn:hover{background:var(--accent-light);}
+
+/* 결과 */
+.result-section{display:none;animation:fadeIn .3s ease;}
+.result-section.visible{display:block;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+.result-block{margin-bottom:20px;}
+.result-title-bar{background:var(--accent);color:#fff;padding:11px 18px;font-size:13px;font-weight:700;border-radius:var(--radius) var(--radius) 0 0;display:flex;align-items:center;justify-content:space-between;}
+.result-title-bar .sub{font-size:11px;font-weight:400;opacity:.8;font-family:var(--mono);}
+.result-title-bar.tr-bar{background:var(--accent-dark);}
+.result-wrap{background:var(--surface);border:1px solid var(--border);border-top:none;border-radius:0 0 var(--radius) var(--radius);overflow-x:auto;}
+.result-table{width:100%;border-collapse:collapse;min-width:660px;}
+.result-table th{background:var(--accent-light);color:var(--accent);font-size:11px;font-weight:700;font-family:var(--mono);padding:9px 12px;text-align:center;border:1px solid var(--border);letter-spacing:.06em;white-space:nowrap;}
+.result-table td{padding:0;border:1px solid var(--border);vertical-align:middle;}
+.result-table td .cell{padding:10px 12px;display:block;}
+td.col-name .cell{font-weight:700;font-size:13px;text-align:center;white-space:nowrap;}
+td.col-volt .cell{font-family:var(--mono);font-size:12px;color:var(--muted);text-align:center;}
+td.col-range .cell{font-family:var(--mono);font-size:11px;color:var(--muted);line-height:1.9;text-align:center;}
+td.col-sel .cell{font-family:var(--mono);font-weight:700;font-size:14px;color:var(--accent);text-align:center;white-space:nowrap;}
+td.col-note .cell{font-size:12px;color:#444;line-height:1.75;font-family:var(--mono);}
+td.col-note .formula{color:var(--muted);}
+td.col-note .result-val{color:var(--accent);font-weight:600;}
+.result-table tr:not(.section-header):not(.feeder-row):hover td{background:var(--accent-light);transition:background .1s;}
+.result-table tr.section-header td{background:#f5ede8;font-weight:700;font-size:11px;color:var(--accent);padding:6px 14px;letter-spacing:.05em;font-family:var(--mono);text-transform:uppercase;}
+.result-table tr.section-header.tr-sec td{background:#f0ebe5;color:#8c3a08;}
+.result-table tr.feeder-row td{background:#fff8f5;}
+.result-table tr.feeder-row:hover td{background:var(--accent-light);}
+
+/* 면책 */
+.disclaimer{text-align:center;font-size:11px;color:var(--muted);margin-top:24px;padding-top:14px;border-top:1px solid var(--border);line-height:1.7;}
+
+/* 관련 근거 탭 */
+.ref-tabs{margin-top:28px;border-top:1px solid var(--border);padding-top:20px;}
+.ref-tabs-header{font-family:var(--mono);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:10px;}
+.ref-tab-bar{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:0;}
+.ref-tab-btn{font-family:var(--mono);font-size:11px;font-weight:600;padding:6px 14px;border-radius:6px 6px 0 0;border:1px solid var(--border);border-bottom:none;background:var(--bg);color:var(--muted);cursor:pointer;transition:all .15s;white-space:nowrap;}
+.ref-tab-btn.active{background:var(--surface);color:var(--accent);border-color:var(--border);}
+.ref-tab-btn:hover:not(.active){background:var(--accent-light);color:var(--accent);}
+.ref-tab-content{display:none;background:var(--surface);border:1px solid var(--border);border-radius:0 6px 6px 6px;padding:16px 18px;}
+.ref-tab-content.active{display:block;}
+.ref-table{width:100%;border-collapse:collapse;font-size:12px;}
+.ref-table th{background:var(--accent-light);color:var(--accent);font-family:var(--mono);font-size:11px;font-weight:700;padding:7px 12px;text-align:left;border:1px solid var(--border);letter-spacing:.05em;white-space:nowrap;}
+.ref-table td{padding:8px 12px;border:1px solid var(--border);vertical-align:top;font-family:var(--mono);font-size:11px;line-height:1.75;}
+.ref-table td:first-child{font-weight:700;white-space:nowrap;width:12%;}
+.ref-table td:nth-child(2){color:var(--accent);font-weight:600;width:16%;}
+.ref-table td:nth-child(3){color:#555;width:22%;}
+.ref-table td:last-child{color:#444;}
+.ref-table tr:nth-child(even) td{background:#faf9f7;}
+.ref-note{font-size:11px;color:var(--muted);margin-top:12px;line-height:1.8;font-family:var(--mono);padding:10px 14px;background:var(--bg);border-radius:6px;border-left:3px solid var(--border);}
+
+/* 인쇄 */
+@media print{
+  @page{size:A4;margin:20mm 10mm 15mm 10mm;}
+  body{background:#fff !important;padding:0 !important;font-size:11px;}
+  .wrapper{max-width:100%;}
+  .input-area,.calc-btn,.print-btn,.ref-tabs{display:none !important;}
+  .result-section{display:block !important;}
+  .card{padding:10px 12px !important;margin-bottom:8px !important;border:1px solid #ccc !important;border-radius:4px !important;}
+  .result-title-bar{border-radius:4px 4px 0 0 !important;padding:7px 12px !important;font-size:12px !important;}
+  .result-table th,.result-table td .cell{font-size:10px !important;padding:5px 8px !important;}
+  .result-block{margin-bottom:10px !important;}
+  .page-header{margin-bottom:14px !important;padding-bottom:8px !important;}
+  .print-date{display:block !important;text-align:right;font-size:10px;color:#666;margin-bottom:6px;}
+  .disclaimer{font-size:10px !important;}
+}
+@media(max-width:640px){
+  .input-grid-2{grid-template-columns:1fr;}
+  .kva-summary{flex-direction:column;}
+  .kva-divider{width:100%;height:1px;}
+}
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+<div class="print-date" id="printDate"></div>
+
+<div class="page-header">
+  <h1>수변전설비 계산서</h1>
+  <span class="sub">수변전 주요기기 용량 산출 · KESC 2026 기준</span>
+</div>
+
+<div class="input-area">
+
+  <div class="card">
+    <div class="card-title">01 — 계통 조건</div>
+    <div class="input-grid-2">
+      <div class="field">
+        <label>1차전압 (수전전압)</label>
+        <select id="v1" onchange="onInputChange()">
+          <option value="22900" selected>22,900 V</option>
+          <option value="6600">6,600 V</option>
+          <option value="3300">3,300 V</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>2차전압 (배전전압)</label>
+        <select id="v2" onchange="onInputChange()">
+          <option value="380" selected>380 V</option>
+          <option value="220">220 V</option>
+          <option value="440">440 V</option>
+          <option value="6600">6,600 V</option>
+          <option value="3300">3,300 V</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">02 — 변압기 Bank 구성</div>
+    <div class="tr-list" id="trList"></div>
+    <button class="btn-add-tr" onclick="addTr()">＋ 변압기 추가</button>
+
+    <!-- 변압기 표준용량 안내 -->
+    <div class="tr-std-note">
+      <strong>변압기 표준용량 기준</strong><br>
+      · KS / 국내 계열 : 50 · 100 · 150 · 200 · 300 · 500 · 750 · 1,000 · 1,500 · 2,000 kVA<br>
+      · IEC 60076 계열 : 위 포함 + 160 · 250 · 400 · 630 · 800 · 1,250 · <strong style="color:var(--accent)">1,600</strong> · 2,500 kVA
+    </div>
+
+    <div class="section-title">수전용량 (계약)</div>
+    <div class="kva-summary">
+      <div class="kva-auto">
+        <div class="kva-auto-label">변압기 합계 (자동)</div>
+        <div><span class="kva-auto-val" id="trSum">0</span><span class="kva-auto-unit">kVA</span></div>
+      </div>
+      <div class="kva-divider"></div>
+      <div class="kva-override">
+        <div class="kva-override-label">수전용량 — 부등률 · 장래증설 반영</div>
+        <div class="kva-override-row">
+          <input type="number" id="rcvKva" min="1" step="1" placeholder="kVA">
+          <span class="kva-diff" id="kvaDiff"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <button class="calc-btn" onclick="calc()">계 산 하 기</button>
+  <button class="print-btn" onclick="doPrint()">🖨 인쇄 / PDF 저장</button>
+</div>
+
+<div class="result-section" id="resultSection">
+  <div class="card" style="margin-top:28px;">
+    <div class="card-title" id="resultMeta"></div>
+    <div class="result-block">
+      <div class="result-title-bar">
+        <span>① 수전측 기기 (1세트) — 수전용량 기준</span>
+        <span class="sub" id="rcvLabel"></span>
+      </div>
+      <div class="result-wrap">
+        <table class="result-table">
+          <thead><tr>
+            <th style="width:10%">명 칭</th><th style="width:12%">정격전압</th>
+            <th style="width:22%">정격용량 (계열)</th><th style="width:14%">선 정</th>
+            <th style="width:42%">비 고 (선정 기준)</th>
+          </tr></thead>
+          <tbody id="rcvBody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div id="trBlocks"></div>
+
+    <!-- 관련 근거 탭 -->
+    <div class="ref-tabs">
+      <div class="ref-tabs-header">관련 근거 · Reference</div>
+      <div class="ref-tab-bar">
+        <button class="ref-tab-btn active" onclick="showRefTab('ct')">CT 선정</button>
+        <button class="ref-tab-btn" onclick="showRefTab('vcb')">VCB / ACB</button>
+        <button class="ref-tab-btn" onclick="showRefTab('pf')">PF 선정</button>
+        <button class="ref-tab-btn" onclick="showRefTab('sc')">SC (진상콘덴서)</button>
+        <button class="ref-tab-btn" onclick="showRefTab('la')">LA (피뢰기)</button>
+        <button class="ref-tab-btn" onclick="showRefTab('mof')">MOF</button>
+      </div>
+
+      <div class="ref-tab-content active" id="ref-ct">
+        <table class="ref-table">
+          <thead><tr><th>기기</th><th>적용 배수</th><th>근거 조항</th><th>내용</th></tr></thead>
+          <tbody>
+            <tr><td>CT (수전측·피더)</td><td>× 1.25 ~ 1.50</td><td>KESC 230.6.3 가항</td><td>정격 1차 전류 = 회로 최대 부하전류 × 125~150% (일반부하). 본 계산서는 하한값 125% 적용</td></tr>
+            <tr><td>CT (저압측)</td><td>× 1.25 ~ 1.50</td><td>KESC 230.6.3 가항</td><td>동일 기준. 저압 회로 최대 부하전류 × 125~150%</td></tr>
+            <tr><td>CT (전동기 회로)</td><td>× 2.00 ~ 2.50</td><td>KESC 230.6.3 가항</td><td>전동기 기동전류 고려 — 본 계산서 미적용, 별도 검토 필요</td></tr>
+            <tr><td>CT 2차 부담</td><td>식 230-11</td><td>KESC 230.6.3 나항</td><td>S = I₂² × Z₂ [VA] — 오차범위 유지 가능 범위로 선정</td></tr>
+            <tr><td>MOF CT</td><td>105 ~ 120%</td><td>KESC 230.6.3 마항 / KSC 1707</td><td>규정 오차 보증 범위 — 수전측 MOF 전용 기준</td></tr>
+          </tbody>
+        </table>
+        <div class="ref-note">※ 본 계산서의 CT 선정값은 1차전류 기준 룩업테이블 참고치입니다. 실제 설치 시 보호계전기 특성, 2차 부담(VA), 과전류 강도, 정확도 계급을 별도 검토해야 합니다.</div>
+      </div>
+
+      <div class="ref-tab-content" id="ref-vcb">
+        <table class="ref-table">
+          <thead><tr><th>기기</th><th>선정 원칙</th><th>근거 조항</th><th>내용</th></tr></thead>
+          <tbody>
+            <tr><td>VCB (수전·피더)</td><td>IB ≤ In</td><td>KESC 230.5.1</td><td>설계전류(IB) 이상 표준 계열 최솟값 선정. × 1.1은 설계 여유율(관행) — KESC 명문 배수 없음</td></tr>
+            <tr><td>ACB (저압 주차단기)</td><td>IB ≤ In ≤ Iz</td><td>기술지침 부록 과부하보호</td><td>설계전류 이상, 케이블 허용전류(Iz) 이하 동시 만족. × 1.1은 관행적 여유율</td></tr>
+            <tr><td>표준 계열 (VCB)</td><td>—</td><td>제조사 규격</td><td>630 · 800 · 1,000 · 1,250 · 1,600 · 2,000 A</td></tr>
+            <tr><td>표준 계열 (ACB)</td><td>—</td><td>제조사 규격</td><td>630 · 800 · 1,000 · 1,250 · 1,600 · 2,000 · 2,500 · 3,150 A</td></tr>
+          </tbody>
+        </table>
+        <div class="ref-note">※ IB: 설계전류, In: 차단기 정격전류, Iz: 케이블 허용전류. 차단기 선정 시 단락용량(kA) 및 차단전류도 반드시 확인해야 합니다.</div>
+      </div>
+
+      <div class="ref-tab-content" id="ref-pf">
+        <table class="ref-table">
+          <thead><tr><th>기기</th><th>선정 기준</th><th>근거 조항</th><th>내용</th></tr></thead>
+          <tbody>
+            <tr><td>PF (수전측, 비한류형)</td><td>전부하전류 이상</td><td>KESC 230.5.2 / 표 230-10</td><td>방출형 PF — 정격전류 × 2배 기준으로 표 230-10에서 선정</td></tr>
+            <tr><td>PF (피더, 한류형)</td><td>여자돌입전류 기준</td><td>KESC 표 230-11</td><td>여자돌입전류(10×In)에 0.1초 견디고 2차 단락전류에서 0.2초 이내 차단. LS산전 자료 기준</td></tr>
+            <tr><td>COS 대체</td><td>300 kVA 이하</td><td>KESC 230.2 주1</td><td>비대칭 차단전류 10 kA 이상 COS로 대체 가능</td></tr>
+            <tr><td>정격전압</td><td>계통 최대 선간전압 이상</td><td>KESC 230.5.2 가항</td><td>22.9 kV 계통 → 25.8 kV 적용</td></tr>
+          </tbody>
+        </table>
+        <div class="ref-note">※ 한류형 PF(표 230-11)는 LS산전 자료 기준이므로 타사 제품 선정 시 해당 제조사 동작특성곡선을 반드시 참조해야 합니다.</div>
+      </div>
+
+      <div class="ref-tab-content" id="ref-sc">
+        <table class="ref-table">
+          <thead><tr><th>항목</th><th>적용값</th><th>근거</th><th>내용</th></tr></thead>
+          <tbody>
+            <tr><td>SC 용량</td><td>TR 용량 × 무부하손율</td><td>업계 관행</td><td>변압기 무부하손(철손) 보상 목적. 500 kVA 이하 5% / 2,000 kVA 이하 4% / 초과 3%</td></tr>
+            <tr><td>MCCB 정격</td><td>SC 정격전류 × 2배</td><td>업계 관행</td><td>콘덴서 투입 시 돌입전류 고려 — 정격전류의 수십 배 발생 가능</td></tr>
+            <tr><td>직렬 리액터</td><td>6% 권장</td><td>KEC / 업계</td><td>고조파 확대 방지 및 돌입전류 억제 목적. 본 계산서 미적용</td></tr>
+          </tbody>
+        </table>
+        <div class="ref-note">※ 본 계산서의 SC 용량은 변압기 무부하손 보상 기준입니다. 실제 역률 개선 목적의 SC 용량은 부하 역률 조사 후 별도 산정해야 합니다.</div>
+      </div>
+
+      <div class="ref-tab-content" id="ref-la">
+        <table class="ref-table">
+          <thead><tr><th>항목</th><th>적용값</th><th>근거</th><th>내용</th></tr></thead>
+          <tbody>
+            <tr><td>LA 정격전압</td><td>18 kV (22.9 kV 계통)</td><td>업계 표준</td><td>공칭전압 22.9 kV → 최고전압 25.8 kV → LA 정격 18 kV</td></tr>
+            <tr><td>방전전류 (일반)</td><td>2.5 kA</td><td>업계 표준</td><td>5,000 kVA 미만 수용가 — 공칭 방전전류 2.5 kA</td></tr>
+            <tr><td>방전전류 (대용량)</td><td>5 kA</td><td>업계 표준</td><td>5,000 kVA 이상 수용가 — 공칭 방전전류 5 kA</td></tr>
+            <tr><td>설치 위치</td><td>PF 부하측</td><td>KESC 230.7</td><td>인입선 또는 PF 부하측 설치. 접지도체 굵기는 KESC 230.7.1 기준</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="ref-tab-content" id="ref-mof">
+        <table class="ref-table">
+          <thead><tr><th>항목</th><th>적용값</th><th>근거</th><th>내용</th></tr></thead>
+          <tbody>
+            <tr><td>MOF CT 정격</td><td>105 ~ 120%</td><td>KESC 230.6.3 마항 / KSC 1707</td><td>규정 오차 보증 정격 1차 전류의 105~120% 범위 선정</td></tr>
+            <tr><td>과전류강도 (60A 이하)</td><td>75배</td><td>KESC 230.6.3 나항</td><td>22.9 kV급, 60 A 이하 — 전기사업자 규격 75배 적용</td></tr>
+            <tr><td>과전류강도 (60A 초과)</td><td>40배</td><td>KESC 230.6.3 나항</td><td>60 A 초과 시 40배 적용</td></tr>
+            <tr><td>한류형 PF 전단 설치 시</td><td>PF 제한전류 기준</td><td>KESC 230.6.3 라항</td><td>PF로 제한되는 단락전류를 기준으로 과전류강도 선정</td></tr>
+          </tbody>
+        </table>
+        <div class="ref-note">※ MOF는 한전 전력량 계량 목적으로 설치되며, 전기사업자(한전) 규격 및 협의를 통해 최종 사양을 확정해야 합니다.</div>
+      </div>
+    </div><!-- /ref-tabs -->
+
+  </div><!-- /card -->
+
+<p class="disclaimer">
+  ※ 본 계산서는 참고용이며, 최종 설계 및 기기 선정은 한국전기기술인협회·한국전기안전공사 검사기준(KESC 2026) 및<br>
+  관련 법규에 따른 전문가 검토가 필요합니다.
+</p>
+
+</div>
+<script>
+// ══ 데이터 테이블 (KS + IEC 60076 전체 계열) ══
+const FUSE_TABLE=[
+  {kva:50,i1:1.26,fuse:5},{kva:100,i1:2.52,fuse:5},{kva:160,i1:4.03,fuse:10},
+  {kva:200,i1:5.04,fuse:16},{kva:300,i1:7.56,fuse:16},{kva:400,i1:10.08,fuse:25},
+  {kva:500,i1:12.61,fuse:30},{kva:630,i1:15.88,fuse:40},{kva:750,i1:18.91,fuse:40},
+  {kva:800,i1:20.17,fuse:50},{kva:1000,i1:25.21,fuse:63},{kva:1250,i1:31.51,fuse:63},
+  {kva:1500,i1:37.82,fuse:75},{kva:1600,i1:40.34,fuse:100},{kva:2000,i1:50.42,fuse:125},
+  {kva:2500,i1:63.03,fuse:160},
+];
+const CT_HV_TABLE=[
+  {kva:50,i1:1.26,yi:1.58,ct:'5/5A'},{kva:100,i1:2.52,yi:3.15,ct:'5/5A'},
+  {kva:160,i1:4.03,yi:5.04,ct:'5/5A'},{kva:200,i1:5.04,yi:6.30,ct:'10/5A'},
+  {kva:300,i1:7.56,yi:9.45,ct:'10/5A'},{kva:400,i1:10.08,yi:12.61,ct:'15/5A'},
+  {kva:500,i1:12.61,yi:15.76,ct:'20/5A'},{kva:630,i1:15.88,yi:19.85,ct:'20/5A'},
+  {kva:750,i1:18.91,yi:23.64,ct:'25/5A'},{kva:800,i1:20.17,yi:25.21,ct:'30/5A'},
+  {kva:1000,i1:25.21,yi:31.51,ct:'40/5A'},{kva:1250,i1:31.51,yi:39.39,ct:'40/5A'},
+  {kva:1500,i1:37.82,yi:47.27,ct:'50/5A'},{kva:1600,i1:40.34,yi:50.42,ct:'60/5A'},
+  {kva:2000,i1:50.42,yi:63.03,ct:'75/5A'},{kva:2500,i1:63.03,yi:78.79,ct:'80/5A'},
+];
+const CT_LV_TABLE=[
+  {kva:50,i2:76.0,yi:95.0,ct:'100/5A'},{kva:100,i2:151.9,yi:189.9,ct:'200/5A'},
+  {kva:160,i2:243.1,yi:303.9,ct:'400/5A'},{kva:200,i2:303.9,yi:379.8,ct:'400/5A'},
+  {kva:300,i2:455.8,yi:569.8,ct:'600/5A'},{kva:400,i2:607.8,yi:759.7,ct:'800/5A'},
+  {kva:500,i2:759.7,yi:949.6,ct:'1000/5A'},{kva:630,i2:957.2,yi:1196.5,ct:'1200/5A'},
+  {kva:750,i2:1139.5,yi:1424.4,ct:'1500/5A'},{kva:800,i2:1216.0,yi:1520.0,ct:'1500/5A'},
+  {kva:1000,i2:1519.4,yi:1899.2,ct:'2000/5A'},{kva:1250,i2:1899.2,yi:2374.0,ct:'2500/5A'},
+  {kva:1500,i2:2279.1,yi:2848.9,ct:'3000/5A'},{kva:1600,i2:2431.0,yi:3038.8,ct:'4000/5A'},
+  {kva:2000,i2:3038.8,yi:3798.5,ct:'4000/5A'},{kva:2500,i2:3798.5,yi:4748.1,ct:'5000/5A'},
+];
+const SC_TABLE=[
+  {kva:50,sc:2.5},{kva:100,sc:5.0},{kva:160,sc:8.0},{kva:200,sc:10.0},
+  {kva:300,sc:15.0},{kva:400,sc:20.0},{kva:500,sc:25.0},{kva:630,sc:25.2},
+  {kva:750,sc:30.0},{kva:800,sc:32.0},{kva:1000,sc:40.0},{kva:1250,sc:50.0},
+  {kva:1500,sc:60.0},{kva:1600,sc:64.0},{kva:2000,sc:80.0},{kva:2500,sc:75.0},
+];
+const FEEDER_PF_3PH=[
+  {kva:50,i1:1.26,inrush:12.6,pfSel:[5]},
+  {kva:75,i1:1.89,inrush:18.9,pfSel:[5,10]},
+  {kva:100,i1:2.52,inrush:25.2,pfSel:[10]},
+  {kva:150,i1:3.78,inrush:34.0,pfSel:[10]},
+  {kva:160,i1:4.03,inrush:40.3,pfSel:[10]},
+  {kva:200,i1:5.04,inrush:43.0,pfSel:[20]},
+  {kva:300,i1:7.56,inrush:57.0,pfSel:[20]},
+];
+const VCB_STD=[630,800,1000,1250,1600,2000];
+const ACB_STD=[630,800,1000,1250,1600,2000,2500,3150];
+const MCCB_STD=[15,20,30,40,50,60,75,100,125,150,175,200,225,250,300,350,400,500,600,800,1000,1200,1600,2000];
+const TR_STD=[50,75,100,150,160,200,250,300,400,500,630,750,800,1000,1250,1500,1600,2000,2500,3000];
+const SQRT3=Math.sqrt(3);
+
+// ══ 유틸 ══
+const lkv=(t,k)=>{for(let r of t)if(r.kva>=k)return r;return t[t.length-1];};
+const ceil=(v,a)=>{for(let x of a)if(x>=v)return x;return a[a.length-1];};
+const fx=(v,d=2)=>Number(v).toFixed(d);
+const cm=v=>Number(v).toLocaleString();
+
+function showRefTab(id){
+  document.querySelectorAll('.ref-tab-content').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.ref-tab-btn').forEach(el=>el.classList.remove('active'));
+  document.getElementById('ref-'+id).classList.add('active');
+  event.target.classList.add('active');
+}
+
+// ══ 뱅크 관리 ══
+// trItems: [{id,kva,label, panels:[{pid,kva,label}]}]
+let trItems=[],nid=1,npid=1;
+
+function updatePanelKva(trId, pi, val){
+  const tr=trItems.find(t=>t.id===trId);
+  if(!tr) return;
+  tr.panels[pi].kva=parseInt(val)||0;
+  updatePanelWarn(trId);
+}
+function updatePanelWarn(trId){
+  const tr=trItems.find(t=>t.id===trId);
+  if(!tr||tr.panels.length===0) return;
+  const warnEl=document.getElementById(`panel-warn-${trId}`);
+  if(!warnEl) return;
+  const sum=tr.panels.reduce((s,p)=>s+p.kva,0);
+  if(sum>tr.kva){
+    warnEl.textContent=`⚠ 저압반 합계 ${cm(sum)} kVA > TR ${cm(tr.kva)} kVA — 초과`;
+    warnEl.style.color='var(--warn)';
+  } else {
+    warnEl.textContent=`✓ 저압반 합계 ${cm(sum)} kVA / TR ${cm(tr.kva)} kVA`;
+    warnEl.style.color='var(--ok)';
+  }
+}
+
+function addTr(kva=500,label=''){
+  trItems.push({id:nid++,kva,label,panels:[]});
+  renderTrList();onInputChange();
+}
+function removeTr(id){
+  if(trItems.length<=1)return;
+  trItems=trItems.filter(t=>t.id!==id);
+  renderTrList();onInputChange();
+}
+function addPanel(trId){
+  const tr=trItems.find(t=>t.id===trId);
+  if(!tr)return;
+  if(tr.panels.length===0){
+    // 최초 분리: LP-1, LP-2 동시 추가 (각 50%)
+    const half=Math.round(tr.kva/2);
+    tr.panels.push({pid:npid++,kva:half,label:''});
+    tr.panels.push({pid:npid++,kva:tr.kva-half,label:''});
+  } else {
+    // 이미 분리된 상태: 1개 추가
+    tr.panels.push({pid:npid++,kva:Math.round(tr.kva/tr.panels.length),label:''});
+  }
+  renderTrList();
+}
+function removePanel(trId,pid){
+  const tr=trItems.find(t=>t.id===trId);
+  if(!tr)return;
+  tr.panels=tr.panels.filter(p=>p.pid!==pid);
+  renderTrList();
+}
+
+function renderTrList(){
+  const list=document.getElementById('trList');list.innerHTML='';
+  trItems.forEach((tr,i)=>{
+    const opts=TR_STD.map(v=>`<option value="${v}"${v===tr.kva?' selected':''}>${cm(v)} kVA</option>`).join('');
+    const panelSum=tr.panels.reduce((s,p)=>s+p.kva,0);
+    const warnHtml=tr.panels.length>0?(
+      panelSum>tr.kva
+      ?`<div id="panel-warn-${tr.id}" style="padding:2px 0 6px;font-size:11px;font-family:var(--mono);color:var(--warn);">⚠ 저압반 합계 ${cm(panelSum)} kVA &gt; TR ${cm(tr.kva)} kVA — 초과</div>`
+      :`<div id="panel-warn-${tr.id}" style="padding:2px 0 6px;font-size:11px;font-family:var(--mono);color:var(--ok);">✓ 저압반 합계 ${cm(panelSum)} kVA / TR ${cm(tr.kva)} kVA</div>`
+    ):'';
+
+    const panelRows=tr.panels.map((p,pi)=>`
+      <div class="panel-item">
+        <span class="panel-badge">LP-${pi+1}</span>
+        <div class="tr-field" style="max-width:120px;">
+          <label>용량 (kVA)</label>
+          <input type="number" min="1"
+            id="panel-kva-${tr.id}-${pi}"
+            value="${p.kva}"
+            onchange="updatePanelKva(${tr.id},${pi},this.value)"
+            onblur="updatePanelKva(${tr.id},${pi},this.value)">
+        </div>
+        <div class="tr-field" style="max-width:180px;">
+          <label>반 명칭 / 용도</label>
+          <input type="text" placeholder="예: 동력반, 전등반…" value="${p.label}"
+            oninput="trItems.find(x=>x.id===${tr.id}).panels[${pi}].label=this.value">
+        </div>
+        <button class="btn-remove" onclick="removePanel(${tr.id},${p.pid})" title="삭제">✕</button>
+      </div>`).join('');
+
+    const hasPanels=tr.panels.length>0;
+    const wrap=document.createElement('div');wrap.className='tr-item-wrap';
+    wrap.innerHTML=`
+      <div class="tr-item" style="${hasPanels?'border-radius:8px 8px 0 0;':''}">
+        <span class="tr-badge">TR-${i+1}</span>
+        <div class="tr-field" style="max-width:170px;"><label>용량</label>
+          <select onchange="trItems[${i}].kva=parseInt(this.value);onInputChange();">${opts}</select></div>
+        <div class="tr-field" style="max-width:190px;"><label>TR 명칭 / 용도 (선택)</label>
+          <input type="text" placeholder="예: 1TR, 동력용TR…" value="${tr.label}"
+            oninput="trItems[${i}].label=this.value"></div>
+        <span class="tr-kva-display">${cm(tr.kva)} kVA</span>
+        <button class="btn-add-panel" onclick="addPanel(${tr.id})">＋ 저압반 분리</button>
+        ${trItems.length>1?`<button class="btn-remove" onclick="removeTr(${tr.id})">✕</button>`:''}
+      </div>
+      ${hasPanels?`<div class="panel-list">${panelRows}${warnHtml}</div>`:''}
+    `;
+    list.appendChild(wrap);
+  });
+}
+const trSum=()=>trItems.reduce((s,t)=>s+t.kva,0);
+
+function onInputChange(){
+  renderTrList();
+  const s=trSum();document.getElementById('trSum').textContent=cm(s);
+  const el=document.getElementById('rcvKva');
+  if(!el._t)el.value=s;
+  const r=parseFloat(el.value)||s,diff=document.getElementById('kvaDiff');
+  if(r===s){diff.textContent='변압기 합계와 동일';diff.className='kva-diff same';}
+  else if(r>s){diff.textContent=`+${cm(r-s)} kVA (장래 증설)`;diff.className='kva-diff over';}
+  else{diff.textContent=`-${cm(s-r)} kVA (부등률·수용률 적용)`;diff.className='kva-diff under';}
+}
+document.addEventListener('DOMContentLoaded',()=>{
+  const el=document.getElementById('rcvKva');el._t=false;
+  el.addEventListener('input',()=>{el._t=true;onInputChange();});
+  addTr(500,'');
+});
+function doPrint(){document.getElementById('printDate').textContent='출력일: '+new Date().toLocaleDateString('ko-KR');window.print();}
+
+// ══ 행 헬퍼 ══
+function row(name,volt,range,sel,note,cls=''){
+  return`<tr class="${cls}">
+    <td class="col-name"><div class="cell">${name}</div></td>
+    <td class="col-volt"><div class="cell">${volt}</div></td>
+    <td class="col-range"><div class="cell">${range}</div></td>
+    <td class="col-sel"><div class="cell">${sel}</div></td>
+    <td class="col-note"><div class="cell">${note}</div></td></tr>`;
+}
+function sec(label,cls=''){return`<tr class="section-header ${cls}"><td colspan="5">${label}</td></tr>`;}
+
+// ══ 수전측 ══
+function rcvRows(kva,v1){
+  const i1=kva*1000/(SQRT3*v1),
+        pfV=v1>=22900?'25.8 kV':v1>=6600?'7.2 kV':'3.6 kV',
+        laKv=v1>=22900?18:v1>=6600?8.4:4.2,laKa=kva>=5000?'5 kA':'2.5 kA',
+        fR=lkv(FUSE_TABLE,kva),cR=lkv(CT_HV_TABLE,kva),vcbA=ceil(i1*1.1,VCB_STD);
+  return row('PF',pfV,'200AF<br>(3·6·8·10·12·15·20<br>25·30·40·50·75·100A)',
+      `200AF<br>(F : ${fR.fuse} A)`,
+      `수전용량 ${cm(kva)} kVA<br><span class="formula">I₁ = ${cm(kva)} ÷ √3 ÷ ${v1/1000} = ${fx(i1)} A</span><br>`+
+      `<span class="formula">정격전류 × 2 = ${fx(i1*2)} A</span><br><span class="result-val">→ PF ${fR.fuse} A 선정</span>`)
+  +row('MOF',`${v1/1000} kV-Y`,'(5 ~ 750) / 5 A',`CT ${cR.ct}`,
+      `I₁ = ${fx(i1)} A<br><span class="result-val">→ CT ${cR.ct} 선정</span>`)
+  +row('CT<br><small style="font-size:11px;font-weight:400">(특고압측)</small>',pfV,'( ) / 5 A',cR.ct,
+      `I₁ = ${fx(i1)} A × 1.25 = ${fx(cR.yi)} A<br><span class="result-val">→ ${cR.ct} 선정</span><br>`+
+      `<small style="color:var(--muted)">근거: KESC 230.6.3 — 일반부하 125~150% 적용</small>`)
+  +row('LA<br><small style="font-size:11px;font-weight:400">(피뢰기)</small>',`${laKv} kV`,laKa,`${laKv} kV<br>(${laKa})`,
+      `<span class="result-val">${kva>=5000?'5,000 kVA 이상 → 5 kA':'5,000 kVA 미만 → 2.5 kA'}</span>`)
+  +row('VCB<br><small style="font-size:11px;font-weight:400">(수전 주차단기)</small>',pfV,VCB_STD.join(' · ')+' A',`${vcbA} A`,
+      `I₁ = ${fx(i1)} A × 1.1 = ${fx(i1*1.1)} A<br><span class="result-val">→ VCB ${vcbA} A 선정</span><br>`+
+      `<small style="color:var(--muted)">근거: 설계전류(IB) 이상 표준계열 선정 원칙 — 1.1배는 설계 여유율(관행)</small>`);
+}
+
+// ══ 피더 (VCB/PF + CT) ══
+function feederRow(kva,v1){
+  const pfV=v1>=22900?'25.8 kV':v1>=6600?'7.2 kV':'3.6 kV',i1=kva*1000/(SQRT3*v1);
+  // 피더 CT — TR 개별 용량 기준 (× 1.25)
+  const cR=lkv(CT_HV_TABLE,kva);
+  const ctRow=row(
+    'CT<br><small style="font-size:11px;font-weight:400">(피더 특고압측)</small>',
+    pfV,'( ) / 5 A', cR.ct,
+    `TR ${cm(kva)} kVA, I₁ = ${fx(i1)} A<br>`+
+    `<span class="formula">I₁ × 1.25 = ${fx(cR.yi)} A</span><br>`+
+    `<span class="result-val">→ CT ${cR.ct} 선정</span><br>`+
+    `<small style="color:var(--muted)">근거: KESC 230.6.3 일반부하 125~150% · 보호계전기 특성·부담 별도 검토 필요</small>`,
+    'feeder-row'
+  );
+
+  if(kva<=300){
+    const r=FEEDER_PF_3PH.find(x=>x.kva>=kva)||FEEDER_PF_3PH[FEEDER_PF_3PH.length-1];
+    const pfA=r.pfSel[r.pfSel.length-1];
+    return row('PF<br><small style="font-size:11px;font-weight:400">(피더 · 한류형)</small>',
+      pfV,'5·10·20·30·40·50·63·75 A',`${pfV}<br>${pfA} A`,
+      `TR ${cm(kva)} kVA, I₁ = ${fx(i1)} A<br>`+
+      `<span class="formula">여자돌입전류(10×I₁) = ${fx(r.inrush)} A</span><br>`+
+      `<span class="formula">KESC 표 230-11 → 선정범위: ${r.pfSel.join(' A / ')} A</span><br>`+
+      `<span class="result-val">→ 한류형 PF ${pfA} A 선정</span><br>`+
+      `<small style="color:var(--warn)">※ 300 kVA 이하 — COS (10 kA) 대체 가능</small>`,'feeder-row')
+      +ctRow;
+  }
+  const vcbA=ceil(i1*1.1,VCB_STD);
+  return row('VCB<br><small style="font-size:11px;font-weight:400">(피더 차단기)</small>',
+    pfV,VCB_STD.join(' · ')+' A',`${vcbA} A`,
+    `TR ${cm(kva)} kVA, I₁ = ${fx(i1)} A<br><span class="formula">I₁ × 1.1 = ${fx(i1*1.1)} A</span><br>`+
+    `<span class="result-val">→ VCB ${vcbA} A 선정</span>`,'feeder-row')
+    +ctRow;
+}
+
+// ══ 저압반 1개 계산 (kva: 해당 반 용량) ══
+function panelRows(panelKva,trKva,v2,panelLabel,panelNo){
+  const i2=panelKva*1000/(SQRT3*v2);
+  const cL=lkv(CT_LV_TABLE,panelKva);
+  const acbA=ceil(i2*1.1,ACB_STD);
+  const scR=lkv(SC_TABLE,panelKva);
+  const scRate=panelKva<=500?5:panelKva<=2000?4:3;
+  const scKva=fx(panelKva*scRate/100,1);
+  const scI=(scR.sc*1000)/(SQRT3*v2);
+  const scMccb=ceil(scI*2,MCCB_STD);
+  const lb=panelLabel?` (${panelLabel})`:'';
+  return row(`ACB<br><small style="font-size:11px;font-weight:400">(LP-${panelNo} 주차단기)</small>`,
+      `3φ ${v2} V`,'630·800·1000·1250<br>1600·2000·2500·3150 A',`${acbA} A`,
+      `LP-${panelNo}${lb} ${cm(panelKva)} kVA · ${v2} V<br>`+
+      `<span class="formula">I₂ = ${fx(i2)} A × 1.1 = ${fx(i2*1.1)} A</span><br>`+
+      `<span class="result-val">→ ACB ${acbA} A 선정</span><br>`+
+      `<small style="color:var(--muted)">근거: IB ≤ In 원칙 · 1.1배는 설계 여유율(관행)</small>`)
+  +row('CT<br><small style="font-size:11px;font-weight:400">(저압측)</small>',
+      `${v2} V`,'( ) / 5 A',cL.ct,
+      `I₂ = ${fx(i2)} A × 1.25 = ${fx(cL.yi)} A<br><span class="result-val">→ ${cL.ct} 선정</span><br>`+
+      `<small style="color:var(--muted)">근거: KESC 230.6.3 일반부하 125~150%</small>`)
+  +row('SC<br><small style="font-size:11px;font-weight:400">(진상콘덴서)</small>',
+      `3φ ${v2} V`,`무부하손 ${scRate} %`,`${scKva} kVAR<br>MCCB ${scMccb} A`,
+      `무부하손 ${scRate} % = ${cm(panelKva)} × ${scRate/100} = ${scKva} kVAR<br>`+
+      `<span class="formula">SC 전류 ${fx(scI)} A × 2 = ${fx(scI*2)} A</span><br>`+
+      `<span class="result-val">→ SC ${scKva} kVAR / MCCB ${scMccb} A</span>`);
+}
+
+// ══ 저압측 전체 (단일반 or 분리반) ══
+function lvRows(tr,v2,trIdx){
+  const trName=tr.label?tr.label:`TR-${trIdx+1}`;
+  if(tr.panels.length===0){
+    return sec(`【저압측 기기】 ${trName} 2차측`,'tr-sec')
+           +panelRows(tr.kva,tr.kva,v2,tr.label,1);
+  }
+  let html=sec(`【저압측 기기】 ${trName} 2차측 — 저압반 ${tr.panels.length}개 분리`,'tr-sec');
+  tr.panels.forEach((p,pi)=>{
+    const panelName=p.label?p.label:`LP-${pi+1}`;
+    html+=sec(`LP-${pi+1}${p.label?' : '+p.label:''} — ${cm(p.kva)} kVA  (${trName} ${cm(tr.kva)} kVA의 ${fx(p.kva/tr.kva*100,0)}%)`,'tr-sec');
+    html+=panelRows(p.kva,tr.kva,v2,p.label,pi+1);
+  });
+  return html;
+}
+
+// ══ 메인 계산 ══
+function calc(){
+  const v1=parseFloat(document.getElementById('v1').value);
+  const v2=parseFloat(document.getElementById('v2').value);
+  const kva=parseFloat(document.getElementById('rcvKva').value)||trSum();
+  if(!kva||kva<=0||!trItems.length)return;
+
+  document.getElementById('rcvLabel').textContent=`수전 ${cm(kva)} kVA · 1차 ${cm(v1)} V`;
+  document.getElementById('rcvBody').innerHTML=rcvRows(kva,v1);
+
+  const blks=document.getElementById('trBlocks');blks.innerHTML='';
+  const multi=trItems.length>=2;
+  trItems.forEach((tr,i)=>{
+    const trName=tr.label?tr.label:`TR-${i+1}`;
+    const lb=tr.label?` — ${tr.label}`:'';
+    const b=document.createElement('div');b.className='result-block';
+    const fdr=multi
+      ?sec(`【피더 보호기기】 ${trName} 1차측 — 모선 → 변압기 보호`,'tr-sec')+feederRow(tr.kva,v1)
+      :'';
+    const hasPanels=tr.panels.length>0;
+    const subInfo=hasPanels?` · 저압반 ${tr.panels.length}개 분리`:'';
+    b.innerHTML=`
+      <div class="result-title-bar tr-bar">
+        <span>② TR-${i+1} 기기 선정${lb}${subInfo}</span>
+        <span class="sub">${cm(tr.kva)} kVA · ${cm(v2)} V</span>
+      </div>
+      <div class="result-wrap"><table class="result-table">
+        <thead><tr>
+          <th style="width:10%">명 칭</th><th style="width:12%">정격전압</th>
+          <th style="width:22%">정격용량 (계열)</th><th style="width:14%">선 정</th>
+          <th style="width:42%">비 고 (선정 기준)</th>
+        </tr></thead>
+        <tbody>${fdr}${lvRows(tr,v2,i)}</tbody>
+      </table></div>`;
+    blks.appendChild(b);
+  });
+
+  document.getElementById('resultMeta').textContent=
+    `수전 ${cm(kva)} kVA  ·  `+trItems.map((t,i)=>`TR-${i+1} ${cm(t.kva)} kVA`).join(' / ')+
+    `  ·  1차 ${cm(v1)} V / 2차 ${cm(v2)} V`;
+
+  document.getElementById('resultSection').classList.add('visible');
+  document.getElementById('resultSection').scrollIntoView({behavior:'smooth',block:'start'});
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,1115 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>단락전류 계산서 — 3상 저압 계통</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Noto+Sans+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:           #f5f4f0;
+    --surface:      #ffffff;
+    --surface2:     #fafaf8;
+    --border:       #e0ddd5;
+    --border2:      #ccc9c0;
+    --text:         #1a1a18;
+    --muted:        #888880;
+    --accent:       #1a4fa0;
+    --accent-light: #eef3fc;
+    --accent2:      #e8500a;
+    --ok:           #2e7d32;
+    --ok-bg:        #e8f5e9;
+    --warn:         #e65100;
+    --warn-bg:      #fff3e0;
+    --err:          #c62828;
+    --err-bg:       #fce4ec;
+    --mono:         'Noto Sans Mono', monospace;
+    --sans:         'Noto Sans KR', sans-serif;
+    --radius:       8px;
+    --shadow:       0 1px 3px rgba(0,0,0,.08), 0 4px 12px rgba(0,0,0,.05);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 14px;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* ── 헤더 ── */
+  header {
+    background: var(--accent);
+    color: #fff;
+    padding: 20px 32px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  header .badge {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .08em;
+    background: rgba(255,255,255,.18);
+    border: 1px solid rgba(255,255,255,.3);
+    border-radius: 4px;
+    padding: 2px 8px;
+    white-space: nowrap;
+  }
+  header h1 { font-size: 17px; font-weight: 700; letter-spacing: -.01em; }
+  header p  { font-size: 12px; opacity: .75; margin-top: 2px; }
+
+  /* ── 레이아웃 ── */
+  .page { max-width: 1100px; margin: 0 auto; padding: 28px 24px 60px; }
+
+  /* ── 탭 ── */
+  .tabs { display: flex; gap: 2px; margin-bottom: 20px; border-bottom: 2px solid var(--border); }
+  .tab-btn {
+    background: none; border: none; cursor: pointer;
+    font-family: var(--sans); font-size: 13px; font-weight: 500;
+    color: var(--muted); padding: 10px 20px; border-bottom: 2px solid transparent;
+    margin-bottom: -2px; transition: color .15s, border-color .15s;
+  }
+  .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab-btn:hover  { color: var(--text); }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* ── 카드 ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    margin-bottom: 16px;
+    overflow: hidden;
+  }
+  .card-header {
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 18px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .card-header .step {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .06em;
+    background: var(--accent);
+    color: #fff;
+    border-radius: 3px;
+    padding: 2px 7px;
+  }
+  .card-header h2 { font-size: 13px; font-weight: 600; }
+  .card-body  { padding: 18px; }
+
+  /* ── 입력 그리드 ── */
+  .input-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 14px;
+  }
+  .field label {
+    display: block; font-size: 11px; color: var(--muted);
+    margin-bottom: 5px; font-weight: 500; letter-spacing: .02em;
+  }
+  .field input, .field select {
+    width: 100%;
+    border: 1px solid var(--border2);
+    border-radius: 5px;
+    padding: 8px 10px;
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--text);
+    background: #fff;
+    transition: border-color .15s, box-shadow .15s;
+    outline: none;
+  }
+  .field input:focus, .field select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(26,79,160,.12);
+  }
+  .field .unit { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+  /* ── 계산 결과 박스 ── */
+  .result-highlight {
+    background: var(--accent-light);
+    border: 1px solid #b8ccef;
+    border-radius: 6px;
+    padding: 14px 18px;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .result-highlight .label { font-size: 12px; color: var(--accent); font-weight: 600; }
+  .result-highlight .val   { font-family: var(--mono); font-size: 22px; font-weight: 700; color: var(--accent); }
+  .result-highlight .sub   { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+
+  /* ── 계산 과정 테이블 ── */
+  .calc-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  .calc-table th {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    padding: 7px 12px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+    letter-spacing: .04em;
+  }
+  .calc-table td {
+    border: 1px solid var(--border);
+    padding: 8px 12px;
+    vertical-align: middle;
+  }
+  .calc-table .mono { font-family: var(--mono); }
+  .calc-table .right { text-align: right; }
+  .calc-table .center { text-align: center; }
+  .calc-table tr:hover td { background: #fafaf8; }
+  .calc-table .highlight-row td { background: var(--accent-light); font-weight: 600; }
+  .calc-table .formula { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+
+  /* ── 요약 결과 카드 ── */
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 12px;
+    margin-top: 16px;
+  }
+  .summary-card {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .summary-card .sc-head {
+    padding: 8px 14px;
+    background: var(--accent);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .04em;
+  }
+  .summary-card .sc-body { padding: 12px 14px; }
+  .summary-card .sc-val  {
+    font-family: var(--mono);
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .summary-card .sc-unit { font-size: 11px; color: var(--muted); margin-left: 4px; }
+  .summary-card .sc-note { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+  /* ── 말단 계산 테이블 ── */
+  .circuit-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    min-width: 860px;
+  }
+  .circuit-table th {
+    background: var(--accent);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,.2);
+    padding: 8px 10px;
+    text-align: center;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .circuit-table td {
+    border: 1px solid var(--border);
+    padding: 7px 10px;
+    text-align: center;
+    vertical-align: middle;
+  }
+  .circuit-table td.name { text-align: left; font-weight: 500; }
+  .circuit-table td.mono { font-family: var(--mono); }
+  .circuit-table tr:nth-child(even) td { background: #fafaf8; }
+  .circuit-table tr:hover td { background: var(--accent-light); }
+  .circuit-table .ok-cell  { color: var(--ok); font-weight: 700; }
+  .circuit-table .err-cell { color: var(--err); font-weight: 700; }
+
+  /* ── 회로 입력 행 ── */
+  .circuit-inputs { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 14px; }
+  .circuit-inputs .field { min-width: 120px; }
+  .btn {
+    padding: 8px 16px;
+    border-radius: 5px;
+    border: none;
+    cursor: pointer;
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 600;
+    transition: all .15s;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: #153d80; }
+  .btn-danger  { background: var(--err-bg); color: var(--err); border: 1px solid #f5b8b8; }
+  .btn-danger:hover { background: #fad7d7; }
+  .btn-sm { padding: 4px 10px; font-size: 11px; }
+
+  /* ── 태그 ── */
+  .tag {
+    display: inline-block;
+    border-radius: 3px;
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: 600;
+    font-family: var(--mono);
+  }
+  .tag-ok   { background: var(--ok-bg);   color: var(--ok); }
+  .tag-warn { background: var(--warn-bg); color: var(--warn); }
+  .tag-err  { background: var(--err-bg);  color: var(--err); }
+
+  /* ── 범례 ── */
+  .legend {
+    font-size: 11px;
+    color: var(--muted);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 10px 14px;
+    line-height: 1.8;
+    margin-top: 12px;
+  }
+  .legend strong { color: var(--text); }
+
+  /* ── 인쇄 ── */
+  .print-btn {
+    float: right;
+    margin-top: -2px;
+    background: none;
+    border: 1px solid var(--border2);
+    border-radius: 4px;
+    padding: 4px 12px;
+    font-size: 12px;
+    cursor: pointer;
+    color: var(--muted);
+  }
+  .print-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  .scroll-x { overflow-x: auto; }
+
+  @media (max-width: 680px) {
+    header { padding: 14px 16px; }
+    .page  { padding: 16px 12px 40px; }
+    .input-grid { grid-template-columns: 1fr 1fr; }
+  }
+
+  @media print {
+    body { background: #fff; }
+    header, .tabs, .tab-btn, .print-btn, .btn { display: none; }
+    .tab-panel { display: block !important; }
+    .card { box-shadow: none; page-break-inside: avoid; }
+  }
+
+  .note { font-size: 11px; color: var(--muted); margin-top: 10px; line-height: 1.7; }
+  .sep  { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
+  .flex-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  .mt-8 { margin-top: 8px; }
+  .mt-14 { margin-top: 14px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 680px) { .grid2 { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="badge">IEC 60909 · KS C IEC 60909-0 · KESC 220</div>
+    <h1>3상 저압 단락전류 계산서</h1>
+    <p>100 MVA 기준 임피던스법 · 수전 → 변압기 2차 → 말단 부하</p>
+  </div>
+</header>
+
+<div class="page">
+
+  <!-- ── 탭 ── -->
+  <div class="tabs">
+    <button class="tab-btn active" onclick="showTab('tab1',this)">① 수전점 &amp; 변압기 2차</button>
+    <button class="tab-btn" onclick="showTab('tab2',this)">② 말단 회로 (분전반/동력반)</button>
+    <button class="tab-btn" onclick="showTab('tab3',this)">③ 참조 데이터</button>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       탭 1 : 수전점 → 변압기 2차 계산
+  ══════════════════════════════════════════ -->
+  <div id="tab1" class="tab-panel active">
+
+    <!-- 설계 조건 -->
+    <div class="card">
+      <div class="card-header">
+        <span class="step">STEP 0</span>
+        <h2>설계 조건 입력</h2>
+        <button class="print-btn" onclick="window.print()">🖨 인쇄</button>
+      </div>
+      <div class="card-body">
+
+        <!-- 한전 데이터 입력 방식 토글 -->
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:16px; padding:10px 14px; background:var(--surface2); border:1px solid var(--border); border-radius:6px;">
+          <span style="font-size:12px; font-weight:600; color:var(--muted);">한전 전원 입력 방식</span>
+          <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:13px;">
+            <input type="radio" name="ps-mode" value="mva" checked onchange="togglePsMode()"> 단락용량 MVA + X/R
+          </label>
+          <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:13px;">
+            <input type="radio" name="ps-mode" value="ohm" onchange="togglePsMode()"> 변전소 등가임피던스 Ω (한전 제공)
+          </label>
+        </div>
+
+        <div class="input-grid">
+          <div class="field">
+            <label>기준 용량</label>
+            <input type="number" id="base-mva" value="100" step="10" oninput="calc1()">
+            <div class="unit">MVA (100 MVA 표준)</div>
+          </div>
+
+          <!-- MVA 방식 -->
+          <div class="field ps-mva-field">
+            <label>한전 단락 용량</label>
+            <input type="number" id="ps-mva" value="300" step="50" oninput="calc1()">
+            <div class="unit">MVA</div>
+          </div>
+          <div class="field ps-mva-field">
+            <label>한전 X/R 비</label>
+            <input type="number" id="ps-xr" value="10" step="0.5" oninput="calc1()">
+            <div class="unit">일반 10 적용</div>
+          </div>
+
+          <!-- Ω 직접 입력 방식 (한전 변전소 등가임피던스 표) -->
+          <div class="field ps-ohm-field" style="display:none;">
+            <label>정상분 R <span style="font-weight:400;color:var(--muted);">(Ω)</span></label>
+            <input type="number" id="ps-r-ohm" value="0.108" step="0.001" oninput="calc1()">
+            <div class="unit">변전소 등가임피던스 표 값</div>
+          </div>
+          <div class="field ps-ohm-field" style="display:none;">
+            <label>정상분 X <span style="font-weight:400;color:var(--muted);">(Ω)</span></label>
+            <input type="number" id="ps-x-ohm" value="35.389" step="0.001" oninput="calc1()">
+            <div class="unit">변전소 등가임피던스 표 값</div>
+          </div>
+          <div class="field ps-ohm-field" style="display:none;">
+            <label>환산 단락용량 <span style="font-weight:400;color:var(--muted);">(참고)</span></label>
+            <input type="text" id="ps-sc-ref" readonly style="background:#f5f4f0; color:var(--muted);">
+            <div class="unit">MVA (Ω → 자동 역산)</div>
+          </div>
+          <div class="field">
+            <label>한전 케이블 종류</label>
+            <select id="hv-cable-type" onchange="calc1()">
+              <option value="60">22.9kV FR-CNCO-W 60㎟</option>
+              <option value="100">22.9kV FR-CNCO-W 100㎟</option>
+              <option value="150">22.9kV FR-CNCO-W 150㎟</option>
+              <option value="200">22.9kV FR-CNCO-W 200㎟</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>한전 케이블 길이</label>
+            <input type="number" id="hv-len" value="4.5" step="0.1" oninput="calc1()">
+            <div class="unit">km</div>
+          </div>
+          <div class="field">
+            <label>변압기 용량</label>
+            <select id="tr-kva" onchange="updateTrImpedance(); calc1()">
+              <option value="100">100 kVA</option>
+              <option value="200">200 kVA</option>
+              <option value="300">300 kVA</option>
+              <option value="400">400 kVA</option>
+              <option value="500">500 kVA</option>
+              <option value="600">600 kVA</option>
+              <option value="750" selected>750 kVA</option>
+              <option value="1000">1,000 kVA</option>
+              <option value="1250">1,250 kVA</option>
+              <option value="1500">1,500 kVA</option>
+              <option value="2000">2,000 kVA</option>
+              <option value="2500">2,500 kVA</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>변압기 %Z</label>
+            <input type="number" id="tr-pz" value="6" step="0.1" oninput="calc1()">
+            <div class="unit">% (LS 몰드 기준)</div>
+          </div>
+          <div class="field">
+            <label>변압기 %R</label>
+            <input type="number" id="tr-pr" value="1.1268" step="0.01" oninput="calc1()">
+            <div class="unit">%</div>
+          </div>
+          <div class="field">
+            <label>변압기 1차 케이블</label>
+            <select id="tr1-cable-type" onchange="calc1()">
+              <option value="60">CN-CV-W 60㎟</option>
+              <option value="100">CN-CV-W 100㎟</option>
+              <option value="150">CN-CV-W 150㎟</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>변압기 1차 케이블 길이</label>
+            <input type="number" id="tr1-len" value="20" step="5" oninput="calc1()">
+            <div class="unit">m</div>
+          </div>
+          <div class="field">
+            <label>변압기 2차 전압</label>
+            <select id="lv-voltage" onchange="calc1()">
+              <option value="380" selected>3상 380V</option>
+              <option value="220">단상 220V</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 계산 과정 : 수전점 -->
+    <div class="card">
+      <div class="card-header"><span class="step">STEP 1</span><h2>수전점 기준 고장전류 계산</h2></div>
+      <div class="card-body">
+
+        <div class="grid2">
+          <div>
+            <div class="result-highlight">
+              <span class="label">전원측 %Z (한전)</span>
+              <span class="val" id="r1-pzs">—</span>
+              <span class="sub">%</span>
+            </div>
+            <table class="calc-table">
+              <tr><th>항목</th><th>기호</th><th class="right">R [%]</th><th class="right">X [%]</th></tr>
+              <tbody id="tb1-src"></tbody>
+            </table>
+          </div>
+          <div>
+            <div class="result-highlight" style="background:#fdf7e8; border-color:#e8d090;">
+              <span class="label" style="color:#7a5f10;">수전점 고장전류</span>
+              <span class="val" style="color:#7a5f10;" id="r1-isc">—</span>
+              <span class="sub">kA (22.9kV)</span>
+            </div>
+            <table class="calc-table">
+              <tr><th>항목</th><th>기호</th><th class="right">R [%]</th><th class="right">X [%]</th></tr>
+              <tbody id="tb1-hv"></tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- 계산 과정 : 변압기 2차 -->
+    <div class="card">
+      <div class="card-header"><span class="step">STEP 2</span><h2>변압기 2차측 고장전류 계산</h2></div>
+      <div class="card-body">
+
+        <table class="calc-table">
+          <thead>
+            <tr>
+              <th>항목</th><th>기호</th>
+              <th class="right">R [%]</th><th class="right">X [%]</th>
+              <th class="right">|Z| [%]</th><th>비고</th>
+            </tr>
+          </thead>
+          <tbody id="tb2-main"></tbody>
+        </table>
+
+        <div class="summary-grid" id="summary2"></div>
+
+        <div class="legend" id="legend2"></div>
+
+      </div>
+    </div>
+
+  </div><!-- /tab1 -->
+
+
+  <!-- ══════════════════════════════════════════
+       탭 2 : 말단 회로 계산
+  ══════════════════════════════════════════ -->
+  <div id="tab2" class="tab-panel">
+
+    <div class="card">
+      <div class="card-header"><span class="step">입력</span><h2>회로 추가 (분전반·동력반)</h2></div>
+      <div class="card-body">
+
+        <div class="note" style="margin-bottom:12px;">
+          ※ 변압기 2차 합성 임피던스(%Z₂)는 <strong>탭①</strong> 계산 결과를 자동으로 참조합니다.
+          먼저 탭①에서 설계 조건을 입력해주세요.
+        </div>
+
+        <div id="edit-banner" style="display:none; background:var(--warn-bg); border:1px solid #f5c842; border-radius:6px; padding:8px 14px; margin-bottom:10px; font-size:12px; color:var(--warn); font-weight:600;">
+          ✏️ 수정 모드 — 내용을 변경한 후 <strong>저장</strong>을 누르세요.
+          <button class="btn btn-sm" style="margin-left:10px; background:#fff; border:1px solid var(--border2);" onclick="cancelEdit()">취소</button>
+        </div>
+
+        <div class="circuit-inputs">
+          <div class="field">
+            <label>부하명</label>
+            <input type="text" id="ci-name" value="PNL-A" style="width:100px;">
+          </div>
+          <div class="field">
+            <label>케이블 굵기</label>
+            <select id="ci-size" style="width:90px;">
+              <option value="1.5">1.5 ㎟</option>
+              <option value="2.5">2.5 ㎟</option>
+              <option value="4">4 ㎟</option>
+              <option value="6" selected>6 ㎟</option>
+              <option value="10">10 ㎟</option>
+              <option value="16">16 ㎟</option>
+              <option value="25">25 ㎟</option>
+              <option value="35">35 ㎟</option>
+              <option value="50">50 ㎟</option>
+              <option value="70">70 ㎟</option>
+              <option value="95">95 ㎟</option>
+              <option value="120">120 ㎟</option>
+              <option value="150">150 ㎟</option>
+              <option value="185">185 ㎟</option>
+              <option value="240">240 ㎟</option>
+              <option value="300">300 ㎟</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>거리 (m)</label>
+            <input type="number" id="ci-len" value="50" step="5" style="width:80px;">
+          </div>
+          <div class="field">
+            <label>MCCB 프레임</label>
+            <select id="ci-frame" style="width:90px;">
+              <option value="30">30A</option>
+              <option value="50">50A</option>
+              <option value="60">60A</option>
+              <option value="100" selected>100A</option>
+              <option value="225">225A</option>
+              <option value="250">250A</option>
+              <option value="400">400A</option>
+              <option value="630">630A ACB</option>
+              <option value="800">800A ACB</option>
+              <option value="1000">1000A ACB</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>MCCB 정격</label>
+            <input type="number" id="ci-at" value="100" step="5" style="width:80px;">
+            <div class="unit">A</div>
+          </div>
+          <div class="field">
+            <label>차단용량</label>
+            <input type="number" id="ci-ic" value="25" step="5" style="width:80px;">
+            <div class="unit">kA</div>
+          </div>
+          <div class="field">
+            <label>비대칭계수</label>
+            <select id="ci-asym" style="width:90px;">
+              <option value="1.2">1.2 (저압반)</option>
+              <option value="1.1" selected>1.1 (분전반)</option>
+              <option value="1.0">1.0 (동력반)</option>
+            </select>
+          </div>
+          <div id="btn-add-wrap"><button class="btn btn-primary" onclick="addCircuit()">+ 추가</button></div>
+          <div id="btn-save-wrap" style="display:none;"><button class="btn btn-primary" onclick="saveEdit()">💾 저장</button></div>
+        </div>
+
+        <div class="scroll-x">
+          <table class="circuit-table" id="circuit-table">
+            <thead>
+              <tr>
+                <th rowspan="2">부하명</th>
+                <th colspan="2">케이블</th>
+                <th colspan="2">선로정수 (Ω/km)</th>
+                <th colspan="2">등가임피던스 (%)</th>
+                <th rowspan="2">합성<br>%Z</th>
+                <th rowspan="2">비대칭<br>계수</th>
+                <th colspan="3">MCCB(ACB)</th>
+                <th rowspan="2">3상단락전류<br>[kA]</th>
+                <th rowspan="2">단락강도<br>[kA·s]</th>
+                <th rowspan="2">판정</th>
+                <th rowspan="2">수정</th>
+                <th rowspan="2">삭제</th>
+              </tr>
+              <tr>
+                <th>굵기</th><th>거리(m)</th>
+                <th>R</th><th>X</th>
+                <th>R(%)</th><th>X(%)</th>
+                <th>프레임</th><th>정격</th><th>차단용량</th>
+              </tr>
+            </thead>
+            <tbody id="circuit-tbody"></tbody>
+          </table>
+        </div>
+
+        <div class="legend mt-14">
+          <strong>케이블 굵기별 선로정수 (HFCO 0.6/1kV, 90℃ XLPE, 평면배열)</strong><br>
+          1.5: R=3.927, X=0.101 · 2.5: R=2.330, X=0.095 · 4: R=1.470, X=0.091 · 6: R=0.930, X=0.091 ·
+          10: R=0.550, X=0.086 · 16: R=0.330, X=0.085 · 25: R=0.186, X=0.082 · 35: R=0.134, X=0.082 ·
+          50: R=0.099, X=0.081 · 70: R=0.069, X=0.080 · 95: R=0.050, X=0.079 · 120: R=0.040, X=0.079 ·
+          150: R=0.032, X=0.078 · 185: R=0.026, X=0.077 · 240: R=0.020, X=0.077 · 300: R=0.017, X=0.076<br>
+          <strong>단락강도</strong> = Isc × √(t) · 동작시간 t=0.2초 기준<br>
+          <strong>판정기준</strong> : 단락전류 × 비대칭계수 ≤ 차단용량 (○ 적합 / × 부적합)
+        </div>
+      </div>
+    </div>
+  </div><!-- /tab2 -->
+
+
+  <!-- ══════════════════════════════════════════
+       탭 3 : 참조 데이터
+  ══════════════════════════════════════════ -->
+  <div id="tab3" class="tab-panel">
+
+    <div class="card">
+      <div class="card-header"><span class="step">REF</span><h2>LS 몰드 변압기 임피던스 데이터</h2></div>
+      <div class="card-body">
+        <div class="scroll-x">
+          <table class="calc-table">
+            <thead>
+              <tr>
+                <th>용량 (kVA)</th><th>%Z</th><th>%R</th><th>%X</th><th>X/R</th><th>비고</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td class="mono">50</td><td>5.5</td><td>1.7022</td><td>5.7535</td><td>3.38</td><td></td></tr>
+              <tr><td class="mono">100</td><td>6</td><td>1.8793</td><td>5.6981</td><td>3.03</td><td></td></tr>
+              <tr><td class="mono">200</td><td>6</td><td>1.4</td><td>5.7</td><td>4.07</td><td></td></tr>
+              <tr><td class="mono">300</td><td>6</td><td>1.4</td><td>5.7</td><td>4.07</td><td></td></tr>
+              <tr><td class="mono">400</td><td>6</td><td>1.4</td><td>5.7</td><td>4.07</td><td></td></tr>
+              <tr><td class="mono">500</td><td>6</td><td>1.1331</td><td>5.892</td><td>5.20</td><td></td></tr>
+              <tr><td class="mono">600</td><td>6</td><td>1.1</td><td>6.1</td><td>5.55</td><td></td></tr>
+              <tr class="highlight-row"><td class="mono">750</td><td>6</td><td>1.1268</td><td>5.8932</td><td>5.23</td><td>예제값</td></tr>
+              <tr><td class="mono">1000</td><td>7</td><td>0.9</td><td>5.8</td><td>6.44</td><td></td></tr>
+              <tr><td class="mono">1250</td><td>7</td><td>0.8</td><td>6.954</td><td>8.69</td><td></td></tr>
+              <tr><td class="mono">1500</td><td>7</td><td>0.7</td><td>6.965</td><td>9.95</td><td></td></tr>
+              <tr><td class="mono">2000</td><td>7.5</td><td>0.7</td><td>7.467</td><td>10.67</td><td></td></tr>
+              <tr><td class="mono">2500</td><td>7.5</td><td>0.7</td><td>7.5</td><td>10.71</td><td></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><span class="step">REF</span><h2>특고압 케이블 임피던스 (22.9kV, Ω/km)</h2></div>
+      <div class="card-body">
+        <div class="scroll-x">
+          <table class="calc-table">
+            <thead><tr><th>굵기 (㎟)</th><th>R (Ω/km)</th><th>X (Ω/km)</th><th>비고</th></tr></thead>
+            <tbody>
+              <tr><td class="mono">60</td><td class="mono">0.390</td><td class="mono">0.126</td><td>FR-CNCO-W / CN-CV-W</td></tr>
+              <tr><td class="mono">100</td><td class="mono">0.234</td><td class="mono">0.124</td><td></td></tr>
+              <tr><td class="mono">150</td><td class="mono">0.157</td><td class="mono">0.119</td><td></td></tr>
+              <tr><td class="mono">200</td><td class="mono">0.119</td><td class="mono">0.119</td><td></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><span class="step">REF</span><h2>차단기 정격 차단용량 (380V)</h2></div>
+      <div class="card-body">
+        <div class="scroll-x">
+          <table class="calc-table">
+            <thead><tr><th>규격 (A)</th><th>경제형 (kA)</th><th>표준형 (kA)</th><th>고차단형 (kA)</th><th>비고</th></tr></thead>
+            <tbody>
+              <tr><td>30</td><td>2.5</td><td>5</td><td>10</td><td></td></tr>
+              <tr><td>50</td><td>7.5</td><td>14</td><td>25</td><td></td></tr>
+              <tr><td>60</td><td>7.5</td><td>14</td><td>25</td><td></td></tr>
+              <tr><td>100</td><td>14</td><td>25</td><td>35</td><td></td></tr>
+              <tr><td>225/250</td><td>18</td><td>25</td><td>35</td><td></td></tr>
+              <tr><td>400</td><td>30</td><td>35</td><td>50</td><td></td></tr>
+              <tr><td>630~4000</td><td>—</td><td>65~100</td><td>—</td><td>ACB</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="note">※ 전압계수 Cmax=1.1 (저압, KS C IEC 60909-0) · Cmin=0.95 적용</p>
+      </div>
+    </div>
+
+  </div><!-- /tab3 -->
+
+</div><!-- /page -->
+
+<script>
+// ════════════════════════════════
+// 데이터
+// ════════════════════════════════
+const HV_CABLE = {
+  60: {R:0.390, X:0.126},
+  100:{R:0.234, X:0.124},
+  150:{R:0.157, X:0.119},
+  200:{R:0.119, X:0.119},
+};
+
+// 저압 케이블 선로정수 (HFCO 0.6/1kV, 단심 1C, 90℃, Ω/km — 엑셀 원본 표 5-5 기준)
+const LV_CABLE = {
+  1.5:  {R:12.10,  X:0.1130},
+  2.5:  {R:7.410,  X:0.1100},
+  4:    {R:4.610,  X:0.1070},
+  6:    {R:3.930,  X:0.1014},
+  10:   {R:2.330,  X:0.0954},
+  16:   {R:1.460,  X:0.0919},
+  25:   {R:0.927,  X:0.0929},
+  35:   {R:0.669,  X:0.0901},
+  50:   {R:0.494,  X:0.0892},
+  70:   {R:0.343,  X:0.0878},
+  95:   {R:0.248,  X:0.0856},
+  120:  {R:0.198,  X:0.0852},
+  150:  {R:0.160,  X:0.0840},
+  185:  {R:0.127,  X:0.0836},
+  240:  {R:0.1011, X:0.0851},
+  300:  {R:0.0827, X:0.0844},
+};
+
+// 변압기 기본 %R/%X 데이터 (LS 몰드)
+const TR_DATA = {
+  100: {pz:6, pr:1.8793, px:5.6981},
+  200: {pz:6, pr:1.4,    px:5.7},
+  300: {pz:6, pr:1.4,    px:5.7},
+  400: {pz:6, pr:1.4,    px:5.7},
+  500: {pz:6, pr:1.1331, px:5.892},
+  600: {pz:6, pr:1.1,    px:6.1},
+  750: {pz:6, pr:1.1268, px:5.8932},
+  1000:{pz:7, pr:0.9,    px:5.8},
+  1250:{pz:7, pr:0.8,    px:6.954},
+  1500:{pz:7, pr:0.7,    px:6.965},
+  2000:{pz:7.5,pr:0.7,   px:7.467},
+  2500:{pz:7.5,pr:0.7,   px:7.5},
+};
+
+// 전역 : 변압기 2차 합성 %Z
+let G_R2 = 187.17, G_X2 = 829.79, G_Z2 = 850.64;
+let G_BASE_MVA = 100, G_LV_V = 380;
+
+// ════════════════════════════════
+// 변압기 선택 시 자동 %R/%Z 채우기
+// ════════════════════════════════
+function updateTrImpedance() {
+  const kva = parseInt(document.getElementById('tr-kva').value);
+  if (TR_DATA[kva]) {
+    document.getElementById('tr-pz').value = TR_DATA[kva].pz;
+    document.getElementById('tr-pr').value = TR_DATA[kva].pr;
+  }
+}
+
+// ════════════════════════════════
+// 탭 1 계산
+// ════════════════════════════════
+function calc1() {
+  const baseMVA   = +document.getElementById('base-mva').value || 100;
+  const hvType    = +document.getElementById('hv-cable-type').value;
+  const hvLen     = +document.getElementById('hv-len').value   || 0;  // km 단위
+  const trKVA     = +document.getElementById('tr-kva').value   || 750;
+  const trPZ      = +document.getElementById('tr-pz').value    || 6;
+  const trPR      = +document.getElementById('tr-pr').value    || 1.1268;
+  const tr1Type   = +document.getElementById('tr1-cable-type').value;
+  const tr1Len    = +document.getElementById('tr1-len').value  || 0;
+  const lvV       = +document.getElementById('lv-voltage').value || 380;
+
+  G_BASE_MVA = baseMVA;
+  G_LV_V     = lvV;
+
+  const HV_KV  = 22.9;
+  const Z_base = HV_KV * HV_KV / baseMVA; // Ω (22.9kV, baseMVA 기준)
+
+  // ── 전원 임피던스 변환 (입력 방식에 따라 분기)
+  const psMode = document.querySelector('input[name="ps-mode"]:checked').value;
+  let prs, pxs;
+
+  if (psMode === 'ohm') {
+    // 한전 변전소 등가임피던스 Ω 직접 입력
+    const psR_ohm = +document.getElementById('ps-r-ohm').value || 0;
+    const psX_ohm = +document.getElementById('ps-x-ohm').value || 0;
+    // Ω → baseMVA 기준 %Z 변환: %Z = Z[Ω] / Z_base[Ω] × 100
+    prs = psR_ohm / Z_base * 100;
+    pxs = psX_ohm / Z_base * 100;
+    // 단락용량 역산 (참고용)
+    const zAbs = Math.sqrt(psR_ohm*psR_ohm + psX_ohm*psX_ohm);
+    const scRef = document.getElementById('ps-sc-ref');
+    if (scRef) scRef.value = zAbs > 0 ? (HV_KV*HV_KV/zAbs).toFixed(1)+' MVA' : '—';
+  } else {
+    // 단락용량 MVA + X/R 방식
+    const psMVA = +document.getElementById('ps-mva').value || 300;
+    const psXR  = +document.getElementById('ps-xr').value  || 10;
+    const pzs   = baseMVA / psMVA * 100;
+    prs = pzs / Math.sqrt(1 + psXR * psXR);
+    pxs = prs * psXR;
+  }
+
+  // ── 한전 인입 케이블
+  const hvc = HV_CABLE[hvType] || {R:0.39,X:0.126};
+  const hvLenKm = hvLen; // 입력값이 이미 km
+  const pzL_r = baseMVA * 1000 * hvc.R * hvLenKm / (10 * HV_KV * HV_KV);
+  const pzL_x = baseMVA * 1000 * hvc.X * hvLenKm / (10 * HV_KV * HV_KV);
+
+  const sr = prs + pzL_r, sx = pxs + pzL_x;
+  const sz = Math.sqrt(sr*sr + sx*sx);
+  const isc_hv = baseMVA * 1e6 / ((sz / 100) * Math.sqrt(3) * (HV_KV * 1000)) / 1000;
+
+  // ── 변압기 1차 케이블
+  const tr1c = HV_CABLE[tr1Type] || {R:0.39,X:0.126};
+  const tr1LenKm = tr1Len / 1000;
+  const ptr1_r = baseMVA * 1000 * tr1c.R * tr1LenKm / (10 * HV_KV * HV_KV);
+  const ptr1_x = baseMVA * 1000 * tr1c.X * tr1LenKm / (10 * HV_KV * HV_KV);
+
+  const sr1 = sr + ptr1_r, sx1 = sx + ptr1_x;
+
+  // ── 변압기 임피던스 (100MVA 기준 환산)
+  const trPX = Math.sqrt(trPZ*trPZ - trPR*trPR);
+  const pzT  = baseMVA * 1000 / trKVA * trPZ;
+  const pRT  = baseMVA * 1000 / trKVA * trPR;
+  const pXT  = baseMVA * 1000 / trKVA * trPX;
+
+  // ── 변압기 2차 합성 임피던스
+  const R2 = sr1 + pRT;
+  const X2 = sx1 + pXT;
+  const Z2 = Math.sqrt(R2*R2 + X2*X2);
+
+  // ── 변압기 2차 고장전류 [kA]
+  // I[kA] = BASE[MVA]×10⁶ / ((%Z/100)×√3×V[V]) / 1000
+  const isc_lv = baseMVA * 1e6 / ((Z2 / 100) * Math.sqrt(3) * lvV) / 1000;
+
+  G_R2 = R2; G_X2 = X2; G_Z2 = Z2;
+
+  // ── 화면 업데이트
+  const pzs_display = Math.sqrt(prs*prs + pxs*pxs); // 전원 |%Z| 표시용
+  document.getElementById('r1-pzs').textContent = fmt(pzs_display);
+  document.getElementById('r1-isc').textContent = fmt(isc_hv);
+
+  const srcLabel = psMode === 'ohm' ? '전원 (한전 변전소 등가임피던스 Ω→%Z)' : '전원 (한전 MVA)';
+
+  setTbody('tb1-src', [
+    [srcLabel, '%Zs', fmt(prs), fmt(pxs)],
+    ['한전 인입 케이블', '%ZL', fmt(pzL_r), fmt(pzL_x)],
+    ['합계 (수전점까지)', '∑', `<strong>${fmt(sr)}</strong>`, `<strong>${fmt(sx)}</strong>`],
+  ]);
+
+  setTbody('tb1-hv', [
+    ['합계 (수전점까지)', '∑', fmt(sr), fmt(sx)],
+    ['변압기 1차 케이블', '%ZL₁', fmt(ptr1_r), fmt(ptr1_x)],
+    ['합계 (변압기 1차)', '∑', `<strong>${fmt(sr1)}</strong>`, `<strong>${fmt(sx1)}</strong>`],
+  ]);
+
+  setTbody('tb2-main', [
+    ['전원+케이블 (수전점→변압기 1차)', '%Zs+L₁', fmt(sr1), fmt(sx1), fmt(Math.sqrt(sr1*sr1+sx1*sx1)), '22.9kV측'],
+    ['변압기 (100MVA 기준 환산)', '%ZT', fmt(pRT), fmt(pXT), fmt(Math.sqrt(pRT*pRT+pXT*pXT)), `%Z=${trPZ}%, ${trKVA}kVA`],
+    ['합성 임피던스 (%Z₂)', '%Z₂', `<strong>${fmt(R2)}</strong>`, `<strong>${fmt(X2)}</strong>`, `<strong>${fmt(Z2)}</strong>`, '저압측 기준'],
+  ]);
+
+  document.getElementById('summary2').innerHTML = `
+    <div class="summary-card">
+      <div class="sc-head">변압기 2차 최대 단락전류</div>
+      <div class="sc-body">
+        <div><span class="sc-val">${fmt(isc_lv)}</span><span class="sc-unit">kA (대칭분)</span></div>
+        <div class="sc-note">Cmax=1.1 적용 시 ≈ ${fmt(isc_lv*1.1)} kA</div>
+        <div class="sc-note">피크값 (×√2) ≈ ${fmt(isc_lv*Math.sqrt(2))} kA</div>
+      </div>
+    </div>
+    <div class="summary-card">
+      <div class="sc-head">합성 임피던스 (%Z₂)</div>
+      <div class="sc-body">
+        <div><span class="sc-val">${fmt(Z2)}</span><span class="sc-unit">%</span></div>
+        <div class="sc-note">R = ${fmt(R2)} % · X = ${fmt(X2)} %</div>
+        <div class="sc-note">X/R = ${fmt(X2/R2)}</div>
+      </div>
+    </div>
+    <div class="summary-card">
+      <div class="sc-head">저압반 MAIN 차단기 기준</div>
+      <div class="sc-body">
+        <div><span class="sc-val">${fmt(isc_lv*1.2)}</span><span class="sc-unit">kA 이상 필요</span></div>
+        <div class="sc-note">비대칭계수 1.2 적용 (저압반)</div>
+        <div class="sc-note">단락강도 = Isc × √0.2 ≈ ${fmt(isc_lv*Math.sqrt(0.2))} kA·√s</div>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('legend2').innerHTML =
+    `<strong>계산 기준</strong> : IEC 60909 / KS C IEC 60909-0 · 기준용량 ${baseMVA} MVA · 22.9kV 수전 · 변압기 2차 ${lvV}V<br>
+     <strong>합성 %Z₂</strong> = ${fmt(R2)} + j${fmt(X2)} (= ${fmt(Z2)} %) → I₂sc = ${baseMVA}×1000 / (${fmt(Z2)} × √3 × ${(lvV/1000).toFixed(1)}) = <strong>${fmt(isc_lv)} kA</strong>`;
+
+  // 말단 계산 재계산
+  recalcCircuits();
+}
+
+// ════════════════════════════════
+// 유틸
+// ════════════════════════════════
+function fmt(v) { return (+v).toFixed(1); }
+
+function setTbody(id, rows) {
+  const tb = document.getElementById(id);
+  tb.innerHTML = rows.map(r =>
+    `<tr>${r.map((c,i) => `<td class="mono${i>=2?' right':''}">${c}</td>`).join('')}</tr>`
+  ).join('');
+}
+
+// ════════════════════════════════
+// 탭 2 : 말단 회로
+// ════════════════════════════════
+let circuits = [];
+let editIdx = -1; // -1 = 추가 모드, 0~ = 수정 모드
+
+function getFormData() {
+  return {
+    name:  document.getElementById('ci-name').value.trim() || '회로',
+    size:  +document.getElementById('ci-size').value,
+    len:   +document.getElementById('ci-len').value,
+    frame: document.getElementById('ci-frame').value,
+    at:    +document.getElementById('ci-at').value,
+    ic:    +document.getElementById('ci-ic').value,
+    asym:  +document.getElementById('ci-asym').value,
+  };
+}
+
+function fillForm(c) {
+  document.getElementById('ci-name').value = c.name;
+  document.getElementById('ci-size').value = c.size;
+  document.getElementById('ci-len').value  = c.len;
+  document.getElementById('ci-frame').value = c.frame;
+  document.getElementById('ci-at').value   = c.at;
+  document.getElementById('ci-ic').value   = c.ic;
+  document.getElementById('ci-asym').value = c.asym;
+}
+
+function setEditMode(on) {
+  document.getElementById('edit-banner').style.display  = on ? 'block' : 'none';
+  document.getElementById('btn-add-wrap').style.display  = on ? 'none'  : 'block';
+  document.getElementById('btn-save-wrap').style.display = on ? 'block' : 'none';
+}
+
+function addCircuit() {
+  circuits.push(getFormData());
+  recalcCircuits();
+}
+
+function editCircuit(i) {
+  editIdx = i;
+  fillForm(circuits[i]);
+  setEditMode(true);
+  // 폼으로 스크롤
+  document.getElementById('ci-name').focus();
+  document.getElementById('ci-name').scrollIntoView({behavior:'smooth', block:'center'});
+  recalcCircuits(); // 해당 행 하이라이트
+}
+
+function saveEdit() {
+  if (editIdx < 0) return;
+  circuits[editIdx] = getFormData();
+  editIdx = -1;
+  setEditMode(false);
+  recalcCircuits();
+}
+
+function cancelEdit() {
+  editIdx = -1;
+  setEditMode(false);
+  recalcCircuits();
+}
+
+function deleteCircuit(i) {
+  if (editIdx === i) { cancelEdit(); }
+  circuits.splice(i, 1);
+  if (editIdx > i) editIdx--;
+  recalcCircuits();
+}
+
+function recalcCircuits() {
+  const tbody = document.getElementById('circuit-tbody');
+  if (!circuits.length) {
+    tbody.innerHTML = '<tr><td colspan="17" style="text-align:center;color:var(--muted);padding:20px;">회로를 추가해주세요.</td></tr>';
+    return;
+  }
+
+  const baseMVA = G_BASE_MVA;
+  const BASE = baseMVA * 1000; // kVA
+  const V    = G_LV_V;
+
+  tbody.innerHTML = circuits.map((c, i) => {
+    const cable = LV_CABLE[c.size] || {R:3.93, X:0.1014};
+    const lenKm = c.len / 1000;
+
+    // %Z 환산: Z_ohm/Z_base×100, Z_base=V²/(BASE_MVA×10⁶)
+    // → %Z = R×L_km × BASE_MVA×10⁸ / V²
+    const prC = baseMVA * 1e8 * cable.R * lenKm / (V * V);
+    const pxC = baseMVA * 1e8 * cable.X * lenKm / (V * V);
+
+    const R_tot = G_R2 + prC;
+    const X_tot = G_X2 + pxC;
+    const Z_tot = Math.sqrt(R_tot*R_tot + X_tot*X_tot);
+
+    // I[kA] = BASE[MVA]×10⁶ / ((%Z/100)×√3×V[V]) / 1000
+    const iscKA   = baseMVA * 1e6 / ((Z_tot / 100) * Math.sqrt(3) * V) / 1000;
+    const iscAsym = iscKA * c.asym;
+    const strength = iscKA * Math.sqrt(0.2);
+
+    const ok  = iscAsym <= c.ic;
+    const tag = ok ? '<span class="tag tag-ok">○ 적합</span>' : '<span class="tag tag-err">× 부적합</span>';
+    const isEditing = (editIdx === i);
+    const rowStyle  = isEditing ? ' style="outline:2px solid var(--accent); outline-offset:-2px; background:var(--accent-light);"' : '';
+
+    return `<tr${rowStyle}>
+      <td class="name">${c.name}${isEditing ? ' ✏️' : ''}</td>
+      <td class="mono">${c.size} ㎟</td>
+      <td class="mono">${c.len}</td>
+      <td class="mono">${cable.R.toFixed(1)}</td>
+      <td class="mono">${cable.X.toFixed(1)}</td>
+      <td class="mono">${prC.toFixed(1)}</td>
+      <td class="mono">${pxC.toFixed(1)}</td>
+      <td class="mono">${Z_tot.toFixed(1)}</td>
+      <td class="mono center">${c.asym}</td>
+      <td class="mono center">${c.frame}A</td>
+      <td class="mono center">${c.at}A</td>
+      <td class="mono center">${c.ic} kA</td>
+      <td class="mono ${ok?'ok-cell':'err-cell'}">${iscAsym.toFixed(1)}</td>
+      <td class="mono">${strength.toFixed(1)}</td>
+      <td class="center">${tag}</td>
+      <td class="center"><button class="btn btn-sm" style="background:var(--accent-light);color:var(--accent);border:1px solid #b8ccef;" onclick="editCircuit(${i})">수정</button></td>
+      <td class="center"><button class="btn btn-danger btn-sm" onclick="deleteCircuit(${i})">삭제</button></td>
+    </tr>`;
+  }).join('');
+}
+
+// ════════════════════════════════
+// 한전 입력 방식 전환
+// ════════════════════════════════
+function togglePsMode() {
+  const mode = document.querySelector('input[name="ps-mode"]:checked').value;
+  document.querySelectorAll('.ps-mva-field').forEach(el => el.style.display = mode==='mva' ? '' : 'none');
+  document.querySelectorAll('.ps-ohm-field').forEach(el => el.style.display = mode==='ohm' ? '' : 'none');
+  calc1();
+}
+
+// ════════════════════════════════
+// 탭 전환
+// ════════════════════════════════
+function showTab(id, btn) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ── 초기 실행
+updateTrImpedance();
+calc1();
+
+// 예제 회로 자동 입력 (엑셀 원본과 동일)
+const examples = [
+  {name:'A', size:6,   len:94,  frame:'30',  at:40,  ic:5,  asym:1.1},
+  {name:'B', size:10,  len:32,  frame:'50',  at:50,  ic:14, asym:1.1},
+  {name:'C', size:25,  len:91,  frame:'60',  at:100, ic:14, asym:1.1},
+  {name:'D', size:35,  len:72,  frame:'100', at:100, ic:25, asym:1.1},
+  {name:'E', size:35,  len:30,  frame:'100', at:100, ic:25, asym:1.1},
+  {name:'F', size:50,  len:96,  frame:'100', at:100, ic:25, asym:1.1},
+  {name:'G', size:70,  len:59,  frame:'100', at:100, ic:25, asym:1.1},
+  {name:'H', size:95,  len:91,  frame:'100', at:100, ic:25, asym:1.1},
+  {name:'I', size:120, len:30,  frame:'225', at:250, ic:25, asym:1.1},
+  {name:'J', size:240, len:25,  frame:'400', at:400, ic:35, asym:1.1},
+  {name:'K', size:240, len:30,  frame:'400', at:400, ic:35, asym:1.0},
+  {name:'L', size:300, len:50,  frame:'400', at:400, ic:35, asym:1.0},
+];
+circuits = examples;
+recalcCircuits();
+</script>
+</body>
+</html>

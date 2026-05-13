@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>접지 계산서 (IEEE Std 80)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Noto+Sans+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:           #f5f4f0;
+    --surface:      #ffffff;
+    --border:       #e0ddd5;
+    --text:         #1a1a18;
+    --muted:        #888880;
+    --accent:       #e8500a;
+    --accent-light: #fdf0eb;
+    --mono: 'Noto Sans Mono', monospace;
+    --sans: 'Noto Sans KR', sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--sans); background: var(--bg); color: var(--text); padding: 28px 16px 60px; }
+  .wrapper { max-width: 960px; margin: 0 auto; }
+
+  /* Header */
+  .page-header {
+    display: flex; align-items: baseline; gap: 12px;
+    margin-bottom: 24px; padding-bottom: 14px;
+    border-bottom: 2px solid var(--accent);
+  }
+  .page-header h1 { font-size: 20px; font-weight: 700; }
+  .page-header span { font-family: var(--mono); font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+
+  /* Card */
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 22px; margin-bottom: 18px; }
+  .card-title { font-family: var(--mono); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); margin-bottom: 18px; }
+
+  /* Section label */
+  .section-title {
+    font-size: 13px; font-weight: 700; color: var(--accent);
+    border-left: 3px solid var(--accent); padding-left: 10px;
+    margin: 20px 0 14px;
+  }
+
+  /* Input Grid */
+  .input-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .input-grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+  .input-grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field label { font-size: 12px; font-weight: 500; color: var(--muted); }
+  .field .unit-wrap { position: relative; }
+  .field .unit-wrap input { padding-right: 42px; }
+  .field .unit-label {
+    position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+    font-family: var(--mono); font-size: 11px; color: var(--muted); pointer-events: none;
+  }
+  .field input, .field select {
+    font-family: var(--mono); font-size: 14px; font-weight: 500; color: var(--text);
+    background: var(--bg); border: 1px solid var(--border); border-radius: 6px;
+    padding: 9px 12px; outline: none; transition: border-color 0.15s; width: 100%;
+  }
+  .field input:focus, .field select:focus { border-color: var(--accent); background: #fff; }
+  .field input[readonly] { color: var(--muted); background: #f0efeb; cursor: default; }
+
+  /* Calc Button */
+  .calc-btn {
+    margin-top: 18px; width: 100%; padding: 12px;
+    background: var(--accent); color: #fff; font-family: var(--sans);
+    font-size: 14px; font-weight: 700; border: none; border-radius: 8px;
+    cursor: pointer; transition: background 0.15s;
+  }
+  .calc-btn:hover { background: #d0440a; }
+
+  /* Print Button */
+  .print-btn {
+    margin-top: 10px; width: 100%; padding: 10px;
+    background: #fff; color: var(--accent); font-family: var(--sans);
+    font-size: 13px; font-weight: 600; border: 1.5px solid var(--accent);
+    border-radius: 8px; cursor: pointer; transition: all 0.15s;
+  }
+  .print-btn:hover { background: var(--accent-light); }
+
+  /* Result Grid */
+  .result-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 18px; }
+
+  .result-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 18px;
+    opacity: 0.4; transition: opacity 0.2s;
+  }
+  .result-card.has-data { opacity: 1; }
+
+  .section-label {
+    font-family: var(--mono); font-size: 10px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted);
+    margin-bottom: 12px;
+  }
+
+  .highlight-box {
+    background: var(--accent-light); border-radius: 8px;
+    padding: 12px 14px; margin-bottom: 12px;
+  }
+  .h-label { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+  .h-main { display: flex; align-items: baseline; gap: 4px; }
+  .h-val { font-family: var(--mono); font-size: 24px; font-weight: 600; color: var(--accent); line-height: 1; }
+  .h-unit { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+  .h-sub { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+  .result-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 5px 0; border-bottom: 1px solid var(--border); font-size: 12px;
+  }
+  .result-row:last-of-type { border-bottom: none; }
+  .result-row .rl { color: var(--muted); }
+  .result-row .rv { font-family: var(--mono); font-weight: 500; color: var(--text); }
+
+  .note { margin-top: 10px; font-size: 11px; display: flex; align-items: center; gap: 6px; }
+
+  /* Tags */
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-family: var(--mono); font-size: 10px; font-weight: 600; }
+  .tag-ok   { background: #e8f5e9; color: #2e7d32; }
+  .tag-warn { background: #fff3e0; color: #e65100; }
+  .tag-err  { background: #fce4ec; color: #c62828; }
+
+  /* 중간 계산 과정 테이블 */
+  .calc-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 8px; }
+  .calc-table th {
+    background: var(--bg); padding: 7px 10px; text-align: left;
+    font-size: 10px; font-weight: 600; color: var(--muted);
+    text-transform: uppercase; border-bottom: 1px solid var(--border);
+    font-family: var(--mono);
+  }
+  .calc-table td { padding: 7px 10px; border-bottom: 1px solid var(--bg); font-family: var(--mono); }
+  .calc-table td:last-child { text-align: right; font-weight: 500; }
+  .calc-table tr:last-child td { border-bottom: none; }
+  .calc-table tr.highlight td { background: var(--accent-light); color: var(--accent); font-weight: 600; }
+
+  /* 경고박스 */
+  .warn-box { background: #fff3e0; border: 1px solid #ffe0b2; border-radius: 8px; padding: 12px 16px; font-size: 12px; color: #e65100; display: none; margin-bottom: 16px; }
+  .warn-box.show { display: block; }
+  .warn-box ul { margin: 4px 0 0 16px; }
+
+  /* 면책 */
+  .disclaimer { text-align: center; font-size: 11px; color: var(--muted); margin-top: 20px; padding-top: 14px; border-top: 1px solid var(--border); }
+
+  @media (max-width: 700px) {
+    .input-grid, .input-grid-4 { grid-template-columns: repeat(2, 1fr); }
+    .result-grid { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 420px) {
+    .input-grid, .input-grid-2, .input-grid-4 { grid-template-columns: 1fr; }
+  }
+
+  /* ── 인쇄 스타일 ── */
+  @media print {
+    /* 기본 */
+    @page {
+      size: A4;
+      margin: 20mm 10mm 15mm 10mm;
+      /* 파일경로/이름 숨김, 날짜 오른쪽 상단 */
+      @top-left   { content: none; }
+      @top-center { content: none; }
+      @top-right  { content: none; }
+      @bottom-left   { content: none; }
+      @bottom-center { content: none; }
+      @bottom-right  { content: none; }
+    }
+    * { font-family: 'Noto Sans KR', sans-serif !important; }
+    body { background: #fff !important; padding: 0 !important; font-size: 11px; }
+    .wrapper { max-width: 100%; }
+
+    /* 버튼/경고박스 숨김 */
+    .calc-btn, .print-btn, .warn-box { display: none !important; }
+
+    /* 인쇄 날짜 오른쪽 상단 표시 */
+    .print-date {
+      display: block !important;
+      text-align: right;
+      font-size: 10px;
+      color: #666;
+      margin-bottom: 6px;
+    }
+
+    /* 카드 기본 */
+    .card {
+      border: 1px solid #ccc !important;
+      border-radius: 4px !important;
+      padding: 10px 12px !important;
+      margin-bottom: 8px !important;
+      box-shadow: none !important;
+    }
+    .card-title { font-size: 10px !important; margin-bottom: 10px !important; }
+    .section-title { font-size: 11px !important; margin: 10px 0 8px !important; }
+
+    /* 입력 필드 축소 */
+    .field label { font-size: 9px !important; }
+    .field input, .field select {
+      font-size: 11px !important;
+      padding: 4px 8px !important;
+      background: #fff !important;
+      border: 1px solid #ccc !important;
+    }
+    .field .unit-label { font-size: 9px !important; }
+    .input-grid { gap: 8px !important; }
+    .input-grid-4 { gap: 8px !important; }
+
+    /* 결과 카드 */
+    .result-grid { gap: 8px !important; margin-bottom: 8px !important; }
+    .result-card {
+      opacity: 1 !important;
+      padding: 10px !important;
+      border: 1px solid #ccc !important;
+      border-radius: 4px !important;
+    }
+    .highlight-box { padding: 8px 10px !important; margin-bottom: 8px !important; }
+    .h-val { font-size: 18px !important; }
+    .h-label { font-size: 9px !important; }
+    .h-sub { font-size: 9px !important; }
+    .result-row { font-size: 10px !important; padding: 3px 0 !important; }
+    .section-label { font-size: 9px !important; margin-bottom: 8px !important; }
+
+    /* 헤더 */
+    .page-header { margin-bottom: 10px !important; padding-bottom: 8px !important; }
+    .page-header h1 { font-size: 15px !important; }
+
+    /* 페이지 나누기 */
+    #card-detail { page-break-before: always; }
+
+    /* 상세계산 테이블 */
+    .calc-table { font-size: 10px !important; }
+    .calc-table th { font-size: 9px !important; padding: 4px 8px !important; }
+    .calc-table td { padding: 4px 8px !important; }
+
+    /* [5] 이후 페이지 나누기 */
+    .page-break-before { page-break-before: always; }
+
+    /* 면책 */
+    .disclaimer { font-size: 9px !important; margin-top: 10px !important; }
+  }
+
+  /* 화면에서는 날짜 숨김 */
+  .print-date { display: none; }
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="page-header">
+    <h1>접지 계산서</h1>
+    <span>IEEE Std 80 / KR E-02100 기준</span>
+  </div>
+  <div class="print-date" id="print-date"></div>
+
+  <!-- ── 입력 카드 ── -->
+  <div class="card">
+    <div class="card-title">가. 자료수집 (설계 DATA)</div>
+
+    <div class="section-title">① 계통 기본 조건</div>
+    <div class="input-grid">
+      <div class="field">
+        <label>장소명</label>
+        <input type="text" id="i-name" value="100" oninput="calc()">
+      </div>
+      <div class="field">
+        <label>고장전류 지속시간 (tc)</label>
+        <div class="unit-wrap">
+          <input type="number" id="i-tc" value="0.5" step="0.1" oninput="calc()">
+          <span class="unit-label">초</span>
+        </div>
+      </div>
+      <div class="field">
+        <label>1선 최대 지락전류 (IF)</label>
+        <div class="unit-wrap">
+          <input type="number" id="i-IF" value="7.56" step="0.01" oninput="calc()">
+          <span class="unit-label">kA</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-title">② 토양 및 설치 조건</div>
+    <div class="input-grid">
+      <div class="field">
+        <label>토양 등가대지 저항율 (ρ)</label>
+        <div class="unit-wrap">
+          <input type="number" id="i-rho" value="337" oninput="calc()">
+          <span class="unit-label">Ω·m</span>
+        </div>
+      </div>
+      <div class="field">
+        <label>표토층 고유저항률 (ρs)</label>
+        <div class="unit-wrap">
+          <input type="number" id="i-rhos" value="5000" oninput="calc()">
+          <span class="unit-label">Ω·m</span>
+        </div>
+      </div>
+      <div class="field">
+        <label>표토층 두께 (hs)</label>
+        <div class="unit-wrap">
+          <input type="number" id="i-hs" value="0.5" step="0.1" oninput="calc()">
+          <span class="unit-label">m</span>
+        </div>
+      </div>
+      <div class="field">
+        <label>접지도체 매설깊이 (h)</label>
+        <div class="unit-wrap">
+          <input type="number" id="i-h" value="0.75" step="0.05" oninput="calc()">
+          <span class="unit-label">m</span>
+        </div>
+      </div>
+      <div class="field">
+        <label>지락전류 분류계수 (β)</label>
+        <div class="unit-wrap">
+          <input type="number" id="i-beta" value="0.2" step="0.01" oninput="calc()">
+          <span class="unit-label"></span>
+        </div>
+      </div>
+      <div class="field">
+        <label>접지도체 재질</label>
+        <select id="i-mat" onchange="calc()">
+          <option value="cu">나연동선 (Cu)</option>
+          <option value="al">알루미늄 (Al)</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="section-title">③ 접지망 설계 조건</div>
+
+    <!-- 기본 치수 -->
+    <div class="input-grid-4">
+      <div class="field">
+        <label>접지망 X축 길이 (Lx)</label>
+        <div class="unit-wrap">
+          <input type="number" id="i-Lx" value="90" oninput="calc()">
+          <span class="unit-label">m</span>
+        </div>
+      </div>
+      <div class="field">
+        <label>접지망 Y축 길이 (Ly)</label>
+        <div class="unit-wrap">
+          <input type="number" id="i-Ly" value="20" oninput="calc()">
+          <span class="unit-label">m</span>
+        </div>
+      </div>
+      <div class="field">
+        <label>X방향 도체 수 (nX) <span style="color:#e8500a;font-size:10px;">→ D1 자동계산</span></label>
+        <div class="unit-wrap">
+          <input type="number" id="i-nX" value="13" step="1" min="2" oninput="calc()">
+          <span class="unit-label">개</span>
+        </div>
+      </div>
+      <div class="field">
+        <label>Y방향 도체 수 (nY) <span style="color:#e8500a;font-size:10px;">→ D2 자동계산</span></label>
+        <div class="unit-wrap">
+          <input type="number" id="i-nY" value="5" step="1" min="2" oninput="calc()">
+          <span class="unit-label">개</span>
+        </div>
+      </div>
+      <!-- 자동계산 표시 (읽기전용) -->
+      <div class="field">
+        <label>X방향 간격 D1 (자동)</label>
+        <div class="unit-wrap">
+          <input type="text" id="i-D1-disp" readonly>
+          <span class="unit-label">m</span>
+        </div>
+      </div>
+      <div class="field">
+        <label>Y방향 간격 D2 (자동)</label>
+        <div class="unit-wrap">
+          <input type="text" id="i-D2-disp" readonly>
+          <span class="unit-label">m</span>
+        </div>
+      </div>
+      <div class="field">
+        <label>접지도체 규격</label>
+        <select id="i-csize" onchange="calc()">
+          <option value="35">35 mm²</option>
+          <option value="50" selected>50 mm²</option>
+          <option value="70">70 mm²</option>
+          <option value="95">95 mm²</option>
+          <option value="120">120 mm²</option>
+          <option value="150">150 mm²</option>
+          <option value="185">185 mm²</option>
+          <option value="240">240 mm²</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>접지봉 1개 길이 (La)</label>
+        <div class="unit-wrap">
+          <input type="number" id="i-La" value="2.4" step="0.1" oninput="calc()">
+          <span class="unit-label">m</span>
+        </div>
+      </div>
+      <div class="field">
+        <label>접지봉 수량 (N)</label>
+        <div class="unit-wrap">
+          <input type="number" id="i-Nrod" value="6" step="1" oninput="calc()">
+          <span class="unit-label">개</span>
+        </div>
+      </div>
+      <div class="field">
+        <label>권고 접지저항 (Ω)</label>
+        <div class="unit-wrap">
+          <input type="number" id="i-Rg-limit" value="10" step="0.5" min="0.1" oninput="calc()">
+          <span class="unit-label">Ω</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 추가 접지망 -->
+    <div class="section-title" style="margin-top:16px;">④ 추가 접지망 (끝단 보강)</div>
+    <div style="font-size:11px; color:#888; margin-bottom:10px;">
+      ※ 끝단 전위 상승 억제 목적으로 기본 간격 외 추가 도체 포설 시 입력 (LT에만 반영, D1·D2 불변)
+    </div>
+    <div class="input-grid-4">
+      <div class="field">
+        <label>X방향 추가 도체 수</label>
+        <div class="unit-wrap">
+          <input type="number" id="i-addX" value="0" step="1" min="0" oninput="calc()">
+          <span class="unit-label">개</span>
+        </div>
+      </div>
+      <div class="field">
+        <label>Y방향 추가 도체 수</label>
+        <div class="unit-wrap">
+          <input type="number" id="i-addY" value="0" step="1" min="0" oninput="calc()">
+          <span class="unit-label">개</span>
+        </div>
+      </div>
+      <div class="field">
+        <label>추가 도체 길이 (X방향, 자동)</label>
+        <div class="unit-wrap">
+          <input type="text" id="i-addX-len" readonly>
+          <span class="unit-label">m</span>
+        </div>
+      </div>
+      <div class="field">
+        <label>추가 도체 길이 (Y방향, 자동)</label>
+        <div class="unit-wrap">
+          <input type="text" id="i-addY-len" readonly>
+          <span class="unit-label">m</span>
+        </div>
+      </div>
+    </div>
+
+    <button class="calc-btn" onclick="calc()">⚡ 계산하기</button>
+    <button class="print-btn" onclick="window.print()">🖨 계산서 인쇄 / PDF 저장</button>
+  </div>
+
+  <!-- ── 경고 박스 ── -->
+  <div class="warn-box" id="warn-box">
+    <strong>⚠ 주의 사항</strong>
+    <ul id="warn-list"></ul>
+  </div>
+
+  <!-- ── 결과 카드 3분할 ── -->
+  <div class="result-grid">
+
+    <!-- 01. 접지망 굵기 -->
+    <div class="result-card" id="card-wire">
+      <div class="section-label">01 — 접지망 굵기</div>
+      <div class="highlight-box">
+        <div class="h-label">계산 단면적</div>
+        <div class="h-main">
+          <span class="h-val" id="r-wire-val">—</span>
+          <span class="h-unit">mm²</span>
+        </div>
+        <div class="h-sub" id="r-wire-sub">—</div>
+      </div>
+      <div class="result-row"><span class="rl">접지망 유입전류 IG</span><span class="rv" id="r-IG">—</span></div>
+      <div class="result-row"><span class="rl">계산 단면적 A</span><span class="rv" id="r-A-calc">—</span></div>
+      <div class="result-row"><span class="rl">선정 규격</span><span class="rv" id="r-A-sel">—</span></div>
+      <div class="note" id="r-wire-note"></div>
+    </div>
+
+    <!-- 02. 접지저항 & EPR -->
+    <div class="result-card" id="card-rg">
+      <div class="section-label">02 — 접지저항 / 대지전위상승(EPR)</div>
+      <div class="highlight-box">
+        <div class="h-label">접지저항 Rg</div>
+        <div class="h-main">
+          <span class="h-val" id="r-Rg">—</span>
+          <span class="h-unit">Ω</span>
+        </div>
+        <div class="h-sub" id="r-Rg-sub">—</div>
+      </div>
+      <div class="result-row"><span class="rl">총 도체 길이 LT</span><span class="rv" id="r-LT">—</span></div>
+      <div class="result-row"><span class="rl">접지망 면적 A</span><span class="rv" id="r-area">—</span></div>
+      <div class="result-row"><span class="rl">대지전위상승 EPR</span><span class="rv" id="r-EPR">—</span></div>
+      <div class="result-row"><span class="rl">최대허용접촉전압 Etouch</span><span class="rv" id="r-Etouch-lim">—</span></div>
+      <div class="note" id="r-epr-judge" style="margin-top:10px; font-size:12px; padding:8px; border-radius:6px;"></div>
+      <div class="note" id="r-rg-note"></div>
+    </div>
+
+    <!-- 03. 전압 판정 -->
+    <div class="result-card" id="card-verdict">
+      <div class="section-label">03 — 전압 판정</div>
+      <div class="highlight-box">
+        <div class="h-label">최종 판정</div>
+        <div class="h-main" id="r-verdict-main">
+          <span class="h-val" style="font-size:18px" id="r-verdict-text">—</span>
+        </div>
+        <div class="h-sub" id="r-verdict-sub">—</div>
+      </div>
+      <div class="result-row"><span class="rl">예상접촉전압 Em</span><span class="rv" id="r-Em">—</span></div>
+      <div class="result-row"><span class="rl">허용접촉전압 Etouch</span><span class="rv" id="r-Etouch">—</span></div>
+      <div class="result-row"><span class="rl">예상보폭전압 Es</span><span class="rv" id="r-Es">—</span></div>
+      <div class="result-row"><span class="rl">허용보폭전압 Estep</span><span class="rv" id="r-Estep">—</span></div>
+      <div class="note" id="r-verdict-note"></div>
+    </div>
+
+  </div><!-- /result-grid -->
+
+  <!-- ── 상세 계산 과정 ── -->
+  <div class="card" id="card-detail" style="opacity:0.4; transition: opacity 0.2s;">
+    <div class="card-title">나. 상세 계산 과정</div>
+
+    <div class="section-title">[1] 접지망 굵기 계산 (IEEE Std 80)</div>
+    <table class="calc-table" id="tbl-wire">
+      <thead><tr><th>항목</th><th>기호</th><th>값</th><th>단위</th></tr></thead>
+      <tbody>
+        <tr><td>고장 지속시간</td><td>tc</td><td id="d-tc">—</td><td>초</td></tr>
+        <tr><td>도체전류 분류계수</td><td>α</td><td>0.5</td><td>—</td></tr>
+        <tr><td>20℃ 저항온도계수</td><td>αr</td><td>0.00393</td><td>—</td></tr>
+        <tr><td>20℃ 고유저항률</td><td>ρr</td><td>1.7241</td><td>μΩ·m</td></tr>
+        <tr><td>0℃ 저항온도계수 역수</td><td>k0</td><td>234</td><td>—</td></tr>
+        <tr><td>주위온도</td><td>Ta</td><td>30</td><td>℃</td></tr>
+        <tr><td>최대허용온도</td><td>Tm</td><td>250</td><td>℃</td></tr>
+        <tr><td>열용량 계수</td><td>TCAP</td><td>3.422</td><td>J/㎤/℃</td></tr>
+        <tr><td>접지망 유입전류</td><td>IG</td><td id="d-IG">—</td><td>A</td></tr>
+        <tr class="highlight"><td>계산 단면적</td><td>A</td><td id="d-A">—</td><td>mm²</td></tr>
+      </tbody>
+    </table>
+
+    <div class="section-title">[2] 최대 허용보폭전압, 허용접촉전압 계산</div>
+    <table class="calc-table">
+      <thead><tr><th>항목</th><th>기호</th><th>값</th><th>단위</th></tr></thead>
+      <tbody>
+        <tr><td>반사계수</td><td>K</td><td id="d-K">—</td><td>—</td></tr>
+        <tr><td>감소계수</td><td>Cs</td><td id="d-Cs">—</td><td>—</td></tr>
+        <tr class="highlight"><td>최대허용접촉전압</td><td>Etouch</td><td id="d-Etouch">—</td><td>V</td></tr>
+        <tr class="highlight"><td>최대허용보폭전압</td><td>Estep</td><td id="d-Estep">—</td><td>V</td></tr>
+      </tbody>
+    </table>
+
+    <div class="section-title">[3] 접지망 설계 치수</div>
+    <table class="calc-table">
+      <thead><tr><th>항목</th><th>기호</th><th>값</th><th>단위</th></tr></thead>
+      <tbody>
+        <tr><td>접지망 면적 (Lx × Ly)</td><td>A</td><td id="d-area">—</td><td>m²</td></tr>
+        <tr><td>X방향 평행도체 수 (Ly÷D+1)</td><td>nY</td><td id="d-nY">—</td><td>개</td></tr>
+        <tr><td>Y방향 평행도체 수 (Lx÷D+1)</td><td>nX</td><td id="d-nX">—</td><td>개</td></tr>
+        <tr><td>X축 도체 총 길이 (Lx×nY)</td><td>LB</td><td id="d-LB">—</td><td>m</td></tr>
+        <tr><td>Y축 도체 총 길이 (Ly×nX)</td><td>LC</td><td id="d-LC">—</td><td>m</td></tr>
+        <tr><td>접지봉 1개 길이 × 수량 (La×N)</td><td>LR</td><td id="d-LR">—</td><td>m</td></tr>
+        <tr class="highlight"><td>총 도체 길이 (LB+LC+LR)</td><td>LT</td><td id="d-LT2">—</td><td>m</td></tr>
+      </tbody>
+    </table>
+
+    <div class="section-title">[4] 접지저항 및 EPR</div>
+    <table class="calc-table">
+      <thead><tr><th>항목</th><th>기호</th><th>값</th><th>단위</th></tr></thead>
+      <tbody>
+        <tr><td>접지저항</td><td>Rg</td><td id="d-Rg">—</td><td>Ω</td></tr>
+        <tr class="highlight"><td>대지전위상승 (EPR = IG × Rg)</td><td>EPR</td><td id="d-EPR">—</td><td>V</td></tr>
+      </tbody>
+    </table>
+    <div id="d-epr-condition" style="margin:10px 0; padding:10px 14px; border-radius:8px; font-size:12px;"></div>
+
+    <div class="section-title page-break-before">[5] 예상 접촉전압 / 보폭전압</div>
+    <table class="calc-table">
+      <thead><tr><th>항목</th><th>기호</th><th>값</th><th>단위</th></tr></thead>
+      <tbody>
+        <tr><td>접지망 형상계수 n</td><td>n</td><td id="d-n">—</td><td>—</td></tr>
+        <tr><td>접지망 간격계수</td><td>km</td><td id="d-km">—</td><td>—</td></tr>
+        <tr><td>전위경도 교정계수</td><td>ki</td><td id="d-ki">—</td><td>—</td></tr>
+        <tr><td>접촉전압 유효매설길이</td><td>Ltouch</td><td id="d-Ltouch">—</td><td>m</td></tr>
+        <tr class="highlight"><td>예상접촉전압</td><td>Em</td><td id="d-Em">—</td><td>V</td></tr>
+        <tr><td>보폭전압 접지망계수</td><td>ks</td><td id="d-ks">—</td><td>—</td></tr>
+        <tr><td>보폭전압 유효매설길이</td><td>Lstep</td><td id="d-Lstep">—</td><td>m</td></tr>
+        <tr class="highlight"><td>예상보폭전압</td><td>Es</td><td id="d-Es">—</td><td>V</td></tr>
+      </tbody>
+    </table>
+
+    <div class="section-title">라. 계산 결과 요약</div>
+    <table class="calc-table">
+      <thead><tr><th>구분</th><th>최대 허용치 (V)</th><th>계산 결과 (V)</th><th>판정</th></tr></thead>
+      <tbody>
+        <tr><td>접촉 전압</td><td id="s-Etouch-lim">—</td><td id="s-Em">—</td><td id="s-Em-judge">—</td></tr>
+        <tr><td>보폭 전압</td><td id="s-Estep-lim">—</td><td id="s-Es">—</td><td id="s-Es-judge">—</td></tr>
+        <tr><td>접지 저항</td><td id="s-Rg-limit">5 Ω 이하 권고</td><td id="s-Rg">—</td><td id="s-Rg-judge">—</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="disclaimer">
+    ※ 본 계산기는 참고용으로 <a href="http://hwjy.co.kr/" target="_blank" style="color:var(--accent);">(주)협우지여</a>에서 만들었으며, 최종 설계는 IEEE Std 80, KR E-02100 및 관련 법규에 따른 전문가 검토가 필요합니다.
+  </div>
+
+</div><!-- /wrapper -->
+
+<script>
+// 나동선 규격별 완성외경 (m)
+const WIRE_DIAM = { 35: 0.00756, 50: 0.00890, 70: 0.01070, 95: 0.01240, 120: 0.01400, 150: 0.01560, 185: 0.01740, 240: 0.01990 };
+
+function fmt(v, d=2) {
+  if (v === null || isNaN(v)) return '—';
+  return Number(v).toFixed(d);
+}
+
+function set(id, val) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = val;
+}
+
+function calc() {
+  // ── 입력값 읽기 ──
+  const tc    = parseFloat(document.getElementById('i-tc').value);
+  const IF_kA = parseFloat(document.getElementById('i-IF').value);
+  const rho   = parseFloat(document.getElementById('i-rho').value);
+  const rhos  = parseFloat(document.getElementById('i-rhos').value);
+  const hs    = parseFloat(document.getElementById('i-hs').value);
+  const h     = parseFloat(document.getElementById('i-h').value);
+  const beta  = parseFloat(document.getElementById('i-beta').value);
+  const Lx    = parseFloat(document.getElementById('i-Lx').value);
+  const Ly    = parseFloat(document.getElementById('i-Ly').value);
+  const nX_in = parseInt(document.getElementById('i-nX').value);    // X방향 도체 수 (입력)
+  const nY_in = parseInt(document.getElementById('i-nY').value);    // Y방향 도체 수 (입력)
+  const La    = parseFloat(document.getElementById('i-La').value);
+  const Nrod  = parseInt(document.getElementById('i-Nrod').value);
+  const csize = parseInt(document.getElementById('i-csize').value);
+  const addX  = parseInt(document.getElementById('i-addX').value) || 0;  // X방향 추가 도체
+  const addY  = parseInt(document.getElementById('i-addY').value) || 0;  // Y방향 추가 도체
+  const Rg_limit = parseFloat(document.getElementById('i-Rg-limit').value);
+
+  if ([tc,IF_kA,rho,rhos,hs,h,beta,Lx,Ly,nX_in,nY_in,La,Nrod].some(isNaN)) return;
+
+  // ── D1, D2 자동계산 (도체수 → 간격) ──
+  const nX = nX_in;
+  const nY = nY_in;
+  const gapX = nX - 1;
+  const gapY = nY - 1;
+  const D1 = gapX > 0 ? Math.round(Lx / gapX * 1000) / 1000 : 0;
+  const D2 = gapY > 0 ? Math.round(Ly / gapY * 1000) / 1000 : 0;
+
+  // 자동계산값 화면 표시
+  document.getElementById('i-D1-disp').value = D1;
+  document.getElementById('i-D2-disp').value = D2;
+  document.getElementById('i-addX-len').value = Lx;  // 추가도체 = X축 전체 길이
+  document.getElementById('i-addY-len').value = Ly;  // 추가도체 = Y축 전체 길이
+
+  // [C] D = MAX(D1,D2) — 보수적 설계
+  const D = Math.max(D1, D2);
+
+  const IF_A = IF_kA * 1000;
+
+  // ── [1] 접지망 유입전류 IG ──
+  const Df = 1.0;   // 비대칭분 교정계수 (tc≥0.5초)
+  const Cp = 1.0;   // 계통확장계수
+  const IG = beta * Df * Cp * IF_A;  // IF_A = A단위, ROUND 불필요
+
+  // ── [1] 접지망 굵기 계산 ──
+  const alpha = 0.5;    // KR E-02100: 도체전류 분류계수 50%
+  const ar = 0.00393;   // 나연동선 20℃ 저항온도계수
+  const rr = 1.7241;    // 나연동선 20℃ 고유저항률 [μΩ·cm]
+  const k0 = 234;       // 나연동선 0℃ 저항온도계수 역수
+  const Ta = 30;        // 주위온도 [℃]
+  const Tm = 250;       // 나연동선 압축접속 최대허용온도 [℃] (용융점 1083℃ 아님)
+  const TCAP = 3.422;   // 열용량 계수 [J/㎤·℃]
+  // IF는 kA 단위 그대로 사용 (KR E-02100), ROUND(√값,3) 적용
+  const sqrt_val = Math.round(Math.sqrt((tc * ar * rr * 1000) / TCAP / Math.log(1 + (Tm - Ta) / (k0 + Ta))) * 1000) / 1000;
+  const A_calc = sqrt_val * alpha * IF_kA;
+
+  // ── [2] 허용전압 계산 ──
+  const K  = (rho - rhos) / (rho + rhos);
+  const Cs = 1 - 0.09 * (1 - rho / rhos) / (2 * hs + 0.09);
+  const Etouch_lim = Math.round((1000 + 1.5 * Cs * rhos) * (0.116 / Math.sqrt(tc)) * 10) / 10;
+  const Estep_lim  = Math.round((1000 + 6.0 * Cs * rhos) * (0.116 / Math.sqrt(tc)) * 10) / 10;
+
+  // ── [3] 접지망 치수 계산 ──
+  const A_area = Lx * Ly;
+  const LB = Lx * nY + Lx * addX;  // X축 도체 총길이 (기본 + 추가)
+  const LC = Ly * nX + Ly * addY;  // Y축 도체 총길이 (기본 + 추가)
+  const LR = La * Nrod;
+  const LT = LB + LC + LR;
+
+  // ── [4] 접지저항 계산 ──
+  const Rg = rho * (1/LT + 1/Math.sqrt(20*A_area) * (1 + 1/(1 + h*Math.sqrt(20/A_area))));
+  const Rg_r = Math.round(Rg * 10) / 10;  // ROUND(Rg, 1)
+
+  // [A] EPR = IG × Rg_r(반올림값) — 엑셀과 동일
+  const EPR = IG * Rg_r;
+
+  // ── [5] 접지망 형상 계수 n ──
+  const LP = 2 * (Lx + Ly);
+  // [B] n1: LB+LC만 사용(접지봉 제외), n2: √(LP/4√A) 추가
+  const n1 = Math.round(2 * (LB + LC) / LP * 100) / 100;          // ROUND(n1,2)
+  const n2 = Math.round(Math.sqrt(LP / (4 * Math.sqrt(A_area))) * 100) / 100;  // ROUND(n2,2)
+  const n3 = 1;  // 직사각형
+  const n4 = 1;  // 직사각형
+  const n  = n1 * n2 * n3 * n4;
+
+  // ── km (접지망 간격 계수) — D=MAX(D1,D2) 적용 ──
+  const d = WIRE_DIAM[csize] || 0.0089;
+  const kii = (Nrod === 0) ? 1/(2*n) : 1;  // 접지봉 있으면 kii=1
+  const kh  = Math.sqrt(1 + h / 1.0);      // kh = √(1+h/h0), h0=1
+  const km = (1/(2*Math.PI)) * (
+    Math.log(D*D/(16*h*d) + (D+2*h)*(D+2*h)/(8*D*d) - h/(4*d))
+    + kii/kh * Math.log(8/(Math.PI*(2*n-1)))
+  );
+
+  // ── ki (전위경도 교정계수) ──
+  const ki = 0.644 + 0.148 * n;
+
+  // [D] Ltouch — 수정된 공식: (LB+LC) + [1.55 + 1.22×(Lr/√(Lx²+Ly²))] × LR
+  const Lr = La;  // 접지봉 1개 길이
+  const Ltouch2 = (LB + LC) + (1.55 + 1.22 * (Lr / Math.sqrt(Lx*Lx + Ly*Ly))) * LR;
+
+  // ── Em (예상접촉전압) ──
+  const Em = rho * km * ki * IG / Ltouch2;
+
+  // ── ks (보폭전압 접지망 계수) ──
+  const ks = (1/Math.PI) * (1/(2*h) + 1/(D+h) + (1/D)*(1 - Math.pow(0.5, n-2)));
+
+  // ── Lstep (보폭전압 유효매설길이) ──
+  const Lstep = 0.75*(LB+LC) + 0.85*LR;
+
+  // ── Es (예상보폭전압) ──
+  const Es = rho * ks * ki * IG / Lstep;
+
+  // ── 결과 표시 ──
+
+  // ── ROUND 헬퍼: 소수 1자리 반올림 ──
+  const r1 = v => Math.round(v * 10) / 10;
+  const r2 = v => Math.round(v * 100) / 100;
+
+  // 카드 1
+  set('r-IG', r1(IG) + ' A');
+  set('r-A-calc', r1(A_calc) + ' mm²');
+  set('r-A-sel', csize + ' mm² (선정)');
+  set('r-wire-val', r1(A_calc));
+  set('r-wire-sub', `선정 : ${csize} mm² · IG = ${r1(IG)} A`);
+  document.getElementById('card-wire').classList.add('has-data');
+  document.getElementById('r-wire-note').innerHTML =
+    A_calc <= csize ? `<span class="tag tag-ok">✓ 규격 적합</span>` : `<span class="tag tag-warn">△ 굵기 증가 검토</span>`;
+
+  // 카드 2
+  const EPR_r = r1(EPR);
+  const Etouch_r = r1(Etouch_lim);
+  const Estep_r  = r1(Estep_lim);
+  set('r-LT', r1(LT) + ' m');
+  set('r-area', r1(A_area) + ' m²');
+  set('r-EPR', EPR_r + ' V');
+  set('r-Etouch-lim', Etouch_r + ' V');
+  set('r-Rg', Rg_r);
+  set('r-Rg-sub', `EPR ${EPR_r}V ${EPR <= Etouch_lim ? '≤' : '>'} Etouch ${Etouch_r}V`);
+  document.getElementById('card-rg').classList.add('has-data');
+  document.getElementById('r-rg-note').innerHTML =
+    Rg_r <= Rg_limit ? `<span class="tag tag-ok">✓ 접지저항 ${Rg_limit}Ω 이하</span>` : `<span class="tag tag-warn">△ 접지저항 초과 검토</span>`;
+  // 카드02 EPR 조건 문구 — 카드 안에는 간략하게만
+  const eprJudgeEl = document.getElementById('r-epr-judge');
+  if (EPR > Etouch_lim) {
+    eprJudgeEl.style.cssText = 'background:#fff3e0;color:#e65100;margin-top:10px;font-size:11px;padding:8px;border-radius:6px;';
+    eprJudgeEl.innerHTML = `⚠ EPR > Etouch → 상세계산 필수`;
+  } else {
+    eprJudgeEl.style.cssText = 'background:#e8f5e9;color:#2e7d32;margin-top:10px;font-size:11px;padding:8px;border-radius:6px;';
+    eprJudgeEl.innerHTML = `✓ EPR ≤ Etouch → 상세계산 생략 가능`;
+  }
+
+  // 카드 3
+  const Em_r    = r1(Em);
+  const Es_r    = r1(Es);
+  const touchOK = Em_r <= Etouch_r;
+  const stepOK  = Es_r  <= Estep_r;
+  const allOK   = touchOK && stepOK;
+  set('r-Em', Em_r + ' V');
+  set('r-Etouch', Etouch_r + ' V');
+  set('r-Es', Es_r + ' V');
+  set('r-Estep', Estep_r + ' V');
+  set('r-verdict-text', allOK ? '적 합' : '부적합');
+  document.getElementById('r-verdict-text').style.color = allOK ? '#2e7d32' : '#c62828';
+  set('r-verdict-sub', allOK ? '접촉전압·보폭전압 모두 허용치 이내' : '허용치 초과 항목 있음 — 재설계 필요');
+  document.getElementById('card-verdict').classList.add('has-data');
+  document.getElementById('r-verdict-note').innerHTML = allOK
+    ? `<span class="tag tag-ok">✓ 접촉전압 적합</span>&nbsp;<span class="tag tag-ok">✓ 보폭전압 적합</span>`
+    : (!touchOK ? `<span class="tag tag-err">✗ 접촉전압 초과</span>&nbsp;` : `<span class="tag tag-ok">✓ 접촉전압</span>&nbsp;`)
+      + (!stepOK ? `<span class="tag tag-err">✗ 보폭전압 초과</span>` : `<span class="tag tag-ok">✓ 보폭전압</span>`);
+
+  // 상세 계산 테이블
+  set('d-tc', tc + ' 초');
+  set('d-IG', r1(IG) + ' A');
+  set('d-A', r1(A_calc) + '  (= ' + sqrt_val + ' × 0.5 × ' + IF_kA + ' kA)');
+  set('d-K', fmt(K,4));
+  set('d-Cs', fmt(Cs,4));
+  set('d-Etouch', Etouch_r);
+  set('d-Estep', Estep_r);
+  set('d-area', `${Lx} × ${Ly} = ${r1(A_area)}`);
+  set('d-nY', `${nY}개 (D2=${D2}m, 간격${gapY}개)`);
+  set('d-nX', `${nX}개 (D1=${D1}m, 간격${gapX}개)`);
+  set('d-LB', `${Lx}×${nY}${addX>0?` + ${Lx}×${addX}(추가)`:''}  = ${r1(LB)}`);
+  set('d-LC', `${Ly}×${nX}${addY>0?` + ${Ly}×${addY}(추가)`:''}  = ${r1(LC)}`);
+  set('d-LR', `${La} × ${Nrod} = ${r1(LR)}`);
+  set('d-LT2', `${r1(LB)} + ${r1(LC)} + ${r1(LR)} = ${r1(LT)}`);
+  set('d-Rg', Rg_r + ` Ω  (D=MAX(${D1},${D2})=${D}m 보수적 설계 적용)`);
+  set('d-EPR', r1(EPR) + ` V  (= IG ${r1(IG)}A × Rg_r ${Rg_r}Ω)`);
+  // EPR 조건 문구 (상세 테이블) — 여기가 상세 내용
+  const eprCondEl = document.getElementById('d-epr-condition');
+  if (EPR > Etouch_lim) {
+    eprCondEl.style.cssText = 'margin:10px 0;padding:10px 14px;border-radius:8px;font-size:12px;background:#fff3e0;color:#e65100;border:1px solid #ffe0b2;';
+    eprCondEl.innerHTML = `⚠ <strong>EPR(${EPR_r}V) > 최대허용접촉전압 Etouch(${Etouch_r}V)</strong><br>대지전위상승이 최대허용접촉전압을 초과하므로 예상접촉전압(Em) 및 예상보폭전압(Es)을 계산하여야 합니다.`;
+  } else {
+    eprCondEl.style.cssText = 'margin:10px 0;padding:10px 14px;border-radius:8px;font-size:12px;background:#e8f5e9;color:#2e7d32;border:1px solid #c8e6c9;';
+    eprCondEl.innerHTML = `✓ <strong>EPR(${EPR_r}V) ≤ 최대허용접촉전압 Etouch(${Etouch_r}V)</strong><br>대지전위상승이 허용치 이내이므로 상세계산을 생략할 수 있습니다.`;
+  }
+  set('d-n', `${fmt(n,3)}  (n1=${n1}×n2=${n2})`);
+  set('d-km', fmt(km,4) + `  (D=MAX(${D1},${D2})=${D}m 보수적 적용)`);
+  set('d-ki', fmt(ki,3));
+  set('d-Ltouch', r1(Ltouch2) + `  (=(LB+LC)+[1.55+1.22×(Lr/√(Lx²+Ly²))]×LR)`);
+  set('d-Em', Em_r);
+  set('d-ks', fmt(ks,4));
+  set('d-Lstep', r1(Lstep));
+  set('d-Es', Es_r);
+
+  // 결과 요약표
+  set('s-Etouch-lim', Etouch_r);
+  set('s-Em', Em_r);
+  set('s-Em-judge', touchOK ? '✓ 적합' : '✗ 부적합');
+  document.getElementById('s-Em-judge').className = touchOK ? 'tag tag-ok' : 'tag tag-err';
+  set('s-Estep-lim', Estep_r);
+  set('s-Es', Es_r);
+  set('s-Es-judge', stepOK ? '✓ 적합' : '✗ 부적합');
+  document.getElementById('s-Es-judge').className = stepOK ? 'tag tag-ok' : 'tag tag-err';
+  set('s-Rg-limit', `${Rg_limit} Ω 이하 권고`);
+  set('s-Rg', Rg_r + ' Ω');
+  set('s-Rg-judge', Rg_r <= Rg_limit ? '✓ 적합' : '△ 검토');
+  document.getElementById('s-Rg-judge').className = Rg_r <= Rg_limit ? 'tag tag-ok' : 'tag tag-warn';
+
+  // 상세 카드 표시
+  document.getElementById('card-detail').style.opacity = '1';
+
+  // ── 경고박스 — EPR 조건 포함 상세 문구 ──
+  const warns = [];
+  if (EPR > Etouch_lim) warns.push(`대지전위상승 EPR(${EPR_r}V) > 최대허용접촉전압 Etouch(${Etouch_r}V) — 예상접촉전압(Em) 및 보폭전압(Es) 계산 필수`);
+  if (!touchOK) warns.push(`예상접촉전압 Em(${Em_r}V) > 허용접촉전압 Etouch(${Etouch_r}V) — 접지망 재설계 필요`);
+  if (!stepOK)  warns.push(`예상보폭전압 Es(${Es_r}V) > 허용보폭전압 Estep(${Estep_r}V) — 접지망 재설계 필요`);
+  if (Rg_r > Rg_limit) warns.push(`접지저항 Rg(${Rg_r}Ω) > 권고치(${Rg_limit}Ω) — 접지망 면적 또는 도체 추가 검토`);
+  if (A_calc > csize) warns.push(`계산 단면적(${r1(A_calc)}mm²) > 선정 규격(${csize}mm²) — 굵기 증가 필요`);
+
+  const wb = document.getElementById('warn-box');
+  document.getElementById('warn-list').innerHTML = warns.map(w=>`<li>${w}</li>`).join('');
+  wb.classList.toggle('show', warns.length > 0);
+}
+
+// 인쇄 날짜 표시
+const today = new Date();
+const dateStr = `${today.getFullYear()}년 ${today.getMonth()+1}월 ${today.getDate()}일`;
+document.getElementById('print-date').textContent = `작성일: ${dateStr}`;
+
+// 페이지 로드 시 자동 계산
+window.onload = calc;
+</script>
+</body>
+</html>
