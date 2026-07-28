@@ -47,7 +47,7 @@
   button.ch{min-width:34px;height:34px;padding:0 7px;border:1px solid var(--btn-line);
     border-radius:8px;background:var(--btn);color:var(--fg);cursor:pointer;
     font-size:16px;line-height:1;box-shadow:var(--shadow);transition:.1s;
-    display:inline-flex;align-items:center;justify-content:center;}
+    display:inline-flex;align-items:center;justify-content:center;vertical-align:middle;}
   button.ch:hover{background:var(--accent-soft);border-color:var(--accent-line);
     transform:translateY(-1px);}
   button.ch:active{transform:translateY(0);}
@@ -116,6 +116,10 @@ const GROUPS = [
     {label:"\\large", text:"\\large "},
     {label:"\\color{red}", text:"\\color{red} "},
     {label:"\\color{blue}", text:"\\color{blue} "},
+    {label:"\\displaystyle ", text:"\\displaystyle "},
+  ]],
+  ["HTML·CSS 속성", [
+    {label:"vertical-align middle", text:"style=\"vertical-align: middle;\""},
   ]],
 ];
 
