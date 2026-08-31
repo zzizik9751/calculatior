@@ -1,0 +1,2203 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>케이블트레이 계산서</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Noto+Sans+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<!-- 엑셀(.xlsx) 읽기/쓰기용 SheetJS. 인터넷 연결이 있어야 로드됩니다(오프라인이면 엑셀 내보내기/불러오기만 비활성화되고 나머지 기능은 정상 동작). -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+/* ===== 리셋 & 기본 (참조: cable_ampacity_calculator.html 스타일 계승) ===== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:           #f5f4f0;
+  --surface:      #ffffff;
+  --surface2:     #f9f8f5;
+  --border:       #e0ddd5;
+  --border2:      #ccc9c0;
+  --text:         #1a1a18;
+  --muted:        #888880;
+  --muted2:       #b0aea6;
+  --accent:       #e8500a;
+  --accent-light: #fdf0eb;
+  --accent-dark:  #c04008;
+  --ok:           #2e7d32;
+  --ok-bg:        #e8f5e9;
+  --warn:         #e65100;
+  --warn-bg:      #fff3e0;
+  --err:          #c62828;
+  --err-bg:       #fce4ec;
+  --info:         #1565c0;
+  --info-bg:      #e3f2fd;
+  --purple:       #6a3fb5;
+  --purple-bg:    #f1ecfb;
+  --sans:         'Noto Sans KR', sans-serif;
+  --mono:         'Noto Sans Mono', monospace;
+  --radius:       8px;
+  --radius-lg:    12px;
+  --shadow:       0 1px 3px rgba(0,0,0,.08), 0 1px 8px rgba(0,0,0,.04);
+}
+
+html { font-size: 14px; }
+body {
+  font-family: var(--sans);
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+/* ===== 헤더 ===== */
+.site-header {
+  background: var(--text);
+  color: #fff;
+  padding: 0 24px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 8px rgba(0,0,0,.2);
+}
+.header-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  height: 52px;
+  gap: 16px;
+}
+.site-logo {
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: .04em;
+  color: var(--accent);
+  white-space: nowrap;
+}
+.site-title {
+  font-size: 13px;
+  font-weight: 400;
+  color: rgba(255,255,255,.7);
+  border-left: 1px solid rgba(255,255,255,.2);
+  padding-left: 16px;
+}
+.header-spacer { flex: 1; }
+.header-badge {
+  font-size: 10px;
+  font-family: var(--mono);
+  color: rgba(255,255,255,.4);
+  letter-spacing: .06em;
+}
+
+/* ===== 메인 레이아웃 ===== */
+.main-wrap {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px 20px 60px;
+}
+
+/* ===== 탭 ===== */
+.tabs-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+  border-bottom: 1.5px solid var(--border2);
+  margin-bottom: 20px;
+}
+.tab-btn {
+  padding: 9px 16px;
+  font-size: 12px;
+  font-weight: 500;
+  font-family: var(--sans);
+  color: var(--muted);
+  cursor: pointer;
+  border: none;
+  background: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1.5px;
+  transition: color .15s, border-color .15s;
+  white-space: nowrap;
+}
+.tab-btn:hover { color: var(--text); }
+.tab-btn.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  font-weight: 700;
+}
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* ===== 카드 ===== */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 16px 20px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow);
+}
+.card-title {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.card-title::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+.card-title .cta { text-transform:none; letter-spacing:0; margin-left:auto; flex:none; }
+
+/* ===== 그리드 ===== */
+.g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.g3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+.g4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; }
+.g5 { display: grid; grid-template-columns: repeat(5,1fr); gap: 10px; }
+.g-res { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; }
+
+/* ===== 폼 요소 ===== */
+.field { display: flex; flex-direction: column; gap: 4px; }
+.field-label {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--muted);
+  letter-spacing: .04em;
+}
+select, input[type="number"], input[type="text"] {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 12px;
+  font-family: var(--sans);
+  height: 30px;
+  transition: border-color .15s, box-shadow .15s;
+  -webkit-appearance: none;
+}
+select:focus, input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-light);
+}
+select { cursor: pointer; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 8px center; padding-right: 28px; }
+input::placeholder, textarea::placeholder { color: var(--muted2); }
+textarea {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 11px;
+  font-family: var(--mono);
+  line-height: 1.5;
+  resize: vertical;
+}
+textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-light); }
+code { font-family: var(--mono); background: var(--surface2); padding: 1px 5px; border-radius: 4px; font-size: 10px; }
+
+/* ===== 결과 박스 ===== */
+.result-main {
+  background: var(--accent-light);
+  border: 1px solid #f0c0a0;
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  margin-bottom: 12px;
+}
+.result-main-label { font-size: 10px; color: var(--muted); margin-bottom: 4px; font-weight: 500; }
+.result-main-val { font-size: 26px; font-weight: 700; font-family: var(--mono); color: var(--accent-dark); line-height: 1.1; }
+.result-main-desc { font-size: 11px; color: var(--muted); margin-top: 4px; line-height: 1.4; }
+
+.res-card-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; margin-bottom: 12px; }
+.res-card { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 12px; }
+.res-card-label { font-size: 10px; color: var(--muted); margin-bottom: 4px; }
+.res-card-val { font-size: 17px; font-weight: 600; font-family: var(--mono); color: var(--text); }
+.res-card-unit { font-size: 10px; color: var(--muted); margin-top: 2px; }
+
+/* ===== 태그 ===== */
+.tag {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 3px 10px;
+  border-radius: 20px;
+  margin-top: 8px;
+}
+.tag-ok  { background: var(--ok-bg);   color: var(--ok); }
+.tag-warn{ background: var(--warn-bg); color: var(--warn); }
+.tag-err { background: var(--err-bg);  color: var(--err); }
+.tag-info{ background: var(--info-bg); color: var(--info); }
+
+/* ===== 공통 테이블 ===== */
+.data-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+.data-table th {
+  background: var(--surface2);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--muted);
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  text-align: center;
+  white-space: nowrap;
+}
+.data-table td {
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  text-align: center;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 11px;
+}
+.data-table td:first-child, .data-table td:nth-child(2) {
+  font-family: var(--sans);
+  font-weight: 500;
+  color: var(--muted);
+}
+.data-table tr:hover td { background: #faf9f6; }
+.data-table tr.row-sel td { background: var(--info-bg); color: var(--info); font-weight: 600; }
+.data-table tr.row-group td {
+  background: var(--surface2);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--muted);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  padding: 5px 10px;
+}
+.data-table tr.row-total td { background:#f3f1ea; font-weight:700; color:var(--text); }
+.data-table tr.row-err td { background: var(--err-bg); }
+/* 입력형 테이블(계산기 탭) */
+.data-table.editable td { padding: 4px 6px; text-align:center; }
+.data-table.editable input, .data-table.editable select {
+  height: 26px; padding: 2px 6px; font-size: 11px; text-align:center;
+}
+.data-table.editable select { padding-right:18px; background-position: right 4px center; }
+.data-table.editable td:first-child, .data-table.editable td:nth-child(2) { text-align:center; font-family:var(--sans); }
+/* 회로(C.NO) 선택으로 값이 자동으로 채워져 잠긴 칸은 ③전선관 선정 탭처럼 테두리·배경 없이 일반 텍스트로 표시한다. */
+.data-table.editable input.auto-filled, .data-table.editable select.auto-filled {
+  background:transparent; border:none; box-shadow:none; color:var(--accent-dark); font-weight:700;
+  cursor:default; padding-left:0; padding-right:0; appearance:none; -webkit-appearance:none; background-image:none;
+}
+.data-table.editable input:disabled:not(.auto-filled), .data-table.editable select:disabled:not(.auto-filled) { background:var(--surface2); color:var(--muted2); }
+.data-table.prose td { text-align:left; font-family:var(--sans); color:var(--text); font-weight:400; line-height:1.6; }
+.data-table.prose td:first-child, .data-table.prose td:nth-child(2) { font-weight:600; color:var(--text); }
+
+.scroll-box { max-height: 480px; overflow-y: auto; overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); }
+.scroll-box table { margin: 0; }
+.scroll-box thead th { position: sticky; top: 0; z-index: 2; }
+
+/* ===== 인포 박스 ===== */
+.info-box {
+  background: var(--warn-bg);
+  border: 1px solid #f9c784;
+  border-left: 3px solid var(--warn);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  font-size: 11px;
+  color: #5d4037;
+  line-height: 1.6;
+  margin-bottom: 14px;
+}
+.info-box strong { color: var(--text); }
+.info-box-blue { background: var(--info-bg); border: 1px solid #90caf9; border-left: 3px solid var(--info); color: #0d47a1; }
+.info-box-purple { background: var(--purple-bg); border: 1px solid #c9b3ee; border-left: 3px solid var(--purple); color: #3d1f70; }
+.info-box-err { background: var(--err-bg); border: 1px solid #f0a3b0; border-left: 3px solid var(--err); color: #7f1d1d; }
+
+/* ===== 트레이 구간 카드 ===== */
+.tray-card-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+.tray-card-head .name { font-size:14px; font-weight:700; color:var(--text); }
+.btn {
+  background: var(--accent); color:#fff; border:0; padding:7px 14px; border-radius:var(--radius);
+  cursor:pointer; font-size:12px; font-weight:500; font-family:var(--sans);
+}
+.btn.gray { background: var(--muted); }
+.btn.outline { background:none; border:1px solid var(--border2); color:var(--text); }
+.btn.danger { background: var(--err); }
+.btn.sm { padding:4px 10px; font-size:11px; }
+.btn.icon-x { width:24px; height:24px; padding:0; line-height:1; font-size:15px; font-weight:700; display:inline-flex; align-items:center; justify-content:center; }
+
+/* 규격별(폭별) 길이 합계 팝업 */
+.modal-overlay { position:fixed; inset:0; background:rgba(20,18,15,0.45); display:flex; align-items:center; justify-content:center; z-index:1000; }
+.modal-box { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:18px 20px; width:92%; max-width:440px; max-height:80vh; overflow:auto; box-shadow:0 10px 30px rgba(0,0,0,0.25); }
+.modal-head { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:10px; }
+
+/* ===== 구분선 / 노트 ===== */
+.divider { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
+.note-text { font-size: 10px; color: var(--muted); line-height: 1.6; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); }
+
+/* ===== 요약표 판정 셀 ===== */
+.judge-ok { color: var(--ok); font-weight:700; }
+.judge-no { color: var(--err); font-weight:700; }
+
+/* ===== 푸터 ===== */
+.site-footer { background: var(--text); color: rgba(255,255,255,.4); font-size: 10px; text-align: center; padding: 16px; line-height: 1.8; }
+.site-footer strong { color: rgba(255,255,255,.7); }
+
+/* ===== 반응형 ===== */
+@media (max-width: 800px) {
+  .g2, .g3, .g4, .g5, .g-res, .res-card-grid { grid-template-columns: 1fr; }
+  .main-wrap { padding: 16px 14px 40px; }
+  .result-main-val { font-size: 20px; }
+}
+
+/* 인쇄에서만 보이는 문서 제목/구간 제목 — 화면에서는 숨김 */
+.print-doc-title, .print-section-title { display: none; }
+
+/* ===== 인쇄 =====
+   A4 가로(Landscape) 기준. 탭 5개(①~⑤)를 한 번의 인쇄에 모두 출력하며,
+   탭 사이에는 페이지를 나누고(각 탭 = 1페이지 시작), 카드/표 단위로는
+   가능한 한 페이지 중간에서 잘리지 않도록 한다. 표가 화면 폭 계열 표(②③탭 등)
+   처럼 넓은 경우 글자 크기·여백을 줄여 한 페이지 폭에 맞춘다. */
+@media print {
+  /* 페이지 여백은 여기(@page margin)에서 미리 고정한다. 인쇄 대화상자의 "여백" 옵션을
+     "기본값(Default)"으로 두면 매번 이 값(9mm)이 자동 적용되며, 사용자가 따로
+     여백을 조정할 필요가 없다. (다만 "없음"이나 "최소"로 직접 바꾸면 그 설정이
+     이 값을 덮어쓴다 — 브라우저 인쇄 대화상자 자체의 동작이라 페이지 쪽에서 막을 수는 없다.) */
+  @page { size: A4 landscape; margin: 9mm; }
+
+  .site-header, .tabs-wrap, .no-print { display: none !important; }
+  body { background: #fff; font-size: 11px; }
+  .main-wrap { max-width: none; padding: 0; margin: 0; }
+
+  /* 탭 패널: 화면에서는 하나만 보이지만 인쇄 시엔 전부 펼쳐서 순서대로 출력.
+     실제 문서상 배치 순서(DOM 순서)를 인쇄 전용 순서(②③⑤④① = 1~5)로 맞춰두었으므로,
+     화면의 탭 클릭 동작·순서(①②③④⑤)는 그대로 유지되면서 인쇄만 다른 순서로 나온다.
+     탭이 바뀔 때마다(각 구간 시작 지점) 새 페이지에서 시작한다. */
+  .tab-panel { display: block !important; margin-bottom: 0; }
+  .tab-panel + .tab-panel { page-break-before: always; break-before: page; }
+
+  .print-doc-title {
+    display: block !important; text-align: center; font-size: 20px; font-weight: 800;
+    margin-bottom: 14px; padding-bottom: 10px; border-bottom: 2px solid #333;
+  }
+  .print-section-title {
+    display: block !important; font-size: 15px; font-weight: 800; color: var(--text);
+    margin-bottom: 10px; padding-bottom: 4px; border-bottom: 1px solid #999;
+  }
+
+  .card { box-shadow: none; border: 1px solid #ccc; break-inside: avoid; page-break-inside: avoid; margin-bottom: 10px; padding: 10px 12px; }
+  .card-title { font-size: 12px; margin-bottom: 8px; }
+  .scroll-box { max-height: none !important; overflow: visible !important; border-color: #ccc; }
+
+  /* 표: 되도록 글자를 줄여 한 페이지 폭·한 페이지 안에 들어오도록 함 */
+  .data-table { font-size: 9px; }
+  .data-table th { font-size: 8.5px; padding: 3px 4px; }
+  .data-table td { font-size: 9px; padding: 3px 4px; }
+  .data-table tr.row-group td { font-size: 8.5px; padding: 3px 4px; }
+  .data-table thead { display: table-header-group; } /* 표가 페이지를 넘기면 매 페이지 상단에 헤더 반복 */
+  .data-table tr { break-inside: avoid; page-break-inside: avoid; }
+
+  /* 입력칸(②③탭)은 인쇄에서는 폼이 아니라 값만 보이는 일반 텍스트처럼 표시 */
+  .data-table.editable input, .data-table.editable select {
+    border: none !important; background: transparent !important; box-shadow: none !important;
+    color: var(--text) !important; height: auto; padding: 0 2px; appearance: none; -webkit-appearance: none;
+    font-size: 9px;
+  }
+  .data-table.editable input.auto-filled, .data-table.editable select.auto-filled { color: var(--accent-dark) !important; }
+
+  .res-card-grid, .g2, .g3, .g4, .g5 { gap: 6px; }
+  .res-card-val { font-size: 14px; }
+  .modal-overlay { display: none !important; }
+}
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="header-inner">
+    <div class="site-logo">⚡ TRAY-CALC</div>
+    <div class="site-title">케이블트레이 계산서 (KEC 실무판 · 폭 단일기준)</div>
+    <div class="header-spacer"></div>
+    <div class="header-badge">KEC 232.41 · 폭(Width) 기준 · KEC-II</div>
+    <button class="btn sm no-print" style="margin-left:10px" onclick="window.print()" title="전체 탭(①~⑤)을 A4 가로 방향으로 인쇄합니다">🖨 전체 인쇄</button>
+  </div>
+</header>
+
+<div class="main-wrap">
+
+  <div class="print-doc-title" id="printDocTitle">케이블트레이 계산서</div>
+
+  <div class="tabs-wrap">
+    <button class="tab-btn active" onclick="sw('sched')">① CABLE SCHEDULE</button>
+    <button class="tab-btn" onclick="sw('calc')">② 트레이 폭 계산</button>
+    <button class="tab-btn" onclick="sw('conduit')">③ 전선관 선정</button>
+    <button class="tab-btn" onclick="sw('spec')">④ CABLE SPEC</button>
+    <button class="tab-btn" onclick="sw('basis')">⑤ 적용기준</button>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- ② 트레이 폭 계산 탭                                          -->
+  <!-- ============================================================ -->
+  <div id="panel-calc" class="tab-panel">
+    <div class="print-section-title">1. 케이블 트레이 계산서</div>
+
+    <div class="card">
+      <div class="card-title">공통 설정</div>
+      <div class="g4">
+        <div class="field">
+          <span class="field-label">기본 여유율(할증계수)</span>
+          <input id="G_margin" type="number" step="0.01" min="1" value="1.10" oninput="onGlobalChange()">
+        </div>
+        <div class="field">
+          <span class="field-label">표준 트레이 폭 계열 (mm, 쉼표구분)</span>
+          <input id="G_widths" type="text" value="100,150,200,300,400,450,500,600,700,750,800,900,1000,1200" oninput="onGlobalChange()">
+        </div>
+        <div class="field">
+          <span class="field-label">트레이 표준 높이 (mm)</span>
+          <select id="G_height" onchange="onGlobalChange()">
+            <option value="75">75</option><option value="100" selected>100</option><option value="150">150</option><option value="200">200</option>
+          </select>
+        </div>
+        <div class="field">
+          <span class="field-label">&nbsp;</span>
+          <button class="btn no-print" onclick="addTray()">+ 트레이 구간 추가</button>
+        </div>
+      </div>
+      <div class="note-text">여유율은 트레이 구간별로 개별 재설정할 수 있습니다(각 구간 상단 입력란). 공통 설정값은 새 구간 추가 시 기본값으로만 사용됩니다.</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title" style="display:flex; align-items:center; justify-content:space-between; gap:8px">
+        <span>전체 요약</span>
+        <button class="btn outline sm no-print" onclick="showWidthLengthSummary()">규격별 길이 합계 보기</button>
+      </div>
+      <div id="trayDupWarning"></div>
+      <div class="scroll-box" style="max-height:260px">
+        <table class="data-table" id="summaryTable">
+          <thead><tr><th>NO</th><th>트레이 번호</th><th>구간</th><th>길이(m)</th><th>여유율</th><th>ΣOD(mm)</th><th>필요폭(mm)</th><th>선정폭</th><th>판정</th></tr></thead>
+          <tbody id="summaryBody"></tbody>
+          <tfoot><tr class="row-total"><td colspan="3">합계 길이(m)</td><td id="summaryTotalLen">0</td><td colspan="5"></td></tr></tfoot>
+        </table>
+      </div>
+      <div class="note-text">길이(m)는 각 트레이 구간 카드 상단의 "길이(m)" 입력값입니다. 트레이 구간을 추가할 때마다 이 표와 아래 "규격별 길이 합계"에 자동 반영됩니다.</div>
+    </div>
+
+    <div id="trayContainer"></div>
+
+  </div><!-- /panel-calc -->
+  <!-- ============================================================ -->
+  <!-- ③ 전선관 선정 탭                                              -->
+  <!-- ============================================================ -->
+  <div id="panel-conduit" class="tab-panel">
+    <div class="print-section-title">2. 회로별 전선관</div>
+    <div class="info-box-blue info-box">
+      <strong>전선관(후강전선관) 선정 계산서</strong> — ①CABLE SCHEDULE에 등록된 회로 데이터를 그대로 불러와, 회로별 접지선 사이즈와 전선관 규격을 아래 기준으로 자동 산정합니다.
+      <ul style="margin:6px 0 0 18px; padding:0; line-height:1.6">
+        <li>접지선(F-GV) 선정기준: 상도체(케이블) 공칭단면적 S 기준 — S≤16㎟이면 접지선=S, 16&lt;S≤35㎟이면 접지선=16㎟, S&gt;35㎟이면 접지선=S/2 (다음 표준 사이즈로 올림 적용)</li>
+        <li>전선관 선정기준: (케이블 단면적 + 접지선 단면적) ÷ 전선관 내부단면적 ≤ 1/3(약 33%, 법적 상한) — 본 계산서는 더 여유있는 <strong>권장 충전율 30%</strong>를 기본 상한으로 사용합니다(아래 공통설정에서 조정 가능, 최대 33%).</li>
+        <li>후강전선관 규격은 16·22·28·36·42·54·70·82·92·104mm이며, 호칭(mm)을 안지름으로 보아 내부단면적 π/4×d²을 계산에 사용합니다. 필요단면적이 <strong>104mm 전선관의 30% 충전 한도를 넘으면 "선정불가"</strong>로 표시합니다(더 큰 규격이 없으므로 전선관을 분할하거나 충전율 재검토가 필요합니다).</li>
+        <li>전선관 1개에 해당 회로의 케이블 전체 가닥(수량 EA)과 접지선 1가닥을 함께 수용합니다 — <strong>총 단면적 = 케이블 1선 단면적 × 수량(EA) + 접지선 단면적</strong>(예: 573×4+314=2,606㎟)으로 계산하고, 이 총 단면적을 기준으로 전선관 1개를 선정합니다.</li>
+        <li>케이블 1건은 <strong>종류·규격(사이즈)·심수(CORE)·수량(EA)</strong>이 한 세트입니다.</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <div class="card-title">공통설정</div>
+      <div class="g3">
+        <div class="field">
+          <span class="field-label">전선관 충전율 상한(%)</span>
+          <input id="G_conduitRatio" type="number" value="30" min="1" max="33" step="1" oninput="renderConduitTable()">
+        </div>
+      </div>
+      <div class="note-text">법적 한도인 1/3(33%)을 초과하는 값은 입력하지 마세요. 값을 낮출수록 더 큰 전선관이 선정됩니다.</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">회로별 전선관 선정표 <span id="conduitCount" class="cta"></span></div>
+      <div class="scroll-box">
+        <table class="data-table" id="conduitTable">
+          <thead>
+            <tr>
+              <th rowspan="2">C.NO</th><th rowspan="2">용도</th>
+              <th colspan="5">케이블(종류·규격·심수·단면적·수량)</th>
+              <th rowspan="2">케이블 합계<br>단면적(㎟)</th>
+              <th colspan="2">접지선(F-GV)</th>
+              <th rowspan="2">합계<br>단면적(㎟)</th>
+              <th colspan="4">전선관 선정</th>
+            </tr>
+            <tr>
+              <th style="width:70px">종류</th><th style="width:60px">사이즈(㎟)</th><th style="width:50px">CORE</th><th style="width:70px">단면적(㎟)<br>(1선)</th><th style="width:60px">수량(EA)</th>
+              <th style="width:70px">사이즈(㎟)</th><th style="width:70px">단면적(㎟)</th>
+              <th style="width:80px">호칭(mm)</th><th style="width:80px">내부단면적(㎟)</th><th style="width:70px">충전율(%)</th><th style="width:70px">판정</th>
+            </tr>
+          </thead>
+          <tbody id="conduitBody"></tbody>
+        </table>
+      </div>
+      <div class="note-text">회로 등록/수정은 ①CABLE SCHEDULE 탭에서 합니다. 이 표는 그 데이터를 자동으로 반영한 결과입니다. "단면적(1선)"은 케이블 1가닥의 단면적, "케이블 합계 단면적" = 단면적(1선) × 수량(EA), "합계 단면적" = 케이블 합계 단면적 + 접지선 단면적이며, 전선관은 이 합계 단면적을 기준으로 1개 선정합니다. 필요단면적이 104mm 전선관으로도 충전율 상한을 넘기면 "선정불가"로 표시됩니다.</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">참고: 접지선(F-GV) 선정기준 및 후강전선관 규격표</div>
+      <div class="res-card-grid" style="grid-template-columns:1fr 1fr; gap:16px">
+        <div>
+          <div class="note-text" style="margin-bottom:4px">접지도체 최소 단면적 (KEC 142.3.2 계열 기준)</div>
+          <table class="data-table prose">
+            <thead><tr><th>상도체 단면적 S(㎟)</th><th>접지도체 최소 단면적(㎟)</th></tr></thead>
+            <tbody>
+              <tr><td>S ≤ 16</td><td>S</td></tr>
+              <tr><td>16 &lt; S ≤ 35</td><td>16</td></tr>
+              <tr><td>S &gt; 35</td><td>S / 2</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div>
+          <div class="note-text" style="margin-bottom:4px">후강전선관 규격(호칭=안지름 mm 기준)</div>
+          <table class="data-table prose">
+            <thead><tr><th>호칭(mm)</th><th>단면적(㎟)</th><th>30% 충전 시<br>단면적(㎟)</th></tr></thead>
+            <tbody id="conduitRefBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div><!-- /panel-conduit -->
+  <!-- ============================================================ -->
+  <!-- ⑤ 적용기준 탭                                                 -->
+  <!-- ============================================================ -->
+  <div id="panel-basis" class="tab-panel">
+    <div class="print-section-title">3. 적용기준</div>
+
+    <div class="card">
+      <div class="card-title">1. 관련 규정 — KEC 232.41 케이블트레이공사</div>
+      <p style="font-size:12px;line-height:1.8">
+        한국전기설비규정(KEC) 232.41(저압 옥내배선의 케이블트레이공사)은 트레이의 시설방법 — 고·저압 케이블 분리, 방화구획 관통부 처리, 트레이 상호 접속 및 접지, 금속제 트레이의 전기적 연속성, 트레이 종류(사다리형·통풍트러프형·통풍채널형·바닥밀폐형) — 를 규정합니다.
+        <strong>트레이 폭(규격) 자체를 계산하는 상세 산정식은 KEC 조문에 직접 포함되어 있지 않으며</strong>, 종전에는 「전기설비기술기준의 판단기준」 제213조의2 및 「내선규정」 1445-6절의 별표에서 다심/단심 케이블의 굵기 구간별로 상이한 4~5가지 산정식을 규정해 왔습니다.
+      </p>
+    </div>
+
+    <div class="card">
+      <div class="card-title">2. 산정방식 변경 — "점유면적·폭 이원기준" → "폭 단일기준"</div>
+      <table class="data-table prose">
+        <thead><tr><th style="width:16%">구분</th><th>구(舊) 방식 — 내선규정 1445-6 계열</th><th>현행 실무(본 계산서) — KEC 이후 간이화</th></tr></thead>
+        <tbody>
+          <tr><td>판정 기준</td><td>점유면적(㎟, 충전율%) + 폭(mm) 이원 병행. 케이블 종류(다심/단심)·굵기 구간(120㎟, 500㎟)마다 서로 다른 산식 적용</td><td>폭(mm) 단일기준. 모든 케이블을 완성품 외경(OD) 합산 → 여유율 → 표준 폭 계열 올림</td></tr>
+          <tr><td>다심 &lt;120㎟</td><td>트레이 단면적의 30% 이하</td><td>OD 합산 방식에 통합 (굵기별 예외 없음)</td></tr>
+          <tr><td>단심 120~500㎟</td><td>트레이 단면적의 28% 이하</td><td>〃</td></tr>
+          <tr><td>단심 &lt;120㎟</td><td>외경 합계 ≤ 트레이 내측폭</td><td>〃 (구 방식의 핵심 개념을 전 구간에 일괄 적용)</td></tr>
+          <tr><td>장점</td><td>이론적으로 더 정밀(케이블 다발의 실제 방열·충전 특성 반영)</td><td>계산·검토가 단순, 시공성·증설 여유 확보에 유리, 실무 설계 표준으로 널리 사용</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-title">3. 계산식 (② 탭에 적용된 로직)</div>
+      <div style="font-size:12px;line-height:2">
+        ① 케이블 1가닥의 폭 기여량 = 완성품 외경 OD(mm)<br>
+        ② 회로별 폭 기여량 = OD × 병렬 회선수(LINE) × 동일사양 수량(EA)<br>
+        ③ 트레이 소요폭(합계) ΣW = Σ(회로별 폭 기여량)<br>
+        ④ 필요폭 = ΣW × 여유율(K) — <strong>기본값 K = 1.1(10% 여유)</strong>, 현장 조건에 따라 사용자가 조정 가능<br>
+        ⑤ 선정폭 = 표준 트레이 폭 계열 중 "필요폭 이상"이 되는 최소 규격 (올림)<br>
+        ⑥ 참고 점유율(정보용) = ΣW(여유율 미적용) ÷ 선정폭 × 100% — 판정에는 사용하지 않으며 참고 지표로만 표시
+      </div>
+      <div class="note-text">단심 케이블은 실제로는 삼각(또는 사각) 배열로 포설하더라도, 트레이 폭 산정 시에는 관례에 따라 1열 배치(외경을 나란히 합산)로 계산합니다.</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">4. 표준 폭 계열 및 데이터 출처</div>
+      <p style="font-size:12px;line-height:1.8">
+        표준 폭 계열은 국내 케이블트레이 제조사 카탈로그에서 널리 쓰이는 계열(100/150/200/300/400/450/500/600/700/750/800/900/1000/1200mm)을 기본값으로 제시하며, ②탭 상단 설정에서 자유롭게 수정할 수 있습니다(발주처·제조사 표준에 맞게 조정 권장). 케이블 외경(OD)·단면적 데이터는 ④CABLE SPEC 탭의 값을 그대로 사용합니다.
+      </p>
+    </div>
+
+    <div class="card">
+      <div class="card-title">5. 검증 사례</div>
+      <div class="result-main">
+        <div class="result-main-label">참조 엑셀 KEC 시트 예시 재현 (SS1, B1분기)</div>
+        <div class="result-main-val">530 → 583 → 600 mm</div>
+        <div class="result-main-desc">XLPE 240㎟ 1심(OD 26.5mm, 가온전선 NFR-8 카탈로그 기준) × 4회선 × 5회로, 여유율 1.1 — ΣW=26.5×4×5=530mm → 필요폭 530×1.1=583mm → 선정폭 600mm. 엑셀 원본의 수기 산정값(600mm)과 결과가 일치 — 계산 로직 검증 완료.</div>
+      </div>
+      <span class="tag tag-ok">✓ 계산 로직 검증 완료</span>
+    </div>
+
+    <div class="card">
+      <div class="card-title">6. 제어·신호케이블 트레이 수용률에 대한 참고</div>
+      <div class="info-box-blue info-box">
+        KEC 232.41의 단층 포설 규정은 전력용·전등용 다심케이블에 적용되며, KEC에서는 제어용 및 신호용 케이블의 트레이 시설방법을 별도로 규정하고 있지 않다.<br>
+        따라서 제어·신호케이블의 트레이 수용률은 별도의 설계기준 또는 설계조건에 따라 결정할 수 있으며, 기존 기준에서 적용해 온 '케이블 총 단면적이 트레이 내부 단면적의 50% 이하' 등의 기준을 설계기준으로 채택할 수 있다. (전기설비기술기준의 판단기준 제194조(케이블트레이공사) 참조)
+      </div>
+    </div>
+
+  </div><!-- /panel-basis -->
+  <!-- ============================================================ -->
+  <!-- ④ CABLE SPEC 탭                                              -->
+  <!-- ============================================================ -->
+  <div id="panel-spec" class="tab-panel">
+    <div class="print-section-title">4. CABLE SPEC</div>
+    <div class="info-box-blue info-box">
+      수치는 외경은 가온전선 0.6/1kV NFR-8(1심 실측 카탈로그), 중량은 HF-CO 적용. 2~4심 외경은 아직 NFR-8 실측 자료가 없어 참고치를 사용합니다. 도체경·절연두께·시스두께로부터 완성품 외경(OD)을 산출하고, OD로부터 단면적(π/4×OD²)을 계산한 값입니다. 계산기 탭의 케이블 외경 자동조회는 이 표의 값을 그대로 사용합니다.
+    </div>
+    <div id="specContainer"></div>
+    <div class="info-box">
+      <strong>데이터 범위 안내</strong> — 저압 케이블은 HFCO·F-FR-8 구분 없이 <strong>XLPE</strong> 하나로 통일했습니다(치수는 HFCO(=F-CV) 실측치 기준, 1~4심). 다심(2~4심)은 실사용 범위인 70㎟까지만 수록합니다. HFIX 등은 참조 엑셀에 치수 데이터가 없어 포함하지 않았으며, 계산기 탭에서 "직접입력"으로 사용해야 합니다. 표 아래쪽의 <strong>F-GV(접지용 비닐절연전선)</strong>는 ②/①탭의 케이블 선택 목록에는 노출되지 않으며, <strong>③전선관 선정</strong> 탭의 접지선 단면적 조회 전용으로만 사용됩니다.
+    </div>
+    <div class="info-box">
+      <strong>단위중량(kg/km) 안내</strong> — 제조사 카탈로그 실측 자료(114개 조합, XLPE 1~4심 + F-GV 1심)를 반영했습니다. 트레이 계산서(②탭)의 kg/m 자동입력·합계에도 이 값이 그대로 연동됩니다.
+    </div>
+  </div><!-- /panel-spec -->
+  <!-- ============================================================ -->
+  <!-- ① CABLE SCHEDULE 탭                                          -->
+  <!-- ============================================================ -->
+  <div id="panel-sched" class="tab-panel active">
+    <div class="print-section-title">5. CABLE SCHEDULE</div>
+    <div class="card no-print">
+      <div class="card-title">프로젝트 정보</div>
+      <div class="field">
+        <span class="field-label">프로젝트명</span>
+        <input id="projectName" type="text" placeholder="예: ○○현장 전기공사 케이블트레이 계산서" oninput="onProjectNameChange()">
+      </div>
+      <div class="note-text">여기에 입력한 프로젝트명은 인쇄 문서 맨 앞장 제목으로 표시됩니다.</div>
+    </div>
+
+    <div class="info-box-blue info-box">
+      여기서 회로를 등록해두면, <strong>②트레이 폭 계산</strong> 탭의 각 행에서 <strong>C.NO.</strong>를 선택하는 것만으로 용도·FROM·TO·케이블 사양(종류·사이즈·CORE·LINE)이 자동으로 채워집니다. 아래 표를 지금 예시 데이터(SS01 구간 5회로) 그대로 두거나, 실제 프로젝트 회로로 바꿔 채워 넣으십시오. 회로 수가 많다면 아래 <strong>빠른 등록</strong>으로 엑셀에서 붙여넣거나 JSON으로 한번에 가져올 수 있습니다.
+    </div>
+
+    <div class="card">
+      <div class="tray-card-head">
+        <span class="name">CABLE SCHEDULE <span id="schedWorkCount" class="cta" style="text-transform:none"></span></span>
+        <div class="no-print" style="display:flex; gap:6px; flex-wrap:wrap">
+          <button class="btn outline sm" onclick="exportScheduleExcel()" title="회로(CABLE SCHEDULE) + 트레이 구간(②탭)을 시트 3개로 나눠 하나의 .xlsx 파일로 저장">엑셀 내보내기(전체)</button>
+          <button class="btn outline sm" onclick="exportScheduleJSON()" title="회로(CABLE SCHEDULE) + 트레이 구간(②탭)을 하나의 .json 파일로 저장">전체 내보내기(JSON)</button>
+          <button class="btn sm" onclick="addScheduleRow()">+ 회로 추가</button>
+        </div>
+      </div>
+      <div id="scheduleDupWarning"></div>
+      <div class="scroll-box" style="max-height:420px">
+        <table class="data-table editable" id="schedWorkTable">
+          <thead>
+            <tr>
+              <th rowspan="2" style="width:90px">C.NO.</th><th rowspan="2" style="width:110px">용도</th><th rowspan="2" style="width:110px">FROM</th><th rowspan="2" style="width:110px">TO</th>
+              <th colspan="4">CABLE</th><th rowspan="2" class="no-print" style="width:40px"></th>
+            </tr>
+            <tr><th style="width:110px">종류</th><th style="width:60px">심수</th><th style="width:80px">사이즈(㎟)</th><th style="width:60px">LINE</th></tr>
+          </thead>
+          <tbody id="schedWorkBody"></tbody>
+        </table>
+      </div>
+      <div class="note-text">C.NO.는 ②탭 드롭다운에서 이 값 그대로 표시됩니다(중복되지 않게 입력하십시오). 케이블 종류·심수·사이즈는 ④CABLE SPEC 탭의 DB(XLPE)에서 선택하며, 여기 없는 케이블(HFIX 등)은 ②탭에서 해당 회로를 "직접입력"으로 골라 개별 처리하십시오.</div>
+    </div>
+
+    <div class="card no-print">
+      <div class="tray-card-head">
+        <span class="name">빠른 등록 — 엑셀/CSV 붙여넣기 또는 JSON</span>
+      </div>
+      <div class="note-text" style="margin-top:0; padding-top:0; border-top:none">
+        방법 1) <strong>엑셀(.xlsx/.xls)·CSV·JSON 파일을 그대로 선택해서 불러오기</strong> — 아래 "파일 불러오기" 버튼(엑셀 열 순서는 C.NO / 용도 / FROM / TO / 종류 / 심수 / 사이즈 / LINE 기준, 첫 줄이 열 제목이어도 자동 인식).<br>
+        방법 2) 엑셀에서 위 8개 열을 선택해 복사한 뒤 아래 칸에 그대로 붙여넣기(<strong>심수·사이즈 두 열의 순서가 서로 바뀌어 있어도</strong>(예: 종류·사이즈·심수·LINE) 값 범위를 보고 자동으로 맞춰 인식합니다).<br>
+        방법 3) JSON 배열로 붙여넣기 — 예: <code>[{"cno":"06L","use":"세대부하","from":"1065호 M","to":"전기실","type":"XLPE","core":1,"size":240,"line":4}]</code> (키는 cno/use/from/to/type/core/size/line 또는 한글 열이름 모두 인식)<br>
+        종류가 XLPE DB와 일치하지 않거나 사이즈가 DB에 없으면 자동으로 "직접입력"으로 처리되며, 이런 행은 미리보기에서 표시됩니다.
+      </div>
+      <input type="file" id="scheduleImportFile" accept=".xlsx,.xls,.csv,.json" style="display:none" onchange="onScheduleImportFile(event)">
+      <div style="margin-top:8px">
+        <button class="btn sm" onclick="document.getElementById('scheduleImportFile').click()">📁 파일 불러오기(엑셀/CSV/JSON)</button>
+      </div>
+      <textarea id="importText" rows="6" placeholder="여기에 엑셀에서 복사한 표 또는 JSON 배열을 붙여넣으세요" oninput="onImportTextChange()" style="width:100%; margin-top:8px"></textarea>
+      <div style="display:flex; gap:8px; margin-top:8px; flex-wrap:wrap">
+        <button class="btn outline sm no-print" onclick="previewImport()">미리보기</button>
+        <button class="btn sm no-print" id="importAppendBtn" onclick="commitImport('append')" disabled>가져오기(기존에 추가)</button>
+        <button class="btn danger sm no-print" id="importReplaceBtn" onclick="commitImport('replace')" disabled>가져오기(전체 교체)</button>
+      </div>
+      <div id="importSummary"></div>
+      <div class="scroll-box" id="importPreviewBox" style="max-height:260px; margin-top:8px; display:none">
+        <table class="data-table" id="importPreviewTable"></table>
+      </div>
+    </div>
+  </div><!-- /panel-sched -->
+
+</div><!-- /main-wrap -->
+
+<footer class="site-footer">
+  <strong>케이블트레이 계산서</strong> · KEC 실무판 (폭 단일기준) · KEC-II 프로젝트<br>
+  본 계산기는 참고용이며, 최종 설계는 발주처·감리 기준 및 전문가 검토가 필요합니다.
+</footer>
+
+<script>
+const CABLE_DB = {"XLPE":{"1":{"4":{"od":8,"a":50,"w":81},"6":{"od":8.5,"a":57,"w":108},"10":{"od":9.5,"a":71,"w":155},"16":{"od":10,"a":79,"w":210},"25":{"od":11.5,"a":104,"w":315},"35":{"od":12.5,"a":123,"w":414},"50":{"od":14,"a":154,"w":542},"70":{"od":16,"a":201,"w":761},"95":{"od":18,"a":254,"w":1026},"120":{"od":19.5,"a":299,"w":1279},"150":{"od":21.5,"a":363,"w":1524},"185":{"od":24,"a":452,"w":1872},"240":{"od":26.5,"a":552,"w":2391},"300":{"od":29,"a":661,"w":3023},"400":{"od":32.5,"a":830,"w":3975},"500":{"od":36.5,"a":1046,"w":4894},"630":{"od":40.5,"a":1288,"w":6283},"1.5":{"od":7,"a":38,"w":53},"2.5":{"od":7.5,"a":44,"w":65}},"2":{"4":{"od":13,"a":133,"w":197},"6":{"od":14,"a":154,"w":252},"10":{"od":17,"a":227,"w":357},"16":{"od":18.5,"a":269,"w":487},"25":{"od":22,"a":380,"w":720},"35":{"od":24,"a":452,"w":943},"50":{"od":27,"a":573,"w":1229},"70":{"od":31,"a":755,"w":1633},"95":{"od":35,"a":962},"120":{"od":38,"a":1134},"150":{"od":43,"a":1452},"185":{"od":47,"a":1735},"240":{"od":53,"a":2206},"300":{"od":58,"a":2642},"1.5":{"od":11,"a":95,"w":127},"2.5":{"od":12,"a":113,"w":153}},"3":{"4":{"od":13.5,"a":143,"w":245},"6":{"od":14.5,"a":165,"w":321},"10":{"od":18,"a":254,"w":464},"16":{"od":19.5,"a":299,"w":649},"25":{"od":23,"a":415,"w":975},"35":{"od":25,"a":491,"w":1287},"50":{"od":29,"a":661,"w":1693},"70":{"od":33,"a":855,"w":2345},"95":{"od":37,"a":1075},"120":{"od":41,"a":1320},"150":{"od":46,"a":1662},"185":{"od":50,"a":1963},"240":{"od":57,"a":2552},"300":{"od":62,"a":3019},"1.5":{"od":11.5,"a":104,"w":148},"2.5":{"od":12.5,"a":123,"w":189}},"4":{"4":{"od":14.5,"a":165,"w":305},"6":{"od":16,"a":201,"w":397},"10":{"od":20,"a":314,"w":585},"16":{"od":22,"a":380,"w":816},"25":{"od":26,"a":531,"w":1242},"35":{"od":28,"a":616,"w":1661},"50":{"od":32,"a":804,"w":2155},"70":{"od":36,"a":1018,"w":3035},"95":{"od":42,"a":1385},"120":{"od":46,"a":1662},"150":{"od":51,"a":2043},"185":{"od":56,"a":2463},"240":{"od":63,"a":3117},"300":{"od":70,"a":3848},"1.5":{"od":12.5,"a":123,"w":179},"2.5":{"od":13.5,"a":143,"w":226}}},"F-GV":{"1":{"4":{"od":8,"a":50,"w":96},"6":{"od":8.5,"a":57,"w":121},"10":{"od":9.5,"a":71,"w":169},"16":{"od":10,"a":79,"w":227},"25":{"od":12,"a":113,"w":336},"35":{"od":13,"a":133,"w":438},"50":{"od":14.5,"a":165,"w":579},"70":{"od":16,"a":201,"w":793},"95":{"od":18.5,"a":269,"w":1080},"120":{"od":20,"a":314,"w":1332},"150":{"od":22,"a":380,"w":1588},"185":{"od":25,"a":491,"w":1960},"240":{"od":28,"a":616,"w":2505},"300":{"od":30,"a":707,"w":3169},"400":{"od":34,"a":908},"500":{"od":38,"a":1134},"630":{"od":42,"a":1385},"1.5":{"od":6.5,"a":33,"w":60},"2.5":{"od":7,"a":38,"w":69}}}}
+;
+const CABLE_SPEC_FULL = [{"type":"XLPE","core":1,"rows":[{"size":1.5,"cond":1.59,"ins":0.7,"sheath":1.4,"od":7,"area":38,"w":53},{"size":2.5,"cond":2.01,"ins":0.7,"sheath":1.4,"od":7.5,"area":44,"w":65},{"size":4,"cond":2.55,"ins":0.7,"sheath":1.4,"od":8,"area":50,"w":81},{"size":6,"cond":3.12,"ins":0.7,"sheath":1.4,"od":8.5,"area":57,"w":108},{"size":10,"cond":4.05,"ins":0.7,"sheath":1.4,"od":9.5,"area":71,"w":155},{"size":16,"cond":4.7,"ins":0.9,"sheath":1.4,"od":10,"area":79,"w":210},{"size":25,"cond":5.9,"ins":0.9,"sheath":1.4,"od":11.5,"area":104,"w":315},{"size":35,"cond":7,"ins":1,"sheath":1.4,"od":12.5,"area":123,"w":414},{"size":50,"cond":8,"ins":1.1,"sheath":1.4,"od":14,"area":154,"w":542},{"size":70,"cond":9.6,"ins":1.1,"sheath":1.4,"od":16,"area":201,"w":761},{"size":95,"cond":11.4,"ins":1.1,"sheath":1.5,"od":18,"area":254,"w":1026},{"size":120,"cond":13,"ins":1.2,"sheath":1.5,"od":19.5,"area":299,"w":1279},{"size":150,"cond":14.4,"ins":1.4,"sheath":1.6,"od":21.5,"area":363,"w":1524},{"size":185,"cond":16,"ins":1.6,"sheath":1.7,"od":24,"area":452,"w":1872},{"size":240,"cond":18.3,"ins":1.7,"sheath":1.8,"od":26.5,"area":552,"w":2391},{"size":300,"cond":20.5,"ins":1.8,"sheath":1.8,"od":29,"area":661,"w":3023},{"size":400,"cond":23.2,"ins":2,"sheath":2,"od":32.5,"area":830,"w":3975},{"size":500,"cond":26.4,"ins":2.2,"sheath":2.1,"od":36.5,"area":1046,"w":4894},{"size":630,"cond":30.2,"ins":2.4,"sheath":2.2,"od":40.5,"area":1288,"w":6283}]},{"type":"XLPE","core":2,"rows":[{"size":1.5,"cond":1.59,"ins":0.7,"sheath":1.8,"od":11,"area":95,"w":127},{"size":2.5,"cond":2.01,"ins":0.7,"sheath":1.8,"od":12,"area":113,"w":153},{"size":4,"cond":2.55,"ins":0.7,"sheath":1.8,"od":13,"area":133,"w":197},{"size":6,"cond":3.12,"ins":0.7,"sheath":1.8,"od":14,"area":154,"w":252},{"size":10,"cond":4.05,"ins":0.7,"sheath":1.8,"od":17,"area":227,"w":357},{"size":16,"cond":4.7,"ins":0.7,"sheath":1.8,"od":18.5,"area":269,"w":487},{"size":25,"cond":5.9,"ins":0.9,"sheath":1.8,"od":22,"area":380,"w":720},{"size":35,"cond":6.9,"ins":0.9,"sheath":1.8,"od":24,"area":452,"w":943},{"size":50,"cond":8.1,"ins":1,"sheath":1.8,"od":27,"area":573,"w":1229},{"size":70,"cond":9.8,"ins":1.1,"sheath":1.8,"od":31,"area":755,"w":1633},{"size":95,"cond":11.4,"ins":1.1,"sheath":1.9,"od":35,"area":962},{"size":120,"cond":12.9,"ins":1.2,"sheath":2,"od":38,"area":1134},{"size":150,"cond":14.4,"ins":1.4,"sheath":2.2,"od":43,"area":1452},{"size":185,"cond":15.9,"ins":1.6,"sheath":2.3,"od":47,"area":1735},{"size":240,"cond":18.3,"ins":1.7,"sheath":2.5,"od":53,"area":2206},{"size":300,"cond":20.5,"ins":1.8,"sheath":2.6,"od":58,"area":2642}]},{"type":"XLPE","core":3,"rows":[{"size":1.5,"cond":1.59,"ins":0.7,"sheath":1.8,"od":11.5,"area":104,"w":148},{"size":2.5,"cond":2.01,"ins":0.7,"sheath":1.8,"od":12.5,"area":123,"w":189},{"size":4,"cond":2.55,"ins":0.7,"sheath":1.8,"od":13.5,"area":143,"w":245},{"size":6,"cond":3.12,"ins":0.7,"sheath":1.8,"od":14.5,"area":165,"w":321},{"size":10,"cond":4.05,"ins":0.7,"sheath":1.8,"od":18,"area":254,"w":464},{"size":16,"cond":4.7,"ins":0.7,"sheath":1.8,"od":19.5,"area":299,"w":649},{"size":25,"cond":5.9,"ins":0.9,"sheath":1.8,"od":23,"area":415,"w":975},{"size":35,"cond":6.9,"ins":0.9,"sheath":1.8,"od":25,"area":491,"w":1287},{"size":50,"cond":8.1,"ins":1,"sheath":1.8,"od":29,"area":661,"w":1693},{"size":70,"cond":9.8,"ins":1.1,"sheath":1.9,"od":33,"area":855,"w":2345},{"size":95,"cond":11.4,"ins":1.1,"sheath":2,"od":37,"area":1075},{"size":120,"cond":12.9,"ins":1.2,"sheath":2.1,"od":41,"area":1320},{"size":150,"cond":14.4,"ins":1.4,"sheath":2.3,"od":46,"area":1662},{"size":185,"cond":15.9,"ins":1.6,"sheath":2.4,"od":50,"area":1963},{"size":240,"cond":18.3,"ins":1.7,"sheath":2.6,"od":57,"area":2552},{"size":300,"cond":20.5,"ins":1.8,"sheath":2.7,"od":62,"area":3019}]},{"type":"XLPE","core":4,"rows":[{"size":1.5,"cond":1.59,"ins":0.7,"sheath":1.8,"od":12.5,"area":123,"w":179},{"size":2.5,"cond":2.01,"ins":0.7,"sheath":1.8,"od":13.5,"area":143,"w":226},{"size":4,"cond":2.55,"ins":0.7,"sheath":1.8,"od":14.5,"area":165,"w":305},{"size":6,"cond":3.12,"ins":0.7,"sheath":1.8,"od":16,"area":201,"w":397},{"size":10,"cond":4.05,"ins":0.7,"sheath":1.8,"od":20,"area":314,"w":585},{"size":16,"cond":4.7,"ins":0.7,"sheath":1.8,"od":22,"area":380,"w":816},{"size":25,"cond":5.9,"ins":0.9,"sheath":1.8,"od":26,"area":531,"w":1242},{"size":35,"cond":6.9,"ins":0.9,"sheath":1.8,"od":28,"area":616,"w":1661},{"size":50,"cond":8.1,"ins":1,"sheath":1.9,"od":32,"area":804,"w":2155},{"size":70,"cond":9.8,"ins":1.1,"sheath":2,"od":36,"area":1018,"w":3035},{"size":95,"cond":11.4,"ins":1.1,"sheath":2.1,"od":42,"area":1385},{"size":120,"cond":12.9,"ins":1.2,"sheath":2.3,"od":46,"area":1662},{"size":150,"cond":14.4,"ins":1.4,"sheath":2.4,"od":51,"area":2043},{"size":185,"cond":15.9,"ins":1.6,"sheath":2.6,"od":56,"area":2463},{"size":240,"cond":18.3,"ins":1.7,"sheath":2.8,"od":63,"area":3117},{"size":300,"cond":20.5,"ins":1.8,"sheath":3,"od":70,"area":3848}]},{"type":"F-GV","core":1,"rows":[{"size":1.5,"cond":1.59,"ins":2.2,"sheath":0,"od":6.5,"area":33,"w":60},{"size":2.5,"cond":2.01,"ins":2.2,"sheath":0,"od":7,"area":38,"w":69},{"size":4,"cond":2.55,"ins":2.4,"sheath":0,"od":8,"area":50,"w":96},{"size":6,"cond":3.12,"ins":2.4,"sheath":0,"od":8.5,"area":57,"w":121},{"size":10,"cond":4.05,"ins":2.4,"sheath":0,"od":9.5,"area":71,"w":169},{"size":16,"cond":4.7,"ins":2.4,"sheath":0,"od":10,"area":79,"w":227},{"size":25,"cond":5.9,"ins":2.6,"sheath":0,"od":12,"area":113,"w":336},{"size":35,"cond":6.9,"ins":2.6,"sheath":0,"od":13,"area":133,"w":438},{"size":50,"cond":8.1,"ins":2.8,"sheath":0,"od":14.5,"area":165,"w":579},{"size":70,"cond":9.8,"ins":2.8,"sheath":0,"od":16,"area":201,"w":793},{"size":95,"cond":11.4,"ins":3.1,"sheath":0,"od":18.5,"area":269,"w":1080},{"size":120,"cond":12.9,"ins":3.1,"sheath":0,"od":20,"area":314,"w":1332},{"size":150,"cond":14.4,"ins":3.4,"sheath":0,"od":22,"area":380,"w":1588},{"size":185,"cond":15.9,"ins":3.7,"sheath":0,"od":25,"area":491,"w":1960},{"size":240,"cond":18.3,"ins":4,"sheath":0,"od":28,"area":616,"w":2505},{"size":300,"cond":20.5,"ins":4.3,"sheath":0,"od":30,"area":707,"w":3169},{"size":400,"cond":23.2,"ins":4.6,"sheath":0,"od":34,"area":908},{"size":500,"cond":26.4,"ins":4.9,"sheath":0,"od":38,"area":1134},{"size":630,"cond":30.2,"ins":5,"sheath":0,"od":42,"area":1385}]}];
+const CABLE_SCHEDULE = [["EL-00", "LV-EL", "LV-BC", "HFCO", 6, 4, 1, 6, 36, 1, 19, 100], ["EL-01", "LV-EL", "R.T.U", "HFCO", 6, 4, 1, 6, 36, 1, 20, 100], ["EL-02", "LV-EL", "L-M", "HFCO", 6, 4, 1, 6, 36, 1, 85, 100], ["EL-03", "LV-EL", "L-F", "HFCO", 6, 4, 1, 6, 36, 1, 85, 100], ["EL-04", "LV-EL", "L-MT", "HFCO", 6, 4, 1, 6, 36, 1, 200, 100], ["EL-05", "LV-EL", "L-AFC", "HFCO", 10, 4, 1, 10, 36, 1, 85, 100], ["EL-06", "LV-EL", "L-TV1", "HFCO", 6, 4, 1, 6, 36, 1, 230, 100], ["EL-07", "LV-EL-1", "L-TV2", "HFCO", 6, 4, 1, 6, 36, 1, 215, 100], ["EL-08", "LV-EL-1", "TL-LU", "HFCO", 25, 4, 1, 16, 54, 1, 285, 100], ["EL-09", "LV-EL-1", "TL-LD", "HFCO", 35, 4, 1, 16, 54, 1, 285, 100], ["EL-10", "LV-EL-1", "TL-RU", "HFCO", 25, 4, 1, 16, 54, 1, 254, 100], ["EL-11", "LV-EL-1", "TL-RD", "HFCO", 25, 4, 1, 16, 54, 1, 254, 100], ["EL-12", "LV-EL-1", "비상콘센트1-1", "FR8", 16, 1, 2, 16, 42, 1, 335, 100], ["EL-13", "LV-EL-1", "비상콘센트1-2", "FR8", 16, 1, 2, 16, 42, 1, 335, 100], ["EL-14", "LV-EL-1", "비상콘센트2-1", "FR8", 16, 1, 2, 16, 42, 1, 335, 100], ["EL-15", "LV-EL-1", "비상콘센트2-2", "FR8", 16, 1, 2, 16, 42, 1, 335, 100], ["EL-16", "LV-EL-1", "비상콘센트3-1", "FR8", 16, 1, 2, 16, 42, 1, 335, 100], ["EL-17", "LV-EL-1", "비상콘센트3-2", "FR8", 16, 1, 2, 16, 42, 1, 335, 100], ["나) 전등용1호계 (LV-L1)", null, null, null, null, null, null, null, null, null, null, null], ["L1-01", "LV-L1", "LB1-1A", "HFCO", 6, 4, 1, 6, 36, 1, 70, 100], ["L1-02", "LV-L1", "LB1-2A", "HFCO", 6, 4, 1, 6, 36, 1, 55, 100], ["L1-03", "LV-L1", "LB2-1A", "HFCO", 6, 4, 1, 6, 36, 1, 150, 100], ["L1-04", "LV-L1", "LB2-2A", "HFCO", 6, 4, 1, 6, 36, 1, 200, 100], ["L1-05", "LV-L1", "LB3-1A", "HFCO", 6, 4, 1, 6, 36, 1, 205, 100], ["L1-06", "LV-L1", "LB3-2A", "HFCO", 6, 4, 1, 6, 36, 1, 230, 100], ["L1-07", "LV-L1", "L-E", "HFCO", 6, 4, 1, 6, 36, 1, 30, 100], ["L1-08", "LV-L1", "조명상시부하", "HFCO", 95, 1, 4, 50, 70, 1, 10, 225], ["L1-09", "LV-L1", "통신기계실", "HFCO", 25, 4, 1, 16, 54, 1, 190, 100], [null, null, null, null, null, null, " ", null, null, null, null, null], ["다) 조명용2호계 (LV-L2)", null, "부하명", 0, "SIZE", "코아수", "가닥수", "접지선", "CONDUIT", "수량", "거리", "차단기"], ["L2-01", "LV-L2", "LB1-1B", "HFCO", 6, 4, 1, 6, 36, 1, 70, 100], ["L2-02", "LV-L2", "LB1-2B", "HFCO", 6, 4, 1, 6, 36, 1, 55, 100], ["L2-03", "LV-L2", "LB2-1B", "HFCO", 6, 4, 1, 6, 36, 1, 150, 100], ["L2-04", "LV-L2", "LB2-2B", "HFCO", 6, 4, 1, 6, 36, 1, 200, 100], ["L2-05", "LV-L2", "LB3-1B", "HFCO", 6, 4, 1, 6, 36, 1, 205, 100], ["L2-06", "LV-L2", "LB3-2B", "HFCO", 6, 4, 1, 6, 36, 1, 230, 100], ["L2-07", "LV-L2", "L-E", "HFCO", 6, 4, 1, 6, 36, 1, 30, 100], ["L2-08", "LV-L2", "L-WP", "HFCO", 6, 4, 1, 6, 36, 1, 30, 100], ["L2-09", "LV-L2", "조명상시부하", "HFCO", 95, 1, 4, 50, 70, 1, 20, 225], ["L2-09", "LV-L2", "통신기계실", "HFCO", 25, 4, 1, 16, 54, 1, 190, 225], ["라) 상시동력용 (LV-EP)", null, "부하명", 0, "SIZE", "코아수", "가닥수", "접지선", "CONDUIT", "수량", "거리", "차단기"], ["EP-01", "LV-EP", "MCC-FP", "FR8", 70, 4, 1, 35, 82, 1, 215, 250], ["EP-02", "LV-EP", "MCC-FF1", "FR8", 95, 1, 4, 50, 82, 1, 215, 100], ["EP-03", "LV-EP", "MCC-FF2", "FR8", 25, 4, 1, 16, 54, 1, 265, 100], ["EP-04", "LV-EP", "MCC-FF3", "FR8", 70, 1, 4, 35, 70, 1, 100, 125], ["EP-05", "LV-EP", "P-EV1A", "HFCO", 10, 4, 1, 10, 36, 1, 80, 100], ["EP-06", "LV-EP", "P-EV1B", "HFCO", 10, 4, 1, 10, 36, 1, 90, 100], ["EP-07", "LV-EP", "P-EV2A", "HFCO", 50, 1, 4, 25, 54, 1, 90, 100], ["EP-08", "LV-EP", "P-EV2B", "HFCO", 50, 1, 4, 25, 54, 1, 90, 100], ["EP-09", "LV-EP", "P-EV3A", "HFCO", 16, 4, 1, 16, 42, 1, 200, 100], ["EP-10", "LV-EP", "P-EV3B", "HFCO", 16, 4, 1, 16, 42, 1, 235, 100], ["마) 동력용1호계 (LV-P1,LV-P1-1)", null, "부하명", 0, "SIZE", "코아수", "가닥수", "접지선", "CONDUIT", "수량", "거리", "차단기"], ["P1-01", "LV-P1", "MCC-TV1A", "HFCO", 185, 1, 4, 95, 104, 1, 235, 225], ["P1-02", "LV-P1", "MCC-TV2A", "HFCO", 185, 1, 4, 95, 104, 1, 220, 225], ["P1-03", "LV-P1", "MCP-CH1", "HFCO", 150, 1, 4, 95, 82, 1, 100, 125], ["P1-04", "LV-P1-1", "PSD-1", "HFCO", 16, 4, 1, 16, 42, 1, 215, 100], ["P1-05", "LV-P1-1", "PSD-2", "HFCO", 16, 4, 1, 16, 42, 1, 240, 100], ["P1-06", "LV-P1-1", "MCC-N1", "HFCO", 150, 1, 4, 95, 82, 1, 215, 150], ["P1-07", "LV-P1-1", "MCC-DP1", "HFCO", 185, 1, 4, 95, 104, 1, 237, 225], ["P1-08", "LV-P1-1", "MCC-DP3", "HFCO", 120, 1, 4, 70, 82, 1, 237, 225], ["P1-09", "LV-P1-1", "L-SP", "HFCO", 10, 4, 1, 10, 36, 1, 85, 100], ["P1-10", "LV-P1-1", "P-ES2A", "HFCO", 16, 1, 4, 16, 42, 1, 195, 100], ["P1-11", "LV-P1-1", "P-SHT1", "HFCO", 6, 4, 1, 6, 36, 1, 160, 100], ["바) 동력용2호계 (LV-P2,LV-P2-1)", null, "부하명", 0, "SIZE", "코아수", "가닥수", "접지선", "CONDUIT", "수량", "거리", "차단기"], ["P2-01", "LV-P2", "MCC-TV1B", "HFCO", 150, 1, 4, 95, 82, 1, 235, 175], ["P2-02", "LV-P2", "MCC-TV2B", "HFCO", 150, 1, 4, 95, 82, 1, 220, 175], ["P2-03", "LV-P2-1", "PSD-1", "HFCO", 16, 4, 1, 16, 42, 1, 215, 100], ["P2-04", "LV-P2-1", "PSD-2", "HFCO", 16, 4, 1, 16, 42, 1, 240, 100], ["P2-05", "LV-P2-1", "MCC-N2", "HFCO", 10, 4, 1, 10, 36, 1, 265, 100], ["P2-06", "LV-P1-1", "MCC-N3", "HFCO", 70, 1, 4, 35, 70, 1, 100, 225], ["P2-07", "LV-P2-1", "MCC-DP2", "HFCO", 185, 1, 4, 95, 104, 1, 237, 200], ["P2-08", "LV-P2-1", "MCC-DP4", "HFCO", 185, 1, 4, 95, 104, 1, 237, 225], ["P2-09", "LV-P1-1", "P-ES1A", "HFCO", 16, 4, 1, 16, 42, 1, 65, 100], ["P2-10", "LV-P2-1", "P-ES1B", "HFCO", 16, 4, 1, 16, 42, 1, 45, 100], ["P2-13", "LV-P2-1", "P-ES2B", "HFCO", 16, 4, 1, 16, 42, 1, 210, 100], ["P2-14", "LV-P2-1", "P-HTP", "HFCO", 6, 4, 1, 6, 36, 1, 100, 100], ["P2-15", "LV-P1-1", "P-ES1C", "HFCO", 16, 4, 1, 16, 42, 1, 75, 100], ["P2-16", "LV-P2-1", "P-ES1D", "HFCO", 16, 4, 1, 16, 42, 1, 60, 100], ["마) 신호용 (TR-S1,S2)", null, "부하명", 0, "SIZE", "코아수", "가닥수", "접지선", "CONDUIT", "수량", "거리", "차단기"], ["S-1", "TR-S1", "신호전원실", "HFCO", 35, 4, 1, 16, 54, 1, 235, 100], ["S-2", "TR-S2", "신호전원실", "HFCO", 35, 4, 1, 16, 54, 1, 235, 100], ["간선번호", "FROM", "TO", "선종", "SIZE", "코아수", "가닥수", "접지선", "CONDUIT", "수량", "거리", "차단기"], ["N101", "MCC-N1", "AHU-02S", "HFCO", 6, 3, 1, 6, 36, 1, null, "50"], ["N102", "MCC-N1", "AHU-03S", "HFCO", 16, 3, 1, 16, 36, 1, null, "100"], ["N103", "MCC-N1", "AHU-02R", "HFCO", 4, 3, 1, 4, 28, 1, null, "50"], ["N104", "MCC-N1", "AHU-03R", "HFCO", 6, 3, 1, 6, 36, 1, null, "50"], ["N105", "MCC-N1", "AEF-02", "HFCO", 4, 3, 1, 4, 28, 1, null, "50"], ["N106", "MCC-N1", "AEF-03", "HFCO", 4, 3, 1, 4, 28, 2, null, "50"], ["N107", "MCC-N1", "SF-02", "HFCO", 4, 3, 1, 4, 28, 1, null, "50"], ["N108", "MCC-N1", "SF-04", "HFCO", 10, 3, 1, 10, 36, 1, null, "50"], ["N109", "MCC-N1", "SF-06", "HFCO", 4, 3, 1, 4, 28, 1, null, "50"], ["N110", "MCC-N1", "SF-07", "HFCO", 4, 3, 1, 4, 28, 1, null, "50"], [null, "MCC-N1", "SF-10", "HFCO", 4, 3, 1, 4, 28, 1, null, "50"], ["N111", "MCC-N1", "EF-02", "HFCO", 4, 3, 1, 4, 28, 1, null, "50"], ["N112", "MCC-N1", "EF-04", "HFCO", 6, 3, 1, 6, 36, 1, null, "50"], ["N113", "MCC-N1", "EF-06", "HFCO", 4, 3, 1, 4, 28, 1, null, "50"], ["N114", "MCC-N1", "EF-07", "HFCO", 4, 3, 1, 4, 28, 1, null, "50"], ["N115", "MCC-N1", "AAF-02", "HFCO", 16, 3, 1, 16, 36, 1, null, 100], ["N201", "MCC-N2", "SF-03", "HFCO", 4, 3, 1, 4, 28, 2, null, "50"], ["N202", "MCC-N2", "EF-03", "HFCO", 4, 3, 1, 4, 28, 1, null, "50"], ["N301", "MCC-N3", "AHU-01S", "HFCO", 10, 3, 1, 10, 36, 1, null, "50"], ["N302", "MCC-N3", "AHU-01R", "HFCO", 4, 3, 1, 4, 28, 1, null, "50"], ["N303", "MCC-N3", "AAF-01", "HFCO", 16, 3, 1, 16, 36, 1, null, "100"], ["N304", "MCC-N3", "AEF-01", "HFCO", 4, 3, 1, 4, 28, 1, null, "50"], ["N305", "MCC-N3", "SF-05", "HFCO", 6, 3, 1, 6, 36, 1, null, "50"], ["N306", "MCC-N3", "SF-09", "HFCO", 4, 3, 1, 4, 28, 1, null, "50"], ["N307", "MCC-N3", "EF-01", "HFCO", 4, 3, 1, 4, 28, 1, null, "50"], ["N308", "MCC-N3", "EF-05", "HFCO", 6, 3, 1, 6, 36, 1, null, "50"], ["N309", "MCC-N3", "EF-09", "HFCO", 4, 3, 1, 4, 28, 1, null, "50"], ["N310", "MCC-N3", "EF-11", "HFCO", 4, 3, 1, 4, 28, 1, null, "50"], ["N311", "MCC-N3", "EF-15", "HFCO", 6, 3, 1, 6, 36, 1, null, "50"], ["N312", "MCC-N3", "CE-01", "HFCO", 4, 2, 1, 4, 28, 1, null, "50"], ["FF101", "MCC-FF1", "SSF-02", "FR8", 25, 3, 1, 16, 54, 1, null, "100"], ["FF102", "MCC-FF1", "SEF-02", "FR8", 25, 3, 1, 16, 54, 1, null, "100"], ["FF103", "MCC-FF1", "SSF-03", "FR8", 4, 3, 1, 4, 36, 1, null, "50"], ["FF104", "MCC-FF1", "SEF-03", "FR8", 4, 3, 1, 4, 36, 3, null, "50"], ["FF105", "MCC-FF1", "SSF-04", "FR8", 4, 3, 1, 4, 36, 1, null, "50"], ["FF106", "MCC-FF1", "SEF-04", "FR8", 4, 3, 1, 4, 36, 1, null, "50"], ["FF201", "MCC-FF2", "SSF-03", "FR8", 4, 3, 1, 4, 36, 1, null, "50"], ["FF202", "MCC-FF2", "SEF-03", "FR8", 4, 3, 1, 4, 36, 3, null, "50"], ["FF301", "MCC-FF3", "SSF-02", "FR8", 25, 3, 1, 16, 54, 1, null, "100"], ["FF302", "MCC-FF3", "SSF-03", "FR8", 4, 3, 1, 4, 36, 1, null, "50"], ["FF303", "MCC-FF3", "SEF-02", "FR8", 25, 3, 1, 16, 54, 1, null, "100"], ["FF304", "MCC-FF3", "SEF-03", "FR8", 4, 3, 1, 4, 36, 3, null, "50"], ["FP101", "MCC-FP", "FP-1", "FR8", 16, 3, 1, 16, 42, 2, null, "225"], ["FP102", "MCC-FP", "FP-1", "FR8", 16, 3, 1, 16, 42, 2, null, "225"], ["FP103", "MCC-FP", "FP-2", "FR8", 4, 3, 1, 4, 36, 1, null, "50"], ["FP104", "MCC-FP", "P-1", "FR8", 4, 3, 1, 4, 36, 2, null, "50"], ["FP105", "MCC-FP", "P-1", "FR8", 4, 3, 1, 4, 36, 2, null, "50"], ["CH101", "MCC-CH1", "OAC-01", "HFCO", 4, 3, 1, 4, 28, 2, null, "50"], ["CH102", "MCC-CH1", "OAC-02", "HFCO", 4, 3, 1, 4, 28, 1, null, "50"], ["CH103", "MCC-CH1", "OAC-03", "HFCO", 4, 3, 1, 4, 28, 1, null, "50"], ["CH104", "MCC-CH1", "OAC-04", "HFCO", 6, 3, 1, 6, 36, 1, null, "50"], ["CH105", "MCC-CH1", "OAC-05", "HFCO", 10, 3, 1, 10, 36, 1, null, "50"], ["CH106", "MCC-CH1", "VCDU-01", "HFCO", 6, 3, 1, 6, 36, 2, null, "50"], ["CH107", "MCC-CH1", "VCDU-01", "HFCO", 6, 3, 1, 6, 36, 2, null, "50"], ["CH108", "MCC-CH1", "VCDU-02", "HFCO", 4, 3, 1, 4, 28, 1, null, "50"], ["CH109", "MCC-CH1", "VCDU-02", "HFCO", 4, 3, 1, 4, 28, 1, null, "50"], ["CH110", "MCC-CH1", "VCDU-03", "HFCO", 6, 3, 1, 6, 36, 1, null, "50"], ["CH111", "MCC-CH1", "VCDU-03", "HFCO", 6, 3, 1, 6, 36, 1, null, "50"], ["DP101", "MCC-DP1", "TP-01", "HFCO", 120, 1, 3, 70, 70, 4, null, "225"], ["DP102", "MCC-DP1", "TP-02", "HFCO", 16, 3, 1, 16, 36, 2, null, "100"], ["DP103", "MCC-DP1", "MH-02", "HFCO", 4, 3, 1, 4, 28, 2, null, "50"], ["DP201", "MCC-DP2", "TP-01", "HFCO", 120, 1, 3, 70, 70, 4, null, "225"], ["DP202", "MCC-DP2", "TP-02", "HFCO", 16, 3, 1, 16, 36, 2, null, "100"], ["DP202", "MCC-DP2", "SF-08", "HFCO", 4, 3, 1, 4, 28, 1, null, "50"], ["DP301", "MCC-DP3", "TP-01", "HFCO", 120, 1, 3, 70, 70, 4, null, "225"], ["DP302", "MCC-DP3", "TP-03", "HFCO", 4, 3, 1, 4, 28, 2, null, "100"], ["DP302", "MCC-DP3", "EF-08", "HFCO", 4, 3, 1, 4, 28, 1, null, "50"], ["DP401", "MCC-DP4", "TP-01", "HFCO", 120, 1, 3, 70, 70, 4, null, "225"], ["DP402", "MCC-DP4", "TP-03", "HFCO", 4, 3, 1, 4, 28, 2, null, "100"], ["TV101", "MCC-TV1A", "TF-01", "HFCO", 70, 1, 3, 35, 54, 2, null, "225"], ["TV102", "TF-01", "MH-01", "HFCO", 4, 3, 1, 4, 28, 2, null, "100"], ["TV103", "MCC-TV1B", "TF-01", "HFCO", 70, 1, 3, 35, 54, 2, null, "225"], ["TV201", "MCC-TV2A", "TF-02", "HFCO", 70, 1, 3, 35, 54, 2, null, "225"], ["TV202", "TF-02", "MH-01", "HFCO", 4, 3, 1, 4, 28, 2, null, "100"], ["TV203", "MCC-TV2B", "TF-02", "HFCO", 70, 1, 3, 35, 54, 2, null, 225]];
+const OLD_ROWS = [{"no": 1, "name": "EL-02", "from": "전기실", "to": "L-M", "type": "HFCO", "size": 6, "core": 4, "line": 1, "area": 16, "w": 189, "k": 189, "l": 0, "m": 0, "n": 0, "o": 0, "p": 16, "r": 16}, {"no": 2, "name": "EL-03", "from": "전기실", "to": "L-F", "type": "HFCO", "size": 6, "core": 4, "line": 1, "area": 16, "w": 189, "k": 189, "l": 0, "m": 0, "n": 0, "o": 0, "p": 16, "r": 16}, {"no": 3, "name": "EL-04", "from": "전기실", "to": "L-MT", "type": "HFCO", "size": 6, "core": 4, "line": 1, "area": 16, "w": 189, "k": 189, "l": 0, "m": 0, "n": 0, "o": 0, "p": 16, "r": 16}, {"no": 4, "name": "EL-05", "from": "전기실", "to": "L-AFC", "type": "HFCO", "size": 10, "core": 4, "line": 1, "area": 20, "w": 241, "k": 241, "l": 0, "m": 0, "n": 0, "o": 0, "p": 20, "r": 20}, {"no": 5, "name": "EL-06", "from": "전기실", "to": "L-TV1", "type": "HFCO", "size": 6, "core": 4, "line": 1, "area": 16, "w": 189, "k": 189, "l": 0, "m": 0, "n": 0, "o": 0, "p": 16, "r": 16}, {"no": 6, "name": "EL-07", "from": "전기실", "to": "L-TV2", "type": "HFCO", "size": 6, "core": 4, "line": 1, "area": 16, "w": 189, "k": 189, "l": 0, "m": 0, "n": 0, "o": 0, "p": 16, "r": 16}, {"no": 7, "name": "EL-08", "from": "전기실", "to": "TL-LU", "type": "HFCO", "size": 25, "core": 4, "line": 1, "area": 26, "w": 434, "k": 434, "l": 0, "m": 0, "n": 0, "o": 0, "p": 26, "r": 26}, {"no": 8, "name": "EL-09", "from": "전기실", "to": "TL-LD", "type": "HFCO", "size": 35, "core": 4, "line": 1, "area": 28, "w": 511, "k": 511, "l": 0, "m": 0, "n": 0, "o": 0, "p": 28, "r": 28}, {"no": 9, "name": "EL-10", "from": "전기실", "to": "TL-RU", "type": "HFCO", "size": 25, "core": 4, "line": 1, "area": 26, "w": 434, "k": 434, "l": 0, "m": 0, "n": 0, "o": 0, "p": 26, "r": 26}, {"no": 10, "name": "EL-11", "from": "전기실", "to": "TL-RD", "type": "HFCO", "size": 25, "core": 4, "line": 1, "area": 26, "w": 434, "k": 434, "l": 0, "m": 0, "n": 0, "o": 0, "p": 26, "r": 26}, {"no": 11, "name": "EL-12", "from": "전기실", "to": "비상콘센트1-1", "type": "FR8", "size": 16, "core": 1, "line": 2, "area": 10, "w": 113, "k": 0, "l": 0, "m": 20, "n": 0, "o": 0, "p": 20, "r": 20}, {"no": 12, "name": "EL-13", "from": "전기실", "to": "비상콘센트1-2", "type": "FR8", "size": 16, "core": 1, "line": 2, "area": 10, "w": 113, "k": 0, "l": 0, "m": 20, "n": 0, "o": 0, "p": 20, "r": 20}, {"no": 13, "name": "EL-14", "from": "전기실", "to": "비상콘센트2-1", "type": "FR8", "size": 16, "core": 1, "line": 2, "area": 10, "w": 113, "k": 0, "l": 0, "m": 20, "n": 0, "o": 0, "p": 20, "r": 20}, {"no": 14, "name": "EL-15", "from": "전기실", "to": "비상콘센트2-2", "type": "FR8", "size": 16, "core": 1, "line": 2, "area": 10, "w": 113, "k": 0, "l": 0, "m": 20, "n": 0, "o": 0, "p": 20, "r": 20}, {"no": 15, "name": "EL-16", "from": "전기실", "to": "비상콘센트3-1", "type": "FR8", "size": 16, "core": 1, "line": 2, "area": 10, "w": 113, "k": 0, "l": 0, "m": 20, "n": 0, "o": 0, "p": 20, "r": 20}, {"no": 16, "name": "EL-17", "from": "전기실", "to": "비상콘센트3-2", "type": "FR8", "size": 16, "core": 1, "line": 2, "area": 10, "w": 113, "k": 0, "l": 0, "m": 20, "n": 0, "o": 0, "p": 20, "r": 20}, {"no": 17, "name": "L1-01", "from": "전기실", "to": "LB1-1A", "type": "HFCO", "size": 6, "core": 4, "line": 1, "area": 16, "w": 189, "k": 189, "l": 0, "m": 0, "n": 0, "o": 0, "p": 16, "r": 16}, {"no": 18, "name": "L1-02", "from": "전기실", "to": "LB1-2A", "type": "HFCO", "size": 6, "core": 4, "line": 1, "area": 16, "w": 189, "k": 189, "l": 0, "m": 0, "n": 0, "o": 0, "p": 16, "r": 16}, {"no": 19, "name": "L1-03", "from": "전기실", "to": "LB2-1A", "type": "HFCO", "size": 6, "core": 4, "line": 1, "area": 16, "w": 189, "k": 189, "l": 0, "m": 0, "n": 0, "o": 0, "p": 16, "r": 16}, {"no": 20, "name": "L1-04", "from": "전기실", "to": "LB2-2A", "type": "HFCO", "size": 6, "core": 4, "line": 1, "area": 16, "w": 189, "k": 189, "l": 0, "m": 0, "n": 0, "o": 0, "p": 16, "r": 16}, {"no": 21, "name": "L1-05", "from": "전기실", "to": "LB3-1A", "type": "HFCO", "size": 6, "core": 4, "line": 1, "area": 16, "w": 189, "k": 189, "l": 0, "m": 0, "n": 0, "o": 0, "p": 16, "r": 16}, {"no": 22, "name": "L1-06", "from": "전기실", "to": "LB3-2A", "type": "HFCO", "size": 6, "core": 4, "line": 1, "area": 16, "w": 189, "k": 189, "l": 0, "m": 0, "n": 0, "o": 0, "p": 16, "r": 16}, {"no": 23, "name": "L1-07", "from": "전기실", "to": "L-E", "type": "HFCO", "size": 6, "core": 4, "line": 1, "area": 16, "w": 189, "k": 189, "l": 0, "m": 0, "n": 0, "o": 0, "p": 16, "r": 16}, {"no": 24, "name": "L1-09", "from": "전기실", "to": "통신기계실", "type": "HFCO", "size": 25, "core": 4, "line": 1, "area": 26, "w": 434, "k": 434, "l": 0, "m": 0, "n": 0, "o": 0, "p": 26, "r": 26}, {"no": 25, "name": "L2-01", "from": "전기실", "to": "LB1-1B", "type": "HFCO", "size": 6, "core": 4, "line": 1, "area": 16, "w": 189, "k": 189, "l": 0, "m": 0, "n": 0, "o": 0, "p": 16, "r": 16}, {"no": 26, "name": "L2-02", "from": "전기실", "to": "LB1-2B", "type": "HFCO", "size": 6, "core": 4, "line": 1, "area": 16, "w": 189, "k": 189, "l": 0, "m": 0, "n": 0, "o": 0, "p": 16, "r": 16}, {"no": 27, "name": "L2-03", "from": "전기실", "to": "LB2-1B", "type": "HFCO", "size": 6, "core": 4, "line": 1, "area": 16, "w": 189, "k": 189, "l": 0, "m": 0, "n": 0, "o": 0, "p": 16, "r": 16}, {"no": 28, "name": "L2-04", "from": "전기실", "to": "LB2-2B", "type": "HFCO", "size": 6, "core": 4, "line": 1, "area": 16, "w": 189, "k": 189, "l": 0, "m": 0, "n": 0, "o": 0, "p": 16, "r": 16}, {"no": 29, "name": "L2-05", "from": "전기실", "to": "LB3-1B", "type": "HFCO", "size": 6, "core": 4, "line": 1, "area": 16, "w": 189, "k": 189, "l": 0, "m": 0, "n": 0, "o": 0, "p": 16, "r": 16}, {"no": 30, "name": "L2-06", "from": "전기실", "to": "LB3-2B", "type": "HFCO", "size": 6, "core": 4, "line": 1, "area": 16, "w": 189, "k": 189, "l": 0, "m": 0, "n": 0, "o": 0, "p": 16, "r": 16}, {"no": 31, "name": "L2-07", "from": "전기실", "to": "L-E", "type": "HFCO", "size": 6, "core": 4, "line": 1, "area": 16, "w": 189, "k": 189, "l": 0, "m": 0, "n": 0, "o": 0, "p": 16, "r": 16}, {"no": 32, "name": "L2-08", "from": "전기실", "to": "L-WP", "type": "HFCO", "size": 6, "core": 4, "line": 1, "area": 16, "w": 189, "k": 189, "l": 0, "m": 0, "n": 0, "o": 0, "p": 16, "r": 16}, {"no": 33, "name": "L2-09", "from": "전기실", "to": "조명상시부하", "type": "HFCO", "size": 95, "core": 1, "line": 4, "area": 18.5, "w": 241, "k": 0, "l": 0, "m": 74, "n": 0, "o": 0, "p": 74, "r": 74}, {"no": 34, "name": "EP-01", "from": "전기실", "to": "MCC-FP", "type": "FR8", "size": 70, "core": 4, "line": 1, "area": 36, "w": 1320, "k": 1320, "l": 0, "m": 0, "n": 0, "o": 0, "p": 36, "r": 36}, {"no": 35, "name": "EP-02", "from": "전기실", "to": "MCC-FF1", "type": "FR8", "size": 95, "core": 1, "line": 4, "area": 18.5, "w": 330, "k": 0, "l": 0, "m": 74, "n": 0, "o": 0, "p": 74, "r": 74}, {"no": 36, "name": "EP-03", "from": "전기실", "to": "MCC-FF2", "type": "FR8", "size": 25, "core": 4, "line": 1, "area": 26, "w": 638, "k": 638, "l": 0, "m": 0, "n": 0, "o": 0, "p": 26, "r": 26}, {"no": 37, "name": "EP-04", "from": "전기실", "to": "MCC-FF3", "type": "FR8", "size": 70, "core": 1, "line": 4, "area": 16, "w": 268, "k": 0, "l": 0, "m": 64, "n": 0, "o": 0, "p": 64, "r": 64}, {"no": 38, "name": "EP-05", "from": "전기실", "to": "P-EV1A", "type": "HFCO", "size": 10, "core": 4, "line": 1, "area": 20, "w": 241, "k": 241, "l": 0, "m": 0, "n": 0, "o": 0, "p": 20, "r": 20}, {"no": 39, "name": "EP-06", "from": "전기실", "to": "P-EV1B", "type": "HFCO", "size": 10, "core": 4, "line": 1, "area": 20, "w": 241, "k": 241, "l": 0, "m": 0, "n": 0, "o": 0, "p": 20, "r": 20}, {"no": 40, "name": "EP-07", "from": "전기실", "to": "P-EV2A", "type": "HFCO", "size": 50, "core": 1, "line": 4, "area": 14.5, "w": 144, "k": 0, "l": 0, "m": 58, "n": 0, "o": 0, "p": 58, "r": 58}, {"no": 41, "name": "EP-08", "from": "전기실", "to": "P-EV2B", "type": "HFCO", "size": 50, "core": 1, "line": 4, "area": 14.5, "w": 144, "k": 0, "l": 0, "m": 58, "n": 0, "o": 0, "p": 58, "r": 58}, {"no": 42, "name": "EP-09", "from": "전기실", "to": "P-EV3A", "type": "HFCO", "size": 16, "core": 4, "line": 1, "area": 22, "w": 299, "k": 299, "l": 0, "m": 0, "n": 0, "o": 0, "p": 22, "r": 22}, {"no": 43, "name": "EP-10", "from": "전기실", "to": "P-EV3B", "type": "HFCO", "size": 16, "core": 4, "line": 1, "area": 22, "w": 299, "k": 299, "l": 0, "m": 0, "n": 0, "o": 0, "p": 22, "r": 22}, {"no": 44, "name": "P1-01", "from": "전기실", "to": "MCC-TV1A", "type": "HFCO", "size": 185, "core": 1, "line": 4, "area": 24, "w": 416, "k": 0, "l": 0, "m": 0, "n": 1664, "o": 0, "p": 96, "r": 96}, {"no": 45, "name": "P1-02", "from": "전기실", "to": "MCC-TV2A", "type": "HFCO", "size": 185, "core": 1, "line": 4, "area": 24, "w": 416, "k": 0, "l": 0, "m": 0, "n": 1664, "o": 0, "p": 96, "r": 96}, {"no": 46, "name": "P1-03", "from": "전기실", "to": "MCP-CH1", "type": "HFCO", "size": 150, "core": 1, "line": 4, "area": 22, "w": 347, "k": 0, "l": 0, "m": 0, "n": 1388, "o": 0, "p": 88, "r": 88}, {"no": 47, "name": "P1-04", "from": "전기실", "to": "PSD-1", "type": "HFCO", "size": 16, "core": 4, "line": 1, "area": 22, "w": 299, "k": 299, "l": 0, "m": 0, "n": 0, "o": 0, "p": 22, "r": 22}, {"no": 48, "name": "P1-05", "from": "전기실", "to": "PSD-2", "type": "HFCO", "size": 16, "core": 4, "line": 1, "area": 22, "w": 299, "k": 299, "l": 0, "m": 0, "n": 0, "o": 0, "p": 22, "r": 22}, {"no": 49, "name": "P1-06", "from": "전기실", "to": "MCC-N1", "type": "HFCO", "size": 150, "core": 1, "line": 4, "area": 22, "w": 347, "k": 0, "l": 0, "m": 0, "n": 1388, "o": 0, "p": 88, "r": 88}, {"no": 50, "name": "P1-07", "from": "전기실", "to": "MCC-DP1", "type": "HFCO", "size": 185, "core": 1, "line": 4, "area": 24, "w": 416, "k": 0, "l": 0, "m": 0, "n": 1664, "o": 0, "p": 96, "r": 96}, {"no": 51, "name": "P1-08", "from": "전기실", "to": "MCC-DP3", "type": "HFCO", "size": 120, "core": 1, "line": 4, "area": 20, "w": 284, "k": 0, "l": 0, "m": 80, "n": 0, "o": 0, "p": 80, "r": 80}, {"no": 52, "name": "P1-09", "from": "전기실", "to": "L-SP", "type": "HFCO", "size": 10, "core": 4, "line": 1, "area": 20, "w": 241, "k": 241, "l": 0, "m": 0, "n": 0, "o": 0, "p": 20, "r": 20}, {"no": 53, "name": "P1-10", "from": "전기실", "to": "P-ES2A", "type": "HFCO", "size": 16, "core": 1, "line": 4, "area": 10, "w": 71, "k": 0, "l": 0, "m": 40, "n": 0, "o": 0, "p": 40, "r": 40}, {"no": 54, "name": "P1-11", "from": "전기실", "to": "P-SHT1", "type": "HFCO", "size": 6, "core": 4, "line": 1, "area": 16, "w": 189, "k": 189, "l": 0, "m": 0, "n": 0, "o": 0, "p": 16, "r": 16}, {"no": 55, "name": "P2-01", "from": "전기실", "to": "MCC-TV1B", "type": "HFCO", "size": 150, "core": 1, "line": 4, "area": 22, "w": 347, "k": 0, "l": 0, "m": 0, "n": 1388, "o": 0, "p": 88, "r": 88}, {"no": 56, "name": "P2-02", "from": "전기실", "to": "MCC-TV2B", "type": "HFCO", "size": 150, "core": 1, "line": 4, "area": 22, "w": 347, "k": 0, "l": 0, "m": 0, "n": 1388, "o": 0, "p": 88, "r": 88}, {"no": 57, "name": "P2-03", "from": "전기실", "to": "PSD-1", "type": "HFCO", "size": 16, "core": 4, "line": 1, "area": 22, "w": 299, "k": 299, "l": 0, "m": 0, "n": 0, "o": 0, "p": 22, "r": 22}, {"no": 58, "name": "P2-04", "from": "전기실", "to": "PSD-2", "type": "HFCO", "size": 16, "core": 4, "line": 1, "area": 22, "w": 299, "k": 299, "l": 0, "m": 0, "n": 0, "o": 0, "p": 22, "r": 22}, {"no": 59, "name": "P2-05", "from": "전기실", "to": "MCC-N2", "type": "HFCO", "size": 10, "core": 4, "line": 1, "area": 20, "w": 241, "k": 241, "l": 0, "m": 0, "n": 0, "o": 0, "p": 20, "r": 20}, {"no": 60, "name": "P2-06", "from": "전기실", "to": "MCC-N3", "type": "HFCO", "size": 70, "core": 1, "line": 4, "area": 16, "w": 189, "k": 0, "l": 0, "m": 64, "n": 0, "o": 0, "p": 64, "r": 64}, {"no": 61, "name": "P2-07", "from": "전기실", "to": "MCC-DP2", "type": "HFCO", "size": 185, "core": 1, "line": 4, "area": 24, "w": 416, "k": 0, "l": 0, "m": 0, "n": 1664, "o": 0, "p": 96, "r": 96}, {"no": 62, "name": "P2-08", "from": "전기실", "to": "MCC-DP4", "type": "HFCO", "size": 185, "core": 1, "line": 4, "area": 24, "w": 416, "k": 0, "l": 0, "m": 0, "n": 1664, "o": 0, "p": 96, "r": 96}, {"no": 63, "name": "P2-09", "from": "전기실", "to": "P-ES1A", "type": "HFCO", "size": 16, "core": 4, "line": 1, "area": 22, "w": 299, "k": 299, "l": 0, "m": 0, "n": 0, "o": 0, "p": 22, "r": 22}, {"no": 64, "name": "P2-10", "from": "전기실", "to": "P-ES1B", "type": "HFCO", "size": 16, "core": 4, "line": 1, "area": 22, "w": 299, "k": 299, "l": 0, "m": 0, "n": 0, "o": 0, "p": 22, "r": 22}, {"no": 65, "name": "P2-13", "from": "전기실", "to": "P-ES2B", "type": "HFCO", "size": 16, "core": 4, "line": 1, "area": 22, "w": 299, "k": 299, "l": 0, "m": 0, "n": 0, "o": 0, "p": 22, "r": 22}, {"no": 66, "name": "P2-14", "from": "전기실", "to": "P-HTP", "type": "HFCO", "size": 6, "core": 4, "line": 1, "area": 16, "w": 189, "k": 189, "l": 0, "m": 0, "n": 0, "o": 0, "p": 16, "r": 16}, {"no": 67, "name": "P2-15", "from": "전기실", "to": "P-ES1C", "type": "HFCO", "size": 16, "core": 4, "line": 1, "area": 22, "w": 299, "k": 299, "l": 0, "m": 0, "n": 0, "o": 0, "p": 22, "r": 22}, {"no": 68, "name": "P2-16", "from": "전기실", "to": "P-ES1D", "type": "HFCO", "size": 16, "core": 4, "line": 1, "area": 22, "w": 299, "k": 299, "l": 0, "m": 0, "n": 0, "o": 0, "p": 22, "r": 22}, {"no": 69, "name": "S-1", "from": "전기실", "to": "신호전원실", "type": "HFCO", "size": 35, "core": 4, "line": 1, "area": 28, "w": 511, "k": 511, "l": 0, "m": 0, "n": 0, "o": 0, "p": 28, "r": 28}, {"no": 70, "name": "S-2", "from": "전기실", "to": "신호전원실", "type": "HFCO", "size": 35, "core": 4, "line": 1, "area": 28, "w": 511, "k": 511, "l": 0, "m": 0, "n": 0, "o": 0, "p": 28, "r": 28}];
+const OLD_SUMMARY = {"totals": {"k": 13879, "l": 0, "m": 632, "n": 13872, "o": 0, "p": 2408, "r": 2408}, "sel": {"form": "사다리 통풍 트러프형", "reserve_g93": 1.2, "tier_i93": 2, "c95_width": 900, "d95_height": 100, "e95_tier": 2, "g95": 1800, "h95": 2408, "i95": 2675.5555555555557, "k95_required": 1000, "l95": 2, "m95_capacity": 2000, "g94_judge": "(불가)", "c94_label": " W 900 × H 100 - 2단"}};
+
+const STD_CORES = {'XLPE':[1,2,3,4], 'F-GV':[1]};
+
+/* 사용자 요청: 다심(2~4심) 케이블은 실사용 범위인 70㎟ 초과 사이즈를 제거한다.
+   (저압 케이블은 HFCO·F-FR-8 구분 없이 XLPE 하나로 통일 — 치수는 HFCO(=F-CV) 실측치 기준.
+   F-GV(접지용 비닐절연전선)는 ③전선관 선정 탭의 접지선 단면적 조회 전용으로만 사용하며
+   ②/①탭의 케이블 종류 선택 목록에는 노출하지 않는다.)
+   단위중량(kg/km)은 제조사 카탈로그 실측 자료(114개 조합, 2026-08 확인)를 CABLE_DB/CABLE_SPEC_FULL에
+   이미 반영해 두었으므로 별도 병합 단계가 필요 없다. */
+Object.keys(CABLE_DB).forEach(type=>{
+  Object.keys(CABLE_DB[type]).forEach(coreStr=>{
+    if(Number(coreStr) > 1){
+      Object.keys(CABLE_DB[type][coreStr]).forEach(sizeStr=>{
+        if(Number(sizeStr) > 70) delete CABLE_DB[type][coreStr][sizeStr];
+      });
+    }
+  });
+});
+for(let i=CABLE_SPEC_FULL.length-1; i>=0; i--){
+  const sec = CABLE_SPEC_FULL[i];
+  if(sec.core > 1){ sec.rows = sec.rows.filter(r=>Number(r.size) <= 70); }
+}
+
+/* 단위중량 조회(kg/km). 데이터 없으면 null. */
+function weightFor(type, core, size){
+  const t = CABLE_DB[type]; if(!t) return null;
+  const c = t[String(core)]; if(!c) return null;
+  const rec = c[String(size)];
+  return (rec && rec.w!=null) ? rec.w : null;
+}
+
+/* 프로젝트명 입력 → 인쇄 문서 맨 앞장 제목(print-doc-title)에 반영 */
+function onProjectNameChange(){
+  const v = (document.getElementById('projectName').value || '').trim();
+  const el = document.getElementById('printDocTitle');
+  if(el) el.textContent = v || '케이블트레이 계산서';
+}
+
+/* ============================================================ */
+/* 탭 전환                                                       */
+/* ============================================================ */
+function sw(id){
+  const ids=['sched','calc','conduit','spec','basis'];
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',ids[i]===id));
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('panel-'+id).classList.add('active');
+}
+
+/* ============================================================ */
+/* ② 계산기(트레이 폭 계산) 로직                                  */
+/* ============================================================ */
+let trayCount = 0;
+let rowCounters = {};
+
+function sizesFor(type, core){
+  if(type==='직접입력') return [];
+  const t = CABLE_DB[type]; if(!t) return [];
+  const c = t[String(core)]; if(!c) return [];
+  return Object.keys(c).map(Number).sort((a,b)=>a-b);
+}
+function odFor(type, core, size){
+  if(type==='직접입력') return null;
+  const t = CABLE_DB[type]; if(!t) return null;
+  const c = t[String(core)]; if(!c) return null;
+  const rec = c[String(size)]; return rec ? rec.od : null;
+}
+function areaFor(type, core, size){
+  if(type==='직접입력') return null;
+  const t = CABLE_DB[type]; if(!t) return null;
+  const c = t[String(core)]; if(!c) return null;
+  const rec = c[String(size)]; return rec ? rec.a : null;
+}
+
+/* ============================================================ */
+/* ① CABLE SCHEDULE 작업 데이터 — 계산기 탭의 C.NO. 드롭다운이       */
+/*    이 배열을 참조한다(회로 등록 → 계산기에서 선택 → 자동 반영)     */
+/* ============================================================ */
+let scheduleRows = [];
+let scheduleSeq = 0;
+
+function newScheduleRow(data){
+  scheduleSeq++;
+  return Object.assign({_id:scheduleSeq, cno:'', use:'', from:'', to:'', type:'XLPE', core:1, size:240, line:1}, data||{});
+}
+function findScheduleRow(id){ return scheduleRows.find(r=>r._id===id); }
+
+function scheduleTypeOptions(sel){
+  return ['XLPE','직접입력'].map(t=>`<option value="${t}" ${t===sel?'selected':''}>${t}</option>`).join('');
+}
+
+/* C.NO가 중복되면 ②탭 드롭다운에 같은 이름의 항목이 두 개 이상 나타나 사용자가
+   실수로 엉뚱한 회로를 선택하기 쉽고, 트레이 구간을 JSON으로 내보냈다가 다시
+   불러올 때도 어느 쪽 회로였는지 판별이 애매해진다. 여기서 중복을 계산해두고
+   렌더링(행 강조)과 내보내기(occurrence 기록)에서 함께 사용한다. */
+function findDuplicateCnos(){
+  const counts = {};
+  scheduleRows.forEach(r=>{
+    const key = (r.cno||'').trim();
+    if(!key) return; // 미입력은 중복 경고 대상에서 제외
+    counts[key] = (counts[key]||0) + 1;
+  });
+  return Object.keys(counts).filter(k=>counts[k] > 1);
+}
+
+function renderScheduleWork(){
+  const tbody = document.getElementById('schedWorkBody');
+  if(!tbody) return;
+  tbody.innerHTML = '';
+  const dupCnos = findDuplicateCnos();
+  scheduleRows.forEach(row=>{
+    const rid = 'sr'+row._id;
+    const isDup = dupCnos.includes((row.cno||'').trim());
+    const tr = document.createElement('tr');
+    tr.id = rid;
+    if(isDup) tr.classList.add('row-err');
+    tr.innerHTML = `
+      <td><input type="text" value="${row.cno}" style="width:56px${isDup?';border-color:var(--err);background:var(--err-bg)':''}" title="${isDup?'⚠ 이 회로번호(C.NO)가 다른 행과 중복되었습니다':''}" oninput="updateScheduleField(${row._id},'cno',this.value)"></td>
+      <td><input type="text" value="${row.use}" style="width:84px" oninput="updateScheduleField(${row._id},'use',this.value)"></td>
+      <td><input type="text" value="${row.from}" style="width:84px" oninput="updateScheduleField(${row._id},'from',this.value)"></td>
+      <td><input type="text" value="${row.to}" style="width:84px" oninput="updateScheduleField(${row._id},'to',this.value)"></td>
+      <td><select id="${rid}_type" onchange="onScheduleTypeChange(${row._id})">${scheduleTypeOptions(row.type)}</select></td>
+      <td><select id="${rid}_core" onchange="onScheduleCoreChange(${row._id})"></select></td>
+      <td id="${rid}_sizeCell"></td>
+      <td><input type="number" min="1" step="1" value="${row.line}" style="width:44px" oninput="updateScheduleField(${row._id},'line',this.value)"></td>
+      <td class="no-print"><button class="btn danger sm" onclick="removeScheduleRow(${row._id})">삭제</button></td>
+    `;
+    tbody.appendChild(tr);
+    rebuildScheduleCoreOptions(row._id);
+  });
+  document.getElementById('schedWorkCount').textContent = '(총 '+scheduleRows.length+'회로)';
+  const dupWarnEl = document.getElementById('scheduleDupWarning');
+  if(dupWarnEl){
+    dupWarnEl.innerHTML = dupCnos.length
+      ? `<div class="info-box-err info-box">⚠ 회로번호(C.NO)가 중복되었습니다: <strong>${dupCnos.join(', ')}</strong>. 중복된 상태에서는 ②탭 드롭다운에 같은 이름이 여러 개 표시되어 엉뚱한 회로가 선택되거나, 트레이 구간을 JSON으로 내보냈다가 다시 불러올 때 의도한 회로와 다르게 연결될 수 있습니다. 회로번호를 서로 다르게 수정해주세요.</div>`
+      : '';
+  }
+  refreshAllCNODropdowns();
+  renderConduitTable();
+}
+
+function updateScheduleField(id, field, value){
+  const row = findScheduleRow(id); if(!row) return;
+  row[field] = (field==='line') ? (parseFloat(value)||1) : value;
+  /* LINE(가닥수)도 다른 필드와 마찬가지로 바뀌면 즉시 ②트레이 폭 계산(이미 이 회로를
+     선택해 둔 행)과 ③전선관 선정 표에 반영되어야 한다. 예전에는 cno/용도/FROM/TO만
+     반영되고 LINE 변경은 반영되지 않는 버그가 있었다. */
+  if(field==='cno' || field==='use' || field==='from' || field==='to' || field==='line'){
+    refreshAllCNODropdowns();
+    syncBoundRows();
+    renderConduitTable();
+  }
+}
+
+function onScheduleTypeChange(id){
+  const row = findScheduleRow(id); if(!row) return;
+  row.type = document.getElementById('sr'+id+'_type').value;
+  row.core = (STD_CORES[row.type]||[1])[0] || 1;
+  rebuildScheduleCoreOptions(id);
+  refreshAllCNODropdowns();
+  syncBoundRows();
+}
+function onScheduleCoreChange(id){
+  const row = findScheduleRow(id); if(!row) return;
+  row.core = document.getElementById('sr'+id+'_core').value;
+  rebuildScheduleSizeCell(id);
+}
+function onScheduleSizeChange(id, val){
+  const row = findScheduleRow(id); if(!row) return;
+  row.size = val;
+  refreshAllCNODropdowns();
+  syncBoundRows();
+  renderConduitTable();
+}
+
+function rebuildScheduleCoreOptions(id){
+  const row = findScheduleRow(id); if(!row) return;
+  const coreSel = document.getElementById('sr'+id+'_core');
+  if(!coreSel) return;
+  coreSel.innerHTML='';
+  if(row.type==='직접입력'){
+    coreSel.innerHTML='<option value="1">-</option>'; coreSel.disabled=true;
+  } else {
+    coreSel.disabled=false;
+    (STD_CORES[row.type]||[1]).forEach(c=>{
+      const opt=document.createElement('option'); opt.value=c; opt.textContent=c+'심'; coreSel.appendChild(opt);
+    });
+    if(!(STD_CORES[row.type]||[]).map(Number).includes(Number(row.core))) row.core=(STD_CORES[row.type]||[1])[0];
+    coreSel.value = row.core;
+  }
+  rebuildScheduleSizeCell(id);
+}
+
+function rebuildScheduleSizeCell(id){
+  const row = findScheduleRow(id); if(!row) return;
+  const cell = document.getElementById('sr'+id+'_sizeCell');
+  if(!cell) return;
+  if(row.type==='직접입력'){
+    cell.innerHTML = `<input type="text" value="${row.size||''}" style="width:56px" placeholder="사이즈" oninput="onScheduleSizeChange(${id}, this.value)">`;
+  } else {
+    const sizes = sizesFor(row.type, row.core);
+    if(!sizes.map(Number).includes(Number(row.size))) row.size = sizes[0];
+    cell.innerHTML = `<select onchange="onScheduleSizeChange(${id}, this.value)">${sizes.map(s=>`<option value="${s}" ${Number(s)===Number(row.size)?'selected':''}>${s}</option>`).join('')}</select>`;
+  }
+  refreshAllCNODropdowns();
+  syncBoundRows();
+  renderConduitTable();
+}
+
+function addScheduleRow(){
+  scheduleRows.push(newScheduleRow());
+  renderScheduleWork();
+}
+function removeScheduleRow(id){
+  scheduleRows = scheduleRows.filter(r=>r._id!==id);
+  renderScheduleWork();
+  syncBoundRows();
+}
+
+/* ============================================================ */
+/* ③ 전선관 선정 탭 로직                                          */
+/* — ①CABLE SCHEDULE의 scheduleRows를 그대로 읽어 회로별 접지선/전선관을 산정 */
+/* ============================================================ */
+const CONDUIT_SIZES = [16,22,28,36,42,54,70,82,92,104]; // 후강전선관 호칭(mm) = 안지름(mm)
+function conduitInnerArea(nominal){ return Math.PI/4*nominal*nominal; }
+function requiredGroundSize(phaseSize){
+  const s = Number(phaseSize)||0;
+  let req;
+  if(s<=16) req = s;
+  else if(s<=35) req = 16;
+  else req = s/2;
+  const sizes = sizesFor('F-GV',1);
+  if(!sizes.length) return null;
+  for(const sz of sizes){ if(sz >= req - 1e-9) return sz; }
+  return sizes[sizes.length-1];
+}
+/* 104mm 전선관으로도 충전율 상한을 만족할 수 없으면 null(선정불가)을 반환한다.
+   과거에는 이 경우에도 최대 규격(104)을 그냥 반환해 마치 선정된 것처럼 보였다 — 수정. */
+function selectConduit(requiredArea){
+  for(const d of CONDUIT_SIZES){ if(conduitInnerArea(d) >= requiredArea - 1e-9) return d; }
+  return null;
+}
+function buildConduitRefTable(){
+  const body = document.getElementById('conduitRefBody');
+  if(!body) return;
+  body.innerHTML = CONDUIT_SIZES.map(d=>{
+    const area = conduitInnerArea(d);
+    return `<tr><td>${d}</td><td>${fmt(area,0)}</td><td>${fmt(area*0.3,0)}</td></tr>`;
+  }).join('');
+}
+function renderConduitTable(){
+  const tbody = document.getElementById('conduitBody');
+  if(!tbody) return;
+  const ratioInput = document.getElementById('G_conduitRatio');
+  let ratio = ratioInput ? parseFloat(ratioInput.value) : 30;
+  if(isNaN(ratio) || ratio<=0) ratio = 30;
+  if(ratio > 33.4){ ratio = 33.4; if(ratioInput) ratioInput.value = 33; }
+  let html = '';
+  scheduleRows.forEach(row=>{
+    const type = row.type, core = row.core, size = row.size;
+    const cableArea = (type==='직접입력') ? null : areaFor(type, core, size);
+    const gSize = (type==='직접입력') ? null : requiredGroundSize(size);
+    const gArea = (gSize!=null) ? areaFor('F-GV', 1, gSize) : null;
+    const qty = parseFloat(row.line) || 1; // 수량(EA) — 이 회로의 케이블 가닥수. 전선관 1개에 모두 함께 수용한다.
+    const cableTotalArea = (cableArea!=null) ? cableArea*qty : null; // 케이블 합계 단면적 = 단면적(1선) × 수량(EA)
+    let totalArea=null, sel=null, selArea=null, fillPct=null, judge='<span class="tag tag-err">산정불가</span>';
+    if(cableTotalArea!=null && gArea!=null){
+      totalArea = cableTotalArea + gArea; // 전선관 1개 선정기준: 케이블 합계 단면적 + 접지선 단면적
+      const reqArea = totalArea / (ratio/100);
+      sel = selectConduit(reqArea);
+      if(sel!=null){
+        selArea = conduitInnerArea(sel);
+        fillPct = totalArea/selArea*100;
+        judge = (fillPct <= ratio+1e-6) ? '<span class="tag tag-ok">적정</span>'
+              : (fillPct <= 33.4) ? '<span class="tag tag-warn">권장초과</span>'
+              : '<span class="tag tag-err">규정초과</span>';
+      } else {
+        judge = '<span class="tag tag-err">선정불가(104C 초과)</span>';
+      }
+    }
+    html += `<tr>
+      <td>${row.cno||'(미입력)'}</td><td>${row.use||'-'}</td>
+      <td>${type}</td><td>${type==='직접입력'?'-':size}</td><td>${type==='직접입력'?'-':core}</td><td>${cableArea!=null?fmt(cableArea,0):'-'}</td><td>${qty}</td>
+      <td>${cableTotalArea!=null?fmt(cableTotalArea,0):'-'}</td>
+      <td>${gSize!=null?gSize:'-'}</td><td>${gArea!=null?fmt(gArea,0):'-'}</td>
+      <td>${totalArea!=null?fmt(totalArea,0):'-'}</td>
+      <td>${sel!=null?sel:'선정불가'}</td><td>${selArea!=null?fmt(selArea,0):'-'}</td>
+      <td>${fillPct!=null?fmt(fillPct,1):'-'}</td><td>${judge}</td>
+    </tr>`;
+  });
+  tbody.innerHTML = html || '<tr><td colspan="15" style="text-align:center; color:var(--muted)">등록된 회로가 없습니다. ①CABLE SCHEDULE 탭에서 회로를 추가하세요.</td></tr>';
+  const cnt = document.getElementById('conduitCount');
+  if(cnt) cnt.textContent = '(총 '+scheduleRows.length+'회로)';
+  buildConduitRefTable();
+}
+
+/* ============================================================ */
+/* 빠른 등록 — 엑셀/CSV 붙여넣기 또는 JSON으로 CABLE SCHEDULE 가져오기 */
+/* ============================================================ */
+let lastImportParsed = null;
+
+const IMPORT_KEY_MAP = {
+  cno:  ['cno','c.no','c_no','간선번호','회로번호','no','번호'],
+  use:  ['use','usage','purpose','용도'],
+  from: ['from','시작','fr'],
+  to:   ['to','도착'],
+  type: ['type','cabletype','종류','선종','케이블종류'],
+  core: ['core','심수','코아수','코어'],
+  size: ['size','사이즈','규격','sq','mm2'],
+  line: ['line','가닥수','회선수','병렬회선'],
+};
+
+function normalizeImportKey(k){
+  const lower = String(k).trim().toLowerCase().replace(/\s+/g,'');
+  for(const std in IMPORT_KEY_MAP){
+    if(IMPORT_KEY_MAP[std].some(alias=>alias.toLowerCase().replace(/\s+/g,'')===lower)) return std;
+  }
+  return null;
+}
+
+function normalizeTypeGuess(raw){
+  const s = String(raw||'').trim().toUpperCase().replace(/\s+/g,'');
+  if(s==='') return null;
+  // 과거 자료에 남아있는 HFCO/F-FR-8 등 표기는 모두 XLPE로 통일해서 인식한다.
+  if(s==='XLPE'||s==='HFCO'||s==='F-CV'||s==='FCV'||s==='F-FR-8'||s==='F-FR8'||s==='FFR8'||s==='FFR-8'||s==='N-FR-8') return 'XLPE';
+  if(s==='직접입력'||s==='MANUAL'||s==='DIRECT') return '직접입력';
+  return null;
+}
+
+/* 붙여넣은 텍스트(엑셀/CSV 탭·콤마 구분 또는 JSON 배열)를 파싱해
+   {cno,use,from,to,type,core,size,line,_status} 배열로 변환한다.
+   DB(XLPE)와 종류·사이즈가 일치하지 않으면 자동 OD 오적용을
+   막기 위해 안전하게 "직접입력"으로 전환하고 _status에 사유를 남긴다. */
+function parseImportText(text){
+  const t = (text||'').trim();
+  if(!t) return [];
+  let rawRows = [];
+
+  if(t[0]==='[' || t[0]==='{'){
+    let data;
+    try { data = JSON.parse(t); } catch(e){ throw new Error('JSON 형식을 인식할 수 없습니다: '+e.message); }
+    const arr = Array.isArray(data) ? data : [data];
+    rawRows = arr.map(obj=>{
+      const rec = {};
+      Object.keys(obj||{}).forEach(k=>{
+        const std = normalizeImportKey(k);
+        if(std) rec[std] = obj[k];
+      });
+      return rec;
+    });
+  } else {
+    let lines = t.split(/\r?\n/).filter(l=>l.trim()!=='');
+    if(!lines.length) return [];
+    const delim = lines[0].includes('\t') ? '\t' : ',';
+    let rows = lines.map(l=>l.split(delim).map(c=>c.trim()));
+    const first = rows[0];
+    const looksHeader = first.some(c=>normalizeImportKey(c)!==null);
+    if(looksHeader) rows = rows.slice(1);
+    const order = ['cno','use','from','to','type','core','size','line'];
+    rawRows = rows.map(cols=>{
+      const rec = {};
+      order.forEach((key,i)=>{ if(cols[i]!==undefined) rec[key]=cols[i]; });
+      return rec;
+    });
+  }
+
+  return rawRows.map(rec=>{
+    const cno = (rec.cno!=null? String(rec.cno):'').trim();
+    const use = (rec.use!=null? String(rec.use):'').trim();
+    const from = (rec.from!=null? String(rec.from):'').trim();
+    const to = (rec.to!=null? String(rec.to):'').trim();
+    const rawType = (rec.type!=null? String(rec.type):'').trim();
+    let type = normalizeTypeGuess(rawType) || '직접입력';
+    let core = rec.core!=null ? Number(rec.core) : 1;
+    let size = rec.size!=null ? rec.size : '';
+    let line = rec.line!=null ? (parseFloat(rec.line)||1) : 1;
+    let status = '정상';
+
+    if(type!=='직접입력'){
+      // 붙여넣은 열이 "종류·심수·사이즈·LINE"이든 "종류·사이즈·심수·LINE"이든 순서를 자동 판별한다:
+      // 심수는 항상 STD_CORES 안의 작은 정수(1~4)이므로, 두 값 중 심수 자리에 있는 값이
+      // 그 케이블종류의 유효 심수 목록에 없고 사이즈 자리 값이 오히려 유효 심수처럼 보이면
+      // 두 값이 뒤바뀐 것으로 보고 자동으로 맞바꾼다.
+      const validCores = (STD_CORES[type]||[1]).map(Number);
+      const coreLooksValid = validCores.includes(Number(core));
+      const sizeLooksLikeCore = validCores.includes(Number(size));
+      if(!coreLooksValid && sizeLooksLikeCore){
+        const tmp = core; core = Number(size); size = tmp;
+      } else if(!coreLooksValid){
+        core = validCores[0];
+      }
+      const sizes = sizesFor(type, core);
+      if(!sizes.map(Number).includes(Number(size))){
+        type = '직접입력';
+        status = 'DB 미일치 → 직접입력 처리';
+      }
+    } else if(rawType && normalizeTypeGuess(rawType)===null){
+      status = '미인식 종류 → 직접입력 처리 ("'+rawType+'")';
+    }
+    if(!cno) status = (status==='정상'?'':status+' · ')+'C.NO 미입력';
+
+    return {cno, use, from, to, type, core, size, line, _status:status};
+  });
+}
+
+function onImportTextChange(){
+  lastImportParsed = null;
+  document.getElementById('importAppendBtn').disabled = true;
+  document.getElementById('importReplaceBtn').disabled = true;
+  document.getElementById('importPreviewBox').style.display = 'none';
+  document.getElementById('importSummary').innerHTML = '';
+}
+
+function previewImport(){
+  const text = document.getElementById('importText').value;
+  let parsed;
+  try { parsed = parseImportText(text); }
+  catch(e){
+    document.getElementById('importSummary').innerHTML = `<div class="info-box-err info-box">⚠ ${e.message}</div>`;
+    document.getElementById('importPreviewBox').style.display='none';
+    document.getElementById('importAppendBtn').disabled = true;
+    document.getElementById('importReplaceBtn').disabled = true;
+    return;
+  }
+  lastImportParsed = parsed;
+  if(!parsed.length){
+    document.getElementById('importSummary').innerHTML = `<div class="info-box">인식된 행이 없습니다. 형식을 확인하세요.</div>`;
+    document.getElementById('importPreviewBox').style.display='none';
+    document.getElementById('importAppendBtn').disabled = true;
+    document.getElementById('importReplaceBtn').disabled = true;
+    return;
+  }
+  const okCount = parsed.filter(r=>r._status==='정상').length;
+  const warnCount = parsed.length - okCount;
+  let html = `<thead><tr><th>C.NO</th><th>용도</th><th>FROM</th><th>TO</th><th>종류</th><th>심수</th><th>사이즈</th><th>LINE</th><th>상태</th></tr></thead><tbody>`;
+  parsed.forEach(r=>{
+    const warn = r._status!=='정상';
+    html += `<tr class="${warn?'row-err':''}"><td>${r.cno||'-'}</td><td>${r.use||'-'}</td><td>${r.from||'-'}</td><td>${r.to||'-'}</td><td>${r.type}</td><td>${r.core}</td><td>${r.size||'-'}</td><td>${r.line}</td><td>${r._status||'정상'}</td></tr>`;
+  });
+  html += '</tbody>';
+  document.getElementById('importPreviewTable').innerHTML = html;
+  document.getElementById('importPreviewBox').style.display = 'block';
+  document.getElementById('importSummary').innerHTML =
+    `<div class="${warnCount>0?'info-box':'info-box-blue info-box'}">총 ${parsed.length}행 인식 — 정상 ${okCount}행${warnCount>0?`, 확인 필요 ${warnCount}행(직접입력으로 처리됨, 아래 표에서 붉게 표시)`:''}. 아래 버튼으로 CABLE SCHEDULE에 반영하세요.</div>`;
+  document.getElementById('importAppendBtn').disabled = false;
+  document.getElementById('importReplaceBtn').disabled = false;
+}
+
+function commitImport(mode){
+  if(!lastImportParsed || !lastImportParsed.length) return;
+  const count = lastImportParsed.length;
+  if(mode==='replace') scheduleRows = [];
+  lastImportParsed.forEach(r=>{
+    scheduleRows.push(newScheduleRow({cno:r.cno, use:r.use, from:r.from, to:r.to, type:r.type, core:r.core, size:r.size, line:r.line}));
+  });
+  renderScheduleWork();
+  document.getElementById('importText').value = '';
+  onImportTextChange();
+  document.getElementById('importSummary').innerHTML = `<div class="info-box-blue info-box">${count}행을 ${mode==='replace'?'전체 교체':'추가'}로 반영했습니다.</div>`;
+  lastImportParsed = null;
+}
+
+/* ============================================================ */
+/* CABLE SCHEDULE 내보내기(엑셀/JSON) · 파일로 불러오기              */
+/* ============================================================ */
+
+/* 문자열/Blob을 파일로 즉시 다운로드한다(브라우저 표준 <a download> 방식). */
+function downloadBlob(content, filename, mime){
+  const blob = (content instanceof Blob) ? content : new Blob([content], {type: mime||'application/octet-stream'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url), 1000);
+}
+
+/* ①CABLE SCHEDULE(회로 목록)과 ②트레이 폭 계산(트레이 구간·회로 배치)을
+   하나의 JSON 파일로 함께 내보낸다. 트레이가 참조하는 회로번호(C.NO)를
+   스케줄과 같은 파일에 담아둬야, 나중에 다시 불러올 때 두 탭이 항상 같은
+   상태로 맞아떨어진다(따로 저장하면 스케줄만 바뀌었을 때 서로 어긋날 수 있음). */
+/* 파일명 뒤에 붙일 "YYMMDDHHmmss" 타임스탬프를 만든다. 예: 2026-08-31 08:26:01 → "260831082601" */
+function timestampYYMMDDHHmmss(){
+  const d = new Date();
+  const pad = n => String(n).padStart(2,'0');
+  const yy = String(d.getFullYear()).slice(-2);
+  return yy + pad(d.getMonth()+1) + pad(d.getDate()) + pad(d.getHours()) + pad(d.getMinutes()) + pad(d.getSeconds());
+}
+
+function exportScheduleJSON(){
+  const schedule = scheduleRows.map(r=>({cno:r.cno, use:r.use, from:r.from, to:r.to, type:r.type, core:r.core, size:r.size, line:r.line}));
+  const trays = buildTraysExportData();
+  downloadBlob(JSON.stringify({schedule, trays}, null, 2), `cable_tray_${timestampYYMMDDHHmmss()}.json`, 'application/json');
+}
+
+/* 회로(CABLE SCHEDULE) + 트레이 구간(②탭)을 시트 3개로 나눠 하나의 .xlsx로 내보낸다.
+   - CABLE_SCHEDULE: 회로 표 (기존과 동일한 형식)
+   - TRAY_LIST: 트레이 구간 헤더 정보(트레이순번을 키로 사용)
+   - TRAY_ROWS: 각 트레이 구간에 배치된 회로 행(트레이순번으로 TRAY_LIST와 연결).
+     C.NO로 연동된 행은 C.NO(+동일 C.NO 중 몇 번째인지 나타내는 C.NO_순번)만 저장하고,
+     "직접입력" 행만 나머지 항목을 실제 값으로 저장한다(JSON 내보내기와 동일한 방식). */
+function exportScheduleExcel(){
+  if(typeof XLSX==='undefined'){
+    alert('엑셀 내보내기 기능을 불러오지 못했습니다. 인터넷 연결을 확인한 뒤 페이지를 새로고침해 다시 시도해주세요. (그동안 "JSON 내보내기"는 인터넷 연결 없이도 사용할 수 있습니다.)');
+    return;
+  }
+  const wb = XLSX.utils.book_new();
+
+  const scheduleHeader = ['C.NO','용도','FROM','TO','종류','심수','사이즈','LINE'];
+  const scheduleRowsAoa = scheduleRows.map(r=>[r.cno, r.use, r.from, r.to, r.type, r.core, r.size, r.line]);
+  const wsSchedule = XLSX.utils.aoa_to_sheet([scheduleHeader, ...scheduleRowsAoa]);
+  XLSX.utils.book_append_sheet(wb, wsSchedule, 'CABLE_SCHEDULE');
+
+  const trays = buildTraysExportData();
+
+  const trayListHeader = ['트레이순번','CB.NO','설치위치','구간(FROM~TO)','길이(m)','여유율'];
+  const trayListAoa = trays.map((t,i)=>[i+1, t.no||'', t.loc||'', t.sec||'', t.len!=null?t.len:'', t.margin!=null?t.margin:'']);
+  const wsTrayList = XLSX.utils.aoa_to_sheet([trayListHeader, ...trayListAoa]);
+  XLSX.utils.book_append_sheet(wb, wsTrayList, 'TRAY_LIST');
+
+  const trayRowsHeader = ['트레이순번','NO','C.NO','C.NO_순번','용도','FROM','TO','종류','사이즈','심수','LINE','OD','KG'];
+  const trayRowsAoa = [];
+  trays.forEach((t,ti)=>{
+    (t.rows||[]).forEach((r,ri)=>{
+      if(r.cno){
+        trayRowsAoa.push([ti+1, ri+1, r.cno, r._occurrence!=null?r._occurrence:'', '', '', '', '', '', '', '', '', '']);
+      } else {
+        trayRowsAoa.push([ti+1, ri+1, '', '', r.use||'', r.from||'', r.to||'', r.type||'', r.size||'', r.core||'', r.line||'', r.od||'', r.kg||'']);
+      }
+    });
+  });
+  const wsTrayRows = XLSX.utils.aoa_to_sheet([trayRowsHeader, ...trayRowsAoa]);
+  XLSX.utils.book_append_sheet(wb, wsTrayRows, 'TRAY_ROWS');
+
+  XLSX.writeFile(wb, `cable_tray_${timestampYYMMDDHHmmss()}.xlsx`);
+}
+
+/* TRAY_LIST/TRAY_ROWS 시트가 있는 워크북인지 확인해, 있으면 두 시트를 exportScheduleJSON()과
+   같은 {trays:[...]} 구조로 복원한다("전체 내보내기(JSON)"과 동일한 후속 처리를 재사용하기 위함). */
+function looksLikeCombinedExcel(wb){
+  return wb.SheetNames.includes('TRAY_LIST') && wb.SheetNames.includes('TRAY_ROWS');
+}
+
+function parseTraysFromWorkbook(wb){
+  const listAoa = XLSX.utils.sheet_to_json(wb.Sheets['TRAY_LIST'], {header:1, raw:false, defval:''});
+  const rowsAoa = XLSX.utils.sheet_to_json(wb.Sheets['TRAY_ROWS'], {header:1, raw:false, defval:''});
+  const listBody = listAoa.slice(1).filter(r=>r.some(c=>String(c).trim()!==''));
+  const rowsBody = rowsAoa.slice(1).filter(r=>r.some(c=>String(c).trim()!==''));
+  const trays = listBody.map(r=>({
+    _seq: Number(r[0]),
+    no: r[1]||'', loc: r[2]||'', sec: r[3]||'',
+    len: r[4]!==''&&r[4]!=null ? Number(r[4]) : null,
+    margin: r[5]!==''&&r[5]!=null ? Number(r[5]) : null,
+    rows: []
+  }));
+  const bySeq = {};
+  trays.forEach(t=>{ bySeq[t._seq] = t; });
+  rowsBody.forEach(r=>{
+    const seq = Number(r[0]);
+    const t = bySeq[seq];
+    if(!t) return;
+    const cno = r[2];
+    if(cno){
+      const occStr = r[3];
+      t.rows.push({cno: cno, _occurrence: occStr!==''&&occStr!=null ? Number(occStr) : null});
+    } else {
+      t.rows.push({
+        cno: null,
+        use: r[4]||'', from: r[5]||'', to: r[6]||'', type: r[7]||'',
+        size: r[8]||'', core: r[9]||'', line: r[10]||'', od: r[11]||'', kg: r[12]||''
+      });
+    }
+  });
+  trays.forEach(t=>delete t._seq);
+  return trays;
+}
+
+/* 파일 선택창에서 고른 엑셀(.xlsx/.xls)·CSV·JSON 파일을 읽어, 기존의 "붙여넣기"
+   미리보기 파이프라인(previewImport → 추가/전체교체)에 그대로 태운다. 이렇게 하면
+   형식 인식·검증 로직을 중복 구현하지 않아도 된다. */
+function onScheduleImportFile(event){
+  const file = event.target.files[0];
+  if(!file) return;
+  const name = file.name.toLowerCase();
+  const reader = new FileReader();
+  const feedText = (text)=>{
+    document.getElementById('importText').value = text;
+    onImportTextChange();
+    previewImport();
+  };
+  if(name.endsWith('.xlsx') || name.endsWith('.xls')){
+    if(typeof XLSX==='undefined'){
+      document.getElementById('importSummary').innerHTML =
+        '<div class="info-box-err info-box">⚠ 엑셀 읽기 기능을 불러오지 못했습니다. 인터넷 연결을 확인한 뒤 페이지를 새로고침해 다시 시도해주세요. (CSV·JSON 파일은 인터넷 연결 없이도 불러올 수 있습니다.)</div>';
+      event.target.value = '';
+      return;
+    }
+    reader.onload = (e)=>{
+      const data = new Uint8Array(e.target.result);
+      const wb = XLSX.read(data, {type:'array'});
+      if(looksLikeCombinedExcel(wb)){
+        // "엑셀 내보내기(전체)"로 만든 파일(회로+트레이 구간 시트 3개 포함) — 전용 미리보기로 안내
+        const scheduleSheetName = wb.SheetNames.includes('CABLE_SCHEDULE') ? 'CABLE_SCHEDULE' : wb.SheetNames[0];
+        const scheduleAoa = XLSX.utils.sheet_to_json(wb.Sheets[scheduleSheetName], {header:1, raw:false, defval:''});
+        const scheduleBody = scheduleAoa.slice(1).filter(r=>r.some(c=>String(c).trim()!==''));
+        const schedule = scheduleBody.map(r=>({cno:r[0]||'', use:r[1]||'', from:r[2]||'', to:r[3]||'', type:r[4]||'', core:r[5]||'', size:r[6]||'', line:r[7]||''}));
+        const trays = parseTraysFromWorkbook(wb);
+        previewCombinedImport({schedule, trays});
+        return;
+      }
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      const aoa = XLSX.utils.sheet_to_json(sheet, {header:1, raw:false, defval:''});
+      const tsv = aoa.map(r=>r.map(c=>String(c==null?'':c)).join('\t')).join('\n');
+      feedText(tsv);
+    };
+    reader.readAsArrayBuffer(file);
+  } else if(name.endsWith('.json')){
+    reader.onload = (e)=>{
+      let data;
+      try { data = JSON.parse(e.target.result); }
+      catch(err){
+        document.getElementById('importSummary').innerHTML = `<div class="info-box-err info-box">⚠ JSON 파일을 읽을 수 없습니다: ${err.message}</div>`;
+        return;
+      }
+      if(looksLikeCombinedBackup(data)){
+        // "전체 내보내기"로 만든 파일(회로+트레이 구간 포함) — 전용 미리보기로 안내
+        previewCombinedImport(data);
+      } else {
+        // 회로만 있는 예전 방식 JSON 배열 — 기존 붙여넣기 파이프라인 그대로 사용
+        feedText(e.target.result);
+      }
+    };
+    reader.readAsText(file);
+  } else {
+    // .csv는 텍스트 그대로 읽어서 넘기면 parseImportText가 알아서 판별한다.
+    reader.onload = (e)=>feedText(e.target.result);
+    reader.readAsText(file);
+  }
+  event.target.value = ''; // 같은 파일을 다시 선택해도 change 이벤트가 뜨도록 초기화
+}
+
+/* {schedule:[...], trays:[...]} 형태인지 판별 — "전체 내보내기"가 만드는 파일의 표식. */
+function looksLikeCombinedBackup(data){
+  return !!(data && typeof data==='object' && !Array.isArray(data) && Array.isArray(data.trays));
+}
+
+let lastCombinedImport = null;
+
+function previewCombinedImport(data){
+  lastCombinedImport = data;
+  // 회로 붙여넣기용 미리보기/버튼은 이 파일에는 해당하지 않으므로 숨겨둔다.
+  document.getElementById('importPreviewBox').style.display = 'none';
+  document.getElementById('importAppendBtn').disabled = true;
+  document.getElementById('importReplaceBtn').disabled = true;
+  const schedCount = Array.isArray(data.schedule) ? data.schedule.length : 0;
+  const trayCnt = Array.isArray(data.trays) ? data.trays.length : 0;
+  document.getElementById('importSummary').innerHTML = `
+    <div class="info-box-blue info-box">
+      전체 백업 파일입니다 — 회로(C.NO) ${schedCount}건, 트레이 구간 ${trayCnt}건이 들어있습니다. 아래 버튼으로 ①CABLE SCHEDULE과 ②트레이 폭 계산을 한 번에 반영하세요.
+      <div style="display:flex; gap:8px; margin-top:8px; flex-wrap:wrap">
+        <button class="btn sm" onclick="commitCombinedImport('append')">한 번에 불러오기(기존에 추가)</button>
+        <button class="btn danger sm" onclick="commitCombinedImport('replace')">한 번에 불러오기(전체 교체)</button>
+      </div>
+    </div>`;
+}
+
+function commitCombinedImport(mode){
+  if(!lastCombinedImport) return;
+  const data = lastCombinedImport;
+  const schedule = Array.isArray(data.schedule) ? data.schedule : [];
+  const trays = Array.isArray(data.trays) ? data.trays : [];
+
+  // 1) 회로(CABLE SCHEDULE)부터 반영 — 트레이가 참조할 C.NO가 먼저 존재해야 매칭된다.
+  if(mode==='replace') scheduleRows = [];
+  schedule.forEach(r=>{
+    scheduleRows.push(newScheduleRow({cno:r.cno, use:r.use, from:r.from, to:r.to, type:r.type, core:r.core, size:r.size, line:r.line}));
+  });
+  renderScheduleWork();
+
+  // 2) 트레이 구간 반영(같은 mode 적용)
+  let missing = [];
+  try { missing = importTraysFromData({trays}, mode); }
+  catch(err){ /* 트레이 데이터가 없거나 형식이 다르면 회로만 반영하고 넘어간다 */ }
+
+  let msg = `회로 ${schedule.length}건 + 트레이 구간 ${trays.length}건을 ${mode==='replace'?'전체 교체':'추가'}로 반영했습니다.`;
+  if(missing.length) msg += ` 다만 회로번호 [${missing.join(', ')}]는 매칭되는 회로를 찾지 못해 "직접입력"으로 복원되었습니다.`;
+  document.getElementById('importSummary').innerHTML = `<div class="${missing.length?'info-box':'info-box-blue info-box'}">${msg}</div>`;
+  document.getElementById('importText').value = '';
+  lastCombinedImport = null;
+}
+
+/* 계산기 탭의 모든 C.NO 드롭다운 옵션을 최신 스케줄로 재구성.
+   현재 선택이 삭제되었으면 "직접입력(수동)"으로 자동 폴백한다. */
+function refreshAllCNODropdowns(){
+  document.querySelectorAll('select[id$="_cno"]').forEach(sel=>{
+    const cur = sel.value;
+    const options = ['<option value="manual">직접입력(수동)</option>']
+      .concat(scheduleRows.map(r=>`<option value="${r._id}">${r.cno||'(미입력)'}</option>`));
+    sel.innerHTML = options.join('');
+    if(cur!=='manual' && !scheduleRows.some(r=>String(r._id)===cur)){
+      sel.value = 'manual';
+      const rid = sel.id.slice(0, -'_cno'.length);
+      const trayId = rid.split('_r')[0];
+      onRowCNOChange(trayId, rid);
+    } else {
+      sel.value = cur;
+    }
+  });
+}
+
+/* CABLE SCHEDULE의 내용(용도/FROM/TO/사양 등)이 바뀌면, 이미 해당 C.NO를
+   선택해 둔 계산기 행들의 자동입력 값도 함께 갱신한다. */
+function syncBoundRows(){
+  document.querySelectorAll('select[id$="_cno"]').forEach(sel=>{
+    if(sel.value==='manual') return;
+    const rid = sel.id.slice(0, -'_cno'.length);
+    const trayId = rid.split('_r')[0];
+    onRowCNOChange(trayId, rid);
+  });
+}
+
+function addTray(){
+  trayCount++;
+  const id = 'tray'+trayCount;
+  rowCounters[id] = 0;
+  const margin = document.getElementById('G_margin').value || 1.1;
+  const nextNo = generateNextTrayNo();
+  const div = document.createElement('div');
+  div.className = 'card';
+  div.id = id;
+  div.innerHTML = `
+    <div class="tray-card-head">
+      <span class="name">트레이 구간 #${trayCount}</span>
+      <div class="no-print" style="display:flex; gap:6px">
+        <button class="btn outline sm" onclick="copyTray('${id}')" title="이 구간의 설치정보·케이블 구성을 그대로 복사해 새 구간을 만듭니다">구간 복사</button>
+        <button class="btn danger sm" onclick="removeTray('${id}')">구간 삭제</button>
+      </div>
+    </div>
+    <div class="scroll-box" style="max-height:none; margin-bottom:12px">
+      <table class="data-table editable">
+        <thead><tr><th>CB.NO</th><th>설치위치</th><th>구간(FROM ~ TO)</th><th>길이(m)</th><th>여유율</th></tr></thead>
+        <tbody><tr>
+          <td><input id="${id}_no" type="text" placeholder="예: SS01" value="${nextNo}" oninput="checkTrayDupNo(); refreshSummary()"></td>
+          <td><input id="${id}_loc" type="text" placeholder="예: 전기실"></td>
+          <td><input id="${id}_sec" type="text" placeholder="예: B1 분기 ~ 전기실"></td>
+          <td><input id="${id}_len" type="number" step="0.1" oninput="refreshSummary()"></td>
+          <td><input id="${id}_margin" type="number" step="0.01" min="1" value="${margin}" oninput="calcTray('${id}')"></td>
+        </tr></tbody>
+      </table>
+    </div>
+    <div class="scroll-box" style="max-height:360px">
+      <table class="data-table editable">
+        <thead>
+          <tr>
+            <th rowspan="2" style="width:32px">NO</th>
+            <th rowspan="2" style="width:90px">C.NO.</th>
+            <th rowspan="2" style="width:100px">용도</th>
+            <th rowspan="2" style="width:100px">FROM</th>
+            <th rowspan="2" style="width:100px">TO</th>
+            <th colspan="4">CABLE</th>
+            <th colspan="3">CABLE SPEC</th>
+            <th rowspan="2" style="width:90px">폭 기여량(mm)</th>
+            <th rowspan="2" class="no-print" style="width:40px"></th>
+          </tr>
+          <tr>
+            <th style="width:110px">종류</th><th style="width:80px">사이즈(㎟)</th><th style="width:60px">CORE</th><th style="width:60px">LINE</th>
+            <th style="width:80px">단면적(㎟)</th><th style="width:90px">외경 OD(mm)</th><th style="width:70px">kg/m</th>
+          </tr>
+        </thead>
+        <tbody id="${id}_body"></tbody>
+        <tfoot>
+          <tr class="row-total"><td colspan="12">합계 ΣOD (mm)</td><td id="${id}_sumW">0</td><td class="no-print"></td></tr>
+        </tfoot>
+      </table>
+    </div>
+    <button class="btn outline sm no-print" style="margin-top:8px" onclick="addRow('${id}')">+ 케이블 행 추가</button>
+    <div class="res-card-grid" style="margin-top:12px; grid-template-columns:repeat(5,1fr)">
+      <div class="res-card"><div class="res-card-label">필요폭 (ΣOD×여유율)</div><div class="res-card-val" id="${id}_need">-</div></div>
+      <div class="res-card"><div class="res-card-label">선정폭 (표준 올림)</div><div class="res-card-val" id="${id}_sel" style="color:var(--accent-dark)">-</div></div>
+      <div class="res-card"><div class="res-card-label">참고 점유율</div><div class="res-card-val" id="${id}_fill">-</div></div>
+      <div class="res-card"><div class="res-card-label">판정</div><div class="res-card-val" id="${id}_judge">-</div></div>
+      <div class="res-card"><div class="res-card-label">중량 합계(참고, kg/m 입력분)</div><div class="res-card-val" id="${id}_kg_total" style="font-size:14px">-</div></div>
+    </div>
+    <div class="note-text">중량(kg/m)은 ④CABLE SPEC의 단위중량(kg/km) 데이터를 자동 조회해 채웁니다(읽기전용). 데이터가 없는 조합("직접입력" 등)만 참고용으로 직접 입력할 수 있습니다.</div>
+    <div id="${id}_warn"></div>
+  `;
+  document.getElementById('trayContainer').appendChild(div);
+  checkTrayDupNo();
+  return id;
+}
+
+/* 마지막 트레이 구간의 CB.NO에서 숫자 부분만 +1 해서 다음 번호를 만든다.
+   예: "SS1"→"SS2", "SS01"→"SS02"(0-padding 유지). 숫자가 없으면 원본 그대로 반환하고,
+   트레이 구간이 아직 하나도 없으면 빈 문자열을 반환한다(사용자가 첫 값을 직접 입력하거나
+   "예시 데이터 불러오기"로 채우도록). */
+function nextTrayNo(lastNo){
+  if(!lastNo) return '';
+  const m = String(lastNo).match(/^(.*?)(\d+)(\D*)$/);
+  if(!m) return lastNo;
+  const prefix = m[1], numStr = m[2], suffix = m[3];
+  const width = numStr.length;
+  const num = parseInt(numStr, 10) + 1;
+  const newNumStr = String(num).padStart(width, '0');
+  return prefix + newNumStr + suffix;
+}
+
+function generateNextTrayNo(){
+  const blocks = [...document.getElementById('trayContainer').children];
+  if(!blocks.length) return '';
+  const lastId = blocks[blocks.length-1].id;
+  const lastNoEl = document.getElementById(lastId+'_no');
+  return nextTrayNo(lastNoEl ? lastNoEl.value : '');
+}
+
+/* 트레이 구간들의 CB.NO(${id}_no)가 서로 중복되는지 확인해 #trayDupWarning에 경고를 표시한다.
+   ①CABLE SCHEDULE의 C.NO 중복 경고(findDuplicateCnos)와 같은 패턴. */
+function checkTrayDupNo(){
+  const box = document.getElementById('trayDupWarning');
+  if(!box) return;
+  const blocks = [...document.getElementById('trayContainer').children];
+  const counts = {};
+  blocks.forEach(el=>{
+    const v = (document.getElementById(el.id+'_no').value || '').trim();
+    if(!v) return;
+    counts[v] = (counts[v]||0) + 1;
+  });
+  const dups = Object.keys(counts).filter(k=>counts[k] > 1);
+  if(!dups.length){ box.innerHTML = ''; return; }
+  box.innerHTML = `<div class="info-box-err info-box" style="margin:8px 0">⚠ CB.NO가 중복되었습니다: <strong>${dups.join(', ')}</strong> — 구간을 구분할 수 있도록 CB.NO를 서로 다르게 입력해 주세요.</div>`;
+}
+
+function removeTray(id){
+  const el = document.getElementById(id);
+  if(el) el.remove();
+  checkTrayDupNo();
+  refreshSummary();
+}
+
+/* 기존 트레이 구간(설치정보 + 케이블 행 전체)을 그대로 복제해 새 구간을 만든다.
+   실무에서 기존 트레이에서 "분기"되는 새 구간을 만들 때, 전체를 복사한 뒤
+   불필요한 회로만 몇 개 지우는 흐름을 지원하기 위함이다. */
+function copyTray(srcId){
+  const newId = addTray();
+  /* CB.NO('no')는 addTray()가 이미 자동 채번했으므로 여기서는 그대로 두고,
+     그 외 설치정보만 원본에서 그대로 복사한다. */
+  ['loc','sec','len','margin'].forEach(f=>{
+    const s = document.getElementById(srcId+'_'+f);
+    const d = document.getElementById(newId+'_'+f);
+    if(s && d) d.value = s.value;
+  });
+  const srcBody = document.getElementById(srcId+'_body');
+  [...srcBody.querySelectorAll('tr')].forEach(tr=>{
+    const srcRid = tr.id;
+    const cnoVal = document.getElementById(srcRid+'_cno').value;
+    const newRid = addRow(newId, cnoVal!=='manual' ? cnoVal : null);
+    copyRowInto(newId, newRid, srcRid);
+  });
+  calcTray(newId);
+  const newEl = document.getElementById(newId);
+  if(newEl) newEl.scrollIntoView({behavior:'smooth', block:'start'});
+  return newId;
+}
+
+/* copyTray 전용 헬퍼: C.NO.가 연결된 행은 addRow()의 자동 반영으로 이미 원본과
+   동일해지므로 손댈 필요가 없고, "직접입력(수동)" 행만 실제 입력값을 그대로 옮겨준다. */
+function copyRowInto(newId, newRid, srcRid){
+  const cnoVal = document.getElementById(srcRid+'_cno').value;
+  if(cnoVal !== 'manual') return;
+
+  const srcType = document.getElementById(srcRid+'_type').value;
+  const srcCore = document.getElementById(srcRid+'_core').value;
+  const srcSizeEl = document.getElementById(srcRid+'_size');
+  const srcSize = srcSizeEl ? srcSizeEl.value : '';
+  const srcLine = document.getElementById(srcRid+'_line').value;
+  const srcOd = document.getElementById(srcRid+'_od').value;
+  const srcKg = document.getElementById(srcRid+'_kg').value;
+
+  document.getElementById(newRid+'_use').value = document.getElementById(srcRid+'_use').value;
+  document.getElementById(newRid+'_from').value = document.getElementById(srcRid+'_from').value;
+  document.getElementById(newRid+'_to').value = document.getElementById(srcRid+'_to').value;
+
+  document.getElementById(newRid+'_type').value = srcType;
+  onRowTypeChange(newId, newRid);
+
+  if(srcType !== '직접입력'){
+    document.getElementById(newRid+'_core').value = srcCore;
+  }
+  onRowCoreChange(newId, newRid);
+
+  const newSizeEl = document.getElementById(newRid+'_size');
+  if(newSizeEl) newSizeEl.value = srcSize;
+  document.getElementById(newRid+'_line').value = srcLine;
+  updateOD(newId, newRid);
+
+  if(srcType === '직접입력'){
+    document.getElementById(newRid+'_od').value = srcOd;
+    document.getElementById(newRid+'_kg').value = srcKg;
+  }
+}
+
+/* ============================================================ */
+/* ② 트레이 구간 내보내기(JSON) · 파일로 불러오기                     */
+/* — C.NO로 연결된 행은 회로번호(cno) 문자열만 저장해두고, 불러올 때  */
+/*   현재 ①CABLE SCHEDULE에서 같은 cno를 다시 찾아 연결한다.          */
+/* ============================================================ */
+/* C.NO 문자열이 CABLE SCHEDULE 안에서 중복될 수 있으므로, occurrence(같은 cno를 가진
+   행들 중 몇 번째인지, 0부터 시작)를 함께 넘기면 그 행을 정확히 짚어낸다.
+   occurrence를 안 주거나 범위를 벗어나면(과거 버전으로 내보낸 파일 등) 첫 번째 일치 행으로
+   대체한다 — 중복이 없는 절대다수의 경우 이 폴백만으로도 항상 정확하다. */
+function findScheduleRowByCno(cno, occurrence){
+  const matches = scheduleRows.filter(r=>r.cno===cno);
+  if(!matches.length) return null;
+  if(occurrence!=null && matches[occurrence]) return matches[occurrence];
+  return matches[0];
+}
+
+/* 트레이 구간 전체를 내보내기용 데이터(배열)로 변환한다. 파일 다운로드는 하지 않고
+   데이터만 반환 — ①CABLE SCHEDULE 탭의 "전체 내보내기"가 이 데이터에 스케줄을
+   더해 하나의 파일로 합쳐서 내려받는다. */
+function buildTraysExportData(){
+  const blocks = [...document.getElementById('trayContainer').children];
+  const trays = blocks.map(el=>{
+    const id = el.id;
+    const rows = [...document.getElementById(id+'_body').querySelectorAll('tr')].map(tr=>{
+      const rid = tr.id;
+      const cnoVal = document.getElementById(rid+'_cno').value;
+      if(cnoVal !== 'manual'){
+        const row = findScheduleRow(Number(cnoVal));
+        if(row){
+          // 같은 cno를 가진 행들 중 이 행이 몇 번째인지 기록해둔다(중복 C.NO 대비).
+          const sameCno = scheduleRows.filter(r=>r.cno===row.cno);
+          const occurrence = sameCno.findIndex(r=>r._id===row._id);
+          return {cno: row.cno, _occurrence: occurrence};
+        }
+      }
+      const sizeEl = document.getElementById(rid+'_size');
+      return {
+        cno: null,
+        use: document.getElementById(rid+'_use').value,
+        from: document.getElementById(rid+'_from').value,
+        to: document.getElementById(rid+'_to').value,
+        type: document.getElementById(rid+'_type').value,
+        core: document.getElementById(rid+'_core').value,
+        size: sizeEl ? sizeEl.value : '',
+        line: document.getElementById(rid+'_line').value,
+        od: document.getElementById(rid+'_od').value,
+        kg: document.getElementById(rid+'_kg').value,
+      };
+    });
+    return {
+      no: document.getElementById(id+'_no').value,
+      loc: document.getElementById(id+'_loc').value,
+      sec: document.getElementById(id+'_sec').value,
+      len: document.getElementById(id+'_len').value,
+      margin: document.getElementById(id+'_margin').value,
+      rows
+    };
+  });
+  return trays;
+}
+
+/* 저장된 행 데이터(rowData) 하나를 newId 트레이 안에 복원한다.
+   cno가 있고 현재 CABLE SCHEDULE에서 같은 cno를 찾으면 그 회로에 연결(자동 잠금)하고,
+   못 찾으면(또는 원래 수동입력이었으면) 저장된 값 그대로 "직접입력" 행으로 복원한다.
+   회로번호가 있었는데 매칭에 실패한 경우 그 cno를 반환해 호출부에서 안내할 수 있게 한다. */
+function importTrayRowFromData(newId, rowData){
+  if(rowData.cno){
+    const match = findScheduleRowByCno(rowData.cno, rowData._occurrence);
+    if(match){
+      addRow(newId, match._id);
+      return null;
+    }
+  }
+  const newRid = addRow(newId);
+  document.getElementById(newRid+'_use').value = rowData.use||'';
+  document.getElementById(newRid+'_from').value = rowData.from||'';
+  document.getElementById(newRid+'_to').value = rowData.to||'';
+
+  const type = rowData.type || 'XLPE';
+  document.getElementById(newRid+'_type').value = type;
+  onRowTypeChange(newId, newRid);
+
+  if(type !== '직접입력' && rowData.core!=null){
+    document.getElementById(newRid+'_core').value = rowData.core;
+  }
+  onRowCoreChange(newId, newRid);
+
+  const sizeEl = document.getElementById(newRid+'_size');
+  if(sizeEl && rowData.size!=null) sizeEl.value = rowData.size;
+  if(rowData.line!=null) document.getElementById(newRid+'_line').value = rowData.line;
+  updateOD(newId, newRid);
+
+  if(type === '직접입력'){
+    if(rowData.od!=null) document.getElementById(newRid+'_od').value = rowData.od;
+    if(rowData.kg!=null) document.getElementById(newRid+'_kg').value = rowData.kg;
+  }
+  return rowData.cno || null; // 원래 회로 연결이었는데 못 찾은 경우에만 값이 채워짐
+}
+
+function importTraysFromData(data, mode){
+  if(!data || !Array.isArray(data.trays)) throw new Error('올바른 트레이 백업 파일이 아닙니다(trays 배열을 찾을 수 없음).');
+  if(mode==='replace'){
+    document.getElementById('trayContainer').innerHTML = '';
+    trayCount = 0;
+    rowCounters = {};
+  }
+  const missing = [];
+  data.trays.forEach(t=>{
+    const newId = addTray();
+    document.getElementById(newId+'_no').value = t.no||'';
+    document.getElementById(newId+'_loc').value = t.loc||'';
+    document.getElementById(newId+'_sec').value = t.sec||'';
+    if(t.len!=null) document.getElementById(newId+'_len').value = t.len;
+    if(t.margin!=null) document.getElementById(newId+'_margin').value = t.margin;
+    (t.rows||[]).forEach(rowData=>{
+      const missingCno = importTrayRowFromData(newId, rowData);
+      if(missingCno) missing.push(missingCno);
+    });
+    calcTray(newId);
+  });
+  refreshSummary();
+  return missing;
+}
+
+function addRow(trayId, presetCnoId){
+  rowCounters[trayId]++;
+  const rid = trayId+'_r'+rowCounters[trayId];
+  const tbody = document.getElementById(trayId+'_body');
+  const tr = document.createElement('tr');
+  tr.id = rid;
+  const cnoOptions = ['<option value="manual">직접입력(수동)</option>']
+    .concat(scheduleRows.map(r=>`<option value="${r._id}">${r.cno||'(미입력)'}</option>`)).join('');
+  const typeOptions = ['XLPE','직접입력'].map(t=>`<option value="${t}">${t}</option>`).join('');
+  tr.innerHTML = `
+    <td>${rowCounters[trayId]}</td>
+    <td><select id="${rid}_cno" onchange="onRowCNOChange('${trayId}','${rid}')">${cnoOptions}</select></td>
+    <td><input type="text" id="${rid}_use" placeholder="용도"></td>
+    <td><input type="text" id="${rid}_from" placeholder="FROM"></td>
+    <td><input type="text" id="${rid}_to" placeholder="TO"></td>
+    <td><select id="${rid}_type" onchange="onRowTypeChange('${trayId}','${rid}')">${typeOptions}</select></td>
+    <td id="${rid}_sizeCell"></td>
+    <td><select id="${rid}_core" onchange="onRowCoreChange('${trayId}','${rid}')"></select></td>
+    <td><input type="number" class="line-input" id="${rid}_line" value="1" min="1" step="1" oninput="calcTray('${trayId}')"></td>
+    <td id="${rid}_area">-</td>
+    <td><input type="number" id="${rid}_od" step="0.1" oninput="calcTray('${trayId}')" title="케이블DATA 선택 시 자동 조회, '직접입력' 선택 시에만 직접 입력"></td>
+    <td><input type="number" id="${rid}_kg" step="0.01" placeholder="선택입력" title="케이블DATA 선택 시 자동 조회, 데이터 없는 조합만 직접 입력(선택 사항)" oninput="calcTray('${trayId}')"></td>
+    <td id="${rid}_w">-</td>
+    <td class="no-print"><button class="btn danger sm icon-x" onclick="removeRow('${trayId}','${rid}')" title="행 삭제">×</button></td>
+  `;
+  tbody.appendChild(tr);
+  if(presetCnoId!=null){
+    document.getElementById(rid+'_cno').value = String(presetCnoId);
+  }
+  onRowCNOChange(trayId, rid);
+  return rid;
+}
+
+function removeRow(trayId, rid){
+  const el = document.getElementById(rid);
+  if(el) el.remove();
+  calcTray(trayId);
+}
+
+/* C.NO.을 선택하면 CABLE SCHEDULE의 회로 정보를 그대로 끌어와
+   용도/FROM/TO/케이블종류(종류·심수·사이즈·LINE)를 자동으로 채우고
+   해당 입력칸을 잠근다. "직접입력(수동)"을 선택하면 모두 잠금 해제되어
+   기존처럼 자유롭게 입력할 수 있다. (저압용 트레이만 사용하므로 전압 열은 없음) */
+function onRowCNOChange(trayId, rid){
+  const cnoSel = document.getElementById(rid+'_cno');
+  if(!cnoSel) return;
+  const sel = cnoSel.value;
+  const useEl=document.getElementById(rid+'_use'), fromEl=document.getElementById(rid+'_from'), toEl=document.getElementById(rid+'_to');
+  const typeEl = document.getElementById(rid+'_type');
+  let preset = null;
+  if(sel==='manual'){
+    [useEl,fromEl,toEl].forEach(el=>{ el.disabled=false; el.classList.remove('auto-filled'); });
+    typeEl.disabled=false; typeEl.classList.remove('auto-filled');
+  } else {
+    const row = findScheduleRow(Number(sel));
+    if(!row) return;
+    useEl.value=row.use||''; useEl.disabled=true; useEl.classList.add('auto-filled');
+    fromEl.value=row.from||''; fromEl.disabled=true; fromEl.classList.add('auto-filled');
+    toEl.value=row.to||''; toEl.disabled=true; toEl.classList.add('auto-filled');
+    typeEl.value = row.type; typeEl.disabled=true; typeEl.classList.add('auto-filled');
+    preset = {core:row.core, size:row.size, line:row.line};
+  }
+  onRowTypeChange(trayId, rid, preset);
+}
+
+function isRowLocked(rid){
+  const el = document.getElementById(rid+'_cno');
+  return !!el && el.value !== 'manual';
+}
+
+function onRowTypeChange(trayId, rid, preset){
+  const type = document.getElementById(rid+'_type').value;
+  const coreSel = document.getElementById(rid+'_core');
+  const locked = isRowLocked(rid);
+  coreSel.innerHTML = '';
+  if(type==='직접입력'){
+    coreSel.innerHTML = '<option value="1">-</option>';
+    coreSel.disabled = true;
+    coreSel.classList.remove('auto-filled');
+  } else {
+    (STD_CORES[type]||[1]).forEach(c=>{
+      const opt = document.createElement('option');
+      opt.value = c; opt.textContent = c+'심';
+      coreSel.appendChild(opt);
+    });
+    coreSel.disabled = locked;
+    coreSel.classList.toggle('auto-filled', locked);
+  }
+  if(preset && preset.core!=null) coreSel.value = preset.core;
+  onRowCoreChange(trayId, rid, preset);
+}
+
+function onRowCoreChange(trayId, rid, preset){
+  const type = document.getElementById(rid+'_type').value;
+  const core = document.getElementById(rid+'_core').value;
+  const locked = isRowLocked(rid);
+  const sizeCell = document.getElementById(rid+'_sizeCell');
+  if(type==='직접입력'){
+    const cur = preset && preset.size!=null ? preset.size : '';
+    sizeCell.innerHTML = `<input type="text" id="${rid}_size" value="${cur}" placeholder="사이즈" oninput="onRowSizeChange('${trayId}','${rid}')">`;
+  } else {
+    const sizes = sizesFor(type, core);
+    const cur = preset && preset.size!=null ? preset.size : (sizes[0]!=null?sizes[0]:'');
+    sizeCell.innerHTML = `<select id="${rid}_size" onchange="onRowSizeChange('${trayId}','${rid}')">${sizes.map(s=>`<option value="${s}" ${Number(s)===Number(cur)?'selected':''}>${s}</option>`).join('')}</select>`;
+  }
+  const sizeEl = document.getElementById(rid+'_size');
+  if(sizeEl){ sizeEl.disabled = locked; sizeEl.classList.toggle('auto-filled', locked); }
+  // LINE(가닥수)도 C.NO 선택 시 ①CABLE SCHEDULE 값 그대로 불러와 잠근다(수동 회로만 직접 입력 가능).
+  const lineEl = document.getElementById(rid+'_line');
+  if(lineEl){
+    if(preset && preset.line!=null) lineEl.value = preset.line;
+    lineEl.disabled = locked;
+    lineEl.classList.toggle('auto-filled', locked);
+  }
+  updateOD(trayId, rid, preset);
+}
+
+function onRowSizeChange(trayId, rid){
+  updateOD(trayId, rid);
+}
+
+/* 케이블종류·심수·사이즈를 고르면 외경(OD)은 케이블DATA에서 자동으로 채워지며(읽기전용),
+   "직접입력"을 고른 경우에만 사용자가 mm 값을 직접 타이핑할 수 있다. */
+function updateOD(trayId, rid, preset){
+  const type = document.getElementById(rid+'_type').value;
+  const core = document.getElementById(rid+'_core').value;
+  const size = document.getElementById(rid+'_size').value;
+  const odInput = document.getElementById(rid+'_od');
+  if(type==='직접입력'){
+    odInput.disabled = false;
+    odInput.classList.remove('auto-filled');
+    odInput.placeholder = 'mm 입력';
+    if(preset && preset.custom!=null) odInput.value = preset.custom;
+  } else {
+    odInput.disabled = true;
+    odInput.classList.add('auto-filled');
+    const od = odFor(type, core, size);
+    if(od!=null){ odInput.value = od; odInput.placeholder=''; }
+    else { odInput.value = ''; odInput.placeholder = '데이터없음'; }
+  }
+  /* 단위중량(kg/m)도 확인된 데이터가 있으면 OD와 동일한 방식으로 자동 채움(읽기전용).
+     데이터가 없으면(연구 미완료 조합) 편집 가능한 빈 칸으로 두어 필요 시 직접 입력. */
+  const kgInput = document.getElementById(rid+'_kg');
+  if(kgInput){
+    const w = (type!=='직접입력') ? weightFor(type, core, size) : null; // kg/km
+    if(w!=null){
+      kgInput.value = Math.round((w/1000)*1000)/1000;
+      kgInput.disabled = true;
+      kgInput.classList.add('auto-filled');
+      kgInput.placeholder = '';
+    } else {
+      kgInput.value = '';
+      kgInput.disabled = false;
+      kgInput.classList.remove('auto-filled');
+      kgInput.placeholder = '선택입력';
+    }
+  }
+  calcTray(trayId);
+}
+
+function fmt(n, d){
+  if(n===null || n===undefined || isNaN(n)) return '-';
+  return Number(n).toLocaleString('ko-KR', {minimumFractionDigits:d||0, maximumFractionDigits:d||0});
+}
+function stdWidths(){
+  return (document.getElementById('G_widths').value||'')
+    .split(',').map(s=>parseFloat(s.trim())).filter(n=>!isNaN(n)).sort((a,b)=>a-b);
+}
+function selectStdWidth(required){
+  const list = stdWidths();
+  for(const w of list){ if(w >= required - 1e-9) return w; }
+  return list.length ? list[list.length-1] : required;
+}
+
+function calcTray(trayId){
+  const tbody = document.getElementById(trayId+'_body');
+  if(!tbody) return;
+  let sumW = 0;
+  let totalKg = 0, hasKg = false;
+  let hasErr = false;
+  [...tbody.querySelectorAll('tr')].forEach(tr=>{
+    const rid = tr.id;
+    const type = document.getElementById(rid+'_type').value;
+    const core = document.getElementById(rid+'_core').value;
+    const sizeEl = document.getElementById(rid+'_size');
+    const size = sizeEl ? sizeEl.value : '';
+    const line = parseFloat(document.getElementById(rid+'_line').value)||0;
+    // 외경(OD)은 항상 이 입력칸 하나에서 읽는다: DB 케이블은 자동조회되어 채워진(읽기전용) 값,
+    // "직접입력"은 사용자가 타이핑한 값 — 별도의 중복 컬럼을 두지 않는다.
+    const odRaw = parseFloat(document.getElementById(rid+'_od').value);
+    const od = isNaN(odRaw) ? null : odRaw;
+    const kgRaw = parseFloat(document.getElementById(rid+'_kg').value);
+    const kg = isNaN(kgRaw) ? null : kgRaw;
+    let area;
+    if(type==='직접입력'){
+      // 단면적은 참조 엑셀(CABLE SPEC.)과 동일한 방식(π/4×OD²)으로 OD로부터 자동 계산
+      area = (od!=null) ? Math.round(Math.PI/4*od*od) : null;
+    } else {
+      area = areaFor(type, core, size);
+    }
+    const areaCell = document.getElementById(rid+'_area');
+    const wCell = document.getElementById(rid+'_w');
+    if(od===null || od===undefined){
+      areaCell.textContent = '-';
+      wCell.textContent = '제외';
+      tr.classList.add('row-err');
+      hasErr = true;
+    } else {
+      // 폭 기여량은 LINE(그 회로의 병렬 가닥 수)만 곱한다 — 행 하나가 C.NO 회로 하나에 대응한다.
+      const w = od * line;
+      areaCell.textContent = area!=null ? fmt(area,0) : '-';
+      wCell.textContent = fmt(w,1);
+      tr.classList.remove('row-err');
+      sumW += w;
+    }
+    if(kg!=null){ totalKg += kg*line; hasKg = true; }
+  });
+
+  const margin = parseFloat(document.getElementById(trayId+'_margin').value) || 1.1;
+  const need = sumW * margin;
+  const sel = selectStdWidth(need);
+  const fill = sel>0 ? (sumW/sel*100) : 0;
+  const ok = sel >= need - 1e-9;
+
+  document.getElementById(trayId+'_sumW').textContent = fmt(sumW,1);
+  document.getElementById(trayId+'_need').textContent = fmt(need,1)+' mm';
+  document.getElementById(trayId+'_sel').textContent = 'W '+fmt(sel,0)+' mm';
+  document.getElementById(trayId+'_fill').textContent = fmt(fill,1)+' %';
+  const judgeEl = document.getElementById(trayId+'_judge');
+  judgeEl.innerHTML = ok ? '<span class="tag tag-ok">적합</span>' : '<span class="tag tag-err">표준폭 부족</span>';
+  const kgEl = document.getElementById(trayId+'_kg_total');
+  if(kgEl) kgEl.textContent = hasKg ? fmt(totalKg,1)+' kg/m' : '-';
+
+  const warnEl = document.getElementById(trayId+'_warn');
+  let warnHtml = '';
+  if(hasErr) warnHtml += '<div class="info-box-err info-box">⚠ 외경(OD) 데이터가 없는 행이 있어 해당 행은 합계에서 제외되었습니다. "직접입력"을 선택해 외경을 입력하세요.</div>';
+  if(fill > 100) warnHtml += '<div class="info-box-err info-box">⚠ 참고 점유율이 100%를 초과합니다 — 표준 폭 계열을 확인하세요.</div>';
+  warnEl.innerHTML = warnHtml;
+
+  refreshSummary();
+}
+
+function refreshSummary(){
+  checkTrayDupNo();
+  const body = document.getElementById('summaryBody');
+  body.innerHTML = '';
+  const blocks = [...document.getElementById('trayContainer').children];
+  let totalLen = 0;
+  blocks.forEach((el, i)=>{
+    const id = el.id;
+    const no = document.getElementById(id+'_no').value || ('#'+(i+1));
+    const sec = document.getElementById(id+'_sec').value || '-';
+    const lenRaw = parseFloat(document.getElementById(id+'_len').value);
+    const len = isNaN(lenRaw) ? null : lenRaw;
+    if(len!=null) totalLen += len;
+    const margin = document.getElementById(id+'_margin').value || '-';
+    const sumW = document.getElementById(id+'_sumW').textContent;
+    const need = document.getElementById(id+'_need').textContent;
+    const sel = document.getElementById(id+'_sel').textContent;
+    const judge = document.getElementById(id+'_judge').innerHTML;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${i+1}</td><td>${no}</td><td>${sec}</td><td>${len!=null?fmt(len,1):'-'}</td><td>${margin}</td><td>${sumW}</td><td>${need}</td><td>${sel}</td><td>${judge}</td>`;
+    body.appendChild(tr);
+  });
+  const totalLenEl = document.getElementById('summaryTotalLen');
+  if(totalLenEl) totalLenEl.textContent = fmt(totalLen,1);
+}
+
+/* "선정폭(W ○○○ mm)" 텍스트에서 규격 숫자만 뽑아낸다. 아직 계산 전(선정폭이 "-")인
+   구간은 "(미산정)"으로 묶어 표시한다. */
+function parseSelWidthLabel(selText){
+  const m = String(selText||'').match(/(\d+(?:\.\d+)?)/);
+  return m ? Number(m[1]) : null;
+}
+
+/* 트레이 구간을 추가할 때마다 쌓이는 길이(m)를 "선정폭(표준 트레이 규격)" 기준으로
+   묶어 합계를 낸 뒤 팝업으로 보여준다. */
+function showWidthLengthSummary(){
+  const blocks = [...document.getElementById('trayContainer').children];
+  const groups = {}; // key: 폭(mm) 또는 '미산정' -> {len, count}
+  let grandLen = 0, grandCount = 0;
+  blocks.forEach(el=>{
+    const id = el.id;
+    const lenRaw = parseFloat(document.getElementById(id+'_len').value);
+    const len = isNaN(lenRaw) ? 0 : lenRaw;
+    const selText = document.getElementById(id+'_sel') ? document.getElementById(id+'_sel').textContent : '-';
+    const w = parseSelWidthLabel(selText);
+    const key = w!=null ? String(w) : '미산정';
+    if(!groups[key]) groups[key] = {w, len:0, count:0};
+    groups[key].len += len;
+    groups[key].count += 1;
+    grandLen += len; grandCount += 1;
+  });
+  const keys = Object.keys(groups).sort((a,b)=>{
+    if(a==='미산정') return 1; if(b==='미산정') return -1;
+    return Number(a)-Number(b);
+  });
+  let rows = keys.map(k=>{
+    const g = groups[k];
+    const label = k==='미산정' ? '미산정(폭 계산 전)' : ('W '+k+' mm');
+    return `<tr><td>${label}</td><td>${g.count}</td><td>${fmt(g.len,1)}</td></tr>`;
+  }).join('');
+  if(!rows) rows = `<tr><td colspan="3" style="text-align:center; color:var(--muted,#888)">등록된 트레이 구간이 없습니다.</td></tr>`;
+  const html = `
+    <div class="modal-overlay no-print" id="widthLenModal" onclick="if(event.target===this) closeWidthLengthSummary()">
+      <div class="modal-box">
+        <div class="modal-head">
+          <span class="card-title" style="margin:0">규격별(폭별) 길이 합계</span>
+          <button class="btn outline sm" onclick="closeWidthLengthSummary()">닫기</button>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>선정폭</th><th>구간 수(EA)</th><th>길이 합계(m)</th></tr></thead>
+          <tbody>${rows}</tbody>
+          <tfoot><tr class="row-total"><td>합계</td><td>${grandCount}</td><td>${fmt(grandLen,1)}</td></tr></tfoot>
+        </table>
+        <div class="note-text" style="margin-top:8px">"미산정"은 아직 케이블 행이 없거나 필요폭이 계산되지 않아 선정폭이 정해지지 않은 구간입니다.</div>
+      </div>
+    </div>`;
+  const holder = document.createElement('div');
+  holder.id = 'widthLenModalHolder';
+  holder.innerHTML = html;
+  document.body.appendChild(holder);
+}
+
+function closeWidthLengthSummary(){
+  const el = document.getElementById('widthLenModalHolder');
+  if(el) el.remove();
+}
+
+function onGlobalChange(){
+  [...document.getElementById('trayContainer').children].forEach(el=>calcTray(el.id));
+}
+
+function loadSample(){
+  // 1) CABLE SCHEDULE에 예시 회로 5건을 등록
+  scheduleRows = [
+    newScheduleRow({cno:'LA1', use:'일반부하', from:'전기실', to:'대합실',      type:'XLPE', core:4, size:35,  line:1}),
+    newScheduleRow({cno:'LA2', use:'일반부하', from:'전기실', to:'승강장',      type:'XLPE', core:4, size:35,  line:1}),
+    newScheduleRow({cno:'PA1', use:'동력부하', from:'전기실', to:'공조기계실#1', type:'XLPE', core:1, size:150, line:4}),
+    newScheduleRow({cno:'PA2', use:'동력부하', from:'전기실', to:'공조기계실#2', type:'XLPE', core:1, size:240, line:4}),
+    newScheduleRow({cno:'PB1', use:'동력부하', from:'전기실', to:'실외기실#1',  type:'XLPE', core:1, size:70,  line:4}),
+    newScheduleRow({cno:'PB2', use:'동력부하', from:'전기실', to:'실외기실#2',  type:'XLPE', core:1, size:95,  line:4}),
+  ];
+  renderScheduleWork();
+
+  // 2) 계산기 탭 트레이 구간을 만들고, 각 행에서 C.NO.를 선택해 자동 반영되는지 보여준다
+  const id = addTray();
+  document.getElementById(id+'_no').value = 'SS01';
+  document.getElementById(id+'_loc').value = '지하 1층';
+  document.getElementById(id+'_sec').value = 'B1 분기 ~ 전기실';
+  document.getElementById(id+'_len').value = 30;
+  scheduleRows.forEach(row=>{ addRow(id, row._id); });
+  calcTray(id);
+}
+
+/* ============================================================ */
+/* ④ CABLE SPEC 탭 렌더링                                        */
+/* ============================================================ */
+/* 1심·2심·3심·4심을 각각 독립된 표(카드)로 분리하고, 표마다 자기 머리글(구분/공칭단면적/…)을
+   따로 둔다. 표가 페이지를 넘길 때도 매 페이지 상단에 이 머리글이 반복되도록
+   <thead>를 유지한다(인쇄 CSS의 table-header-group 규칙과 함께 동작). */
+function buildSpecTables(){
+  const wrap = document.getElementById('specContainer');
+  const byType = {};
+  CABLE_SPEC_FULL.forEach(sec=>{ (byType[sec.type] = byType[sec.type]||[]).push(sec); });
+  let html = '';
+  Object.keys(byType).forEach(type=>{
+    byType[type].sort((a,b)=>a.core-b.core).forEach(sec=>{
+      html += `<div class="card"><div class="card-title">0.6/1kV ${type} — ${sec.core}심</div>`;
+      html += `<div class="scroll-box" style="max-height:420px"><table class="data-table"><thead><tr>
+        <th>구분</th><th>공칭단면적(㎟)</th><th>도체경(mm)</th><th>절연두께(mm)</th><th>시스두께(mm)</th><th>완성품외경 OD(mm)</th><th>단면적(㎟)</th><th>단위중량(kg/km)</th>
+      </tr></thead><tbody>`;
+      sec.rows.forEach(r=>{
+        html += `<tr><td>${type} ${sec.core}심</td><td>${r.size}</td><td>${r.cond}</td><td>${r.ins}</td><td>${r.sheath}</td><td><strong>${r.od}</strong></td><td>${r.area}</td><td>${r.w!=null?r.w:'-'}</td></tr>`;
+      });
+      html += `</tbody></table></div></div>`;
+    });
+  });
+  wrap.innerHTML = html;
+}
+
+/* ============================================================ */
+/* ⑤ 구기준(OLD) 참고 데이터 — 현재 UI에서는 미사용                */
+/* ============================================================ */
+function oldCategory(row){
+  if(row.k) return {label:'다심<120 (단면적30%)', val:row.k};
+  if(row.l) return {label:'다심≥120 (외경×30)', val:row.l};
+  if(row.m) return {label:'단심≤120 (외경합계)', val:row.m};
+  if(row.n) return {label:'단심120~500 (단면적28%)', val:row.n};
+  if(row.o) return {label:'단심≥500 (외경내측폭)', val:row.o};
+  return {label:'-', val:0};
+}
+function buildOldTable(){
+  let h = `<thead><tr><th>NO</th><th>회로명</th><th>FROM</th><th>TO</th><th>선종</th><th>SIZE</th><th>CORE</th><th>LINE</th>
+    <th>A[㎟]</th><th>W[mm]</th><th>적용 산식</th><th>산정값</th></tr></thead><tbody>`;
+  OLD_ROWS.forEach(r=>{
+    const cat = oldCategory(r);
+    h += `<tr><td>${r.no}</td><td>${r.name||'-'}</td><td>${r.from||'-'}</td><td>${r.to||'-'}</td><td>${r.type||'-'}</td>
+      <td>${r.size}</td><td>${r.core}</td><td>${r.line}</td><td>${r.area}</td><td>${r.w}</td>
+      <td>${cat.label}</td><td>${fmtN(cat.val)}</td></tr>`;
+  });
+  h += '</tbody>';
+  document.getElementById('oldTable').innerHTML = h;
+  document.getElementById('oldCount').textContent = '(총 '+OLD_ROWS.length+'회로)';
+}
+function fmtN(n){ return (n||0).toLocaleString('ko-KR'); }
+
+function buildOldSummary(){
+  const t = OLD_SUMMARY.totals;
+  const s = OLD_SUMMARY.sel;
+  const grid = document.getElementById('oldTotals');
+  grid.innerHTML = `
+    <div class="res-card"><div class="res-card-label">다심&lt;120 합계(K)</div><div class="res-card-val">${fmtN(t.k)}</div></div>
+    <div class="res-card"><div class="res-card-label">다심≥120 합계(L)</div><div class="res-card-val">${fmtN(t.l)}</div></div>
+    <div class="res-card"><div class="res-card-label">단심≤120 합계(M)</div><div class="res-card-val">${fmtN(t.m)}</div></div>
+    <div class="res-card"><div class="res-card-label">단심120~500 합계(N)</div><div class="res-card-val">${fmtN(t.n)}</div></div>
+    <div class="res-card"><div class="res-card-label">단심≥500 합계(O)</div><div class="res-card-val">${fmtN(t.o)}</div></div>
+    <div class="res-card"><div class="res-card-label">형식 / 예비율 / 단수</div><div class="res-card-val" style="font-size:13px">${s.form}<br>예비율 ${s.reserve_g93} · ${s.tier_i93}단</div></div>
+    <div class="res-card"><div class="res-card-label">계산상 필요폭(K95)</div><div class="res-card-val">${fmtN(s.k95_required)} mm</div></div>
+    <div class="res-card"><div class="res-card-label">실제 선정 규격</div><div class="res-card-val">${s.c94_label}</div></div>
+  `;
+  const ok = s.g94_judge === '(적합)';
+  const box = document.getElementById('oldResultBox');
+  document.getElementById('oldResultVal').textContent = s.c94_label.trim() + '  →  ' + s.g94_judge;
+  document.getElementById('oldResultDesc').textContent =
+    `트레이 용량(폭×단수)=${fmtN(s.g95)} vs 계산상 필요 용량(외경합계 보정치)=${fmtN(Math.round(s.i95))} — ` +
+    (ok ? '용량이 충분하여 적합 판정' : '용량이 부족하여 부적합 판정');
+  const warnBox = document.getElementById('oldWarnBox');
+  if(!ok){
+    warnBox.innerHTML = `⚠ <strong>실제 사례 — 구방식의 실무 한계</strong>: 이 예시에서는 산식상 필요폭이 ${fmtN(s.k95_required)}mm로 계산되었으나,
+      실제로는 W ${s.c95_width}mm × ${s.e95_tier}단(용량 ${fmtN(s.g95)})으로 선정되어 "${s.g94_judge}" 판정을 받았습니다.
+      다심/단심·굵기 구간별로 산식이 갈라지는 구방식은 이처럼 수작업 선정값과 산식 결과가 어긋나기 쉬웠고,
+      이는 실무에서 폭 단일기준으로 간소화된 배경 중 하나로 볼 수 있습니다(참고용 해석이며 규정 개정 사유를 공식 확인한 것은 아닙니다).`;
+  } else {
+    warnBox.innerHTML = '';
+  }
+}
+
+/* ============================================================ */
+/* 초기화                                                        */
+/* ============================================================ */
+window.onload = function(){
+  loadSample();
+  buildSpecTables();
+  renderConduitTable();
+};
+</script>
+</body>
+</html>
