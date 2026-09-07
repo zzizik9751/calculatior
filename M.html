@@ -165,15 +165,17 @@ input[type=text]:focus{border-color:var(--accent)}
 .art-wrap{width:100%;height:100%;border-radius:12px;background:var(--bg3);overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:64px;box-shadow:0 8px 32px rgba(0,0,0,0.5);position:relative;cursor:pointer}
 .art-wrap img{width:100%;height:100%;object-fit:cover}
 .lrc-badge{position:absolute;right:6px;bottom:6px;background:rgba(0,0,0,.6);color:var(--accent);font-size:10px;padding:2px 7px;border-radius:10px;display:none;align-items:center;justify-content:center;letter-spacing:.5px}
-.lyrics-panel{position:absolute;inset:0;background:var(--bg3);border-radius:12px;display:none;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,0.5);cursor:pointer;padding:16px 12px}
+.lyrics-panel{position:absolute;inset:0;background:var(--bg3);border-radius:12px;display:none;flex-direction:column;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,0.5);cursor:pointer;padding:16px 12px}
 .stage.lyrics-on .art-wrap{display:none}
-.stage.lyrics-on .lyrics-panel{display:block}
-.lyrics-inner{display:flex;flex-direction:column;gap:11px}
-.lyr-src{font-size:9px;color:var(--text3);text-align:center;letter-spacing:.5px;opacity:.7;margin-bottom:2px}
-.lline{font-size:12px;color:var(--text3);text-align:center;line-height:1.5;transition:color 0.15s;cursor:pointer}
+.stage.lyrics-on .lyrics-panel{display:flex}
+.lyr-close{position:sticky;top:0;align-self:flex-end;flex-shrink:0;z-index:2;background:rgba(0,0,0,.55);color:var(--text);border:none;border-radius:20px;padding:7px 14px;font-size:13px;font-family:inherit;cursor:pointer;margin-bottom:8px}
+.lyr-close:hover{background:rgba(0,0,0,.8)}
+.lyrics-inner{display:flex;flex-direction:column;gap:14px}
+.lyr-src{font-size:11px;color:var(--text3);text-align:center;letter-spacing:.5px;opacity:.7;margin-bottom:2px}
+.lline{font-size:16px;color:var(--text3);text-align:center;line-height:1.7;transition:color 0.15s;cursor:pointer}
 .lline:hover{color:var(--text2)}
-.lline.active{color:var(--accent);font-weight:bold;font-size:13px}
-.lyr-empty{color:var(--text3);font-size:11px;text-align:center;line-height:1.8;padding-top:76px}
+.lline.active{color:var(--accent);font-weight:bold;font-size:18px}
+.lyr-empty{color:var(--text3);font-size:13px;text-align:center;line-height:1.8;padding-top:40px}
 .lyrics-panel::-webkit-scrollbar{width:4px}
 .lyrics-panel::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:2px}
 .track-info{text-align:center;width:100%}
@@ -214,6 +216,9 @@ input[type=file]{display:none}
   }
   .stage{width:100%;max-width:480px;height:auto;aspect-ratio:1/1}
   .art-wrap{font-size:40px}
+  .lline{font-size:18px;line-height:1.75}
+  .lline.active{font-size:20px}
+  .lyr-close{font-size:14px;padding:8px 16px}
   .t-title{font-size:16px}
   .t-artist{font-size:12px}
   .t-album{font-size:11px}
@@ -266,6 +271,7 @@ input[type=file]{display:none}
     <div class="stage" id="stage">
       <div class="art-wrap" id="aart" onclick="toggleLyrics()">🎵</div>
       <div class="lyrics-panel" id="lyricsPanel" onclick="toggleLyrics()">
+        <button class="lyr-close" onclick="event.stopPropagation();toggleLyrics()" title="앨범으로 돌아가기">✕ 앨범으로</button>
         <div class="lyrics-inner" id="lyricsInner"></div>
       </div>
     </div>
