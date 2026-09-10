@@ -38,6 +38,7 @@ main { max-width:480px; margin:0 auto; padding:16px; }
   background:var(--bg2); transition:.3s; position:relative;
 }
 .dropzone:hover, .dropzone.over { border-color:var(--mint); }
+.intro-link:hover { border-color:var(--mint); background:rgba(0,229,195,.1); box-shadow:0 0 8px rgba(0,229,195,.35); }
 .dropzone input { display:none; }
 .dz-icon { font-size:44px; margin-bottom:14px; }
 .dz-title { font-size:16px; font-weight:700; margin-bottom:6px; }
@@ -152,7 +153,13 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:16px; h
 
 <header>
   <div class="logo">DOC<span>SCAN</span></div>
-  <span style="font-size:11px;font-family:var(--mono);color:var(--text3)" id="pageCount"></span>
+  <div style="display:flex;align-items:center;gap:10px;">
+    <span style="font-size:11px;font-family:var(--mono);color:var(--text3)" id="pageCount"></span>
+    <a href="https://blog.naver.com/zzizik/224406775448" target="_blank" rel="noopener noreferrer" title="DocScan 소개 보기" class="intro-link"
+       style="display:flex;align-items:center;justify-content:center;width:30px;height:30px;flex-shrink:0;border-radius:50%;
+              border:1px solid var(--border);background:var(--bg2);color:var(--mint);font-size:15px;text-decoration:none;
+              transition:.2s;">ℹ</a>
+  </div>
 </header>
 
 <main>
@@ -302,6 +309,11 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:16px; h
 
 </main>
 <div class="toast" id="toast"></div>
+
+<div style="max-width:480px;margin:20px auto 0;padding:16px 16px 4px;text-align:center;font-size:11px;color:#8a8a9a;line-height:1.8;border-top:1px solid rgba(128,128,128,.25);">
+  Created by <a href="https://blog.naver.com/zzizik" target="_blank" rel="noopener noreferrer" style="color:#00e5c3;text-decoration:none;font-weight:600;">zzizik</a>, with Claude AI.<br>
+  Thanks to <a href="http://hwjy.co.kr/" target="_blank" rel="noopener noreferrer" style="color:#00e5c3;text-decoration:none;font-weight:600;">HWJY Co., Ltd.</a>
+</div>
 
 <script>
 // ══════════════════════════════════════════
