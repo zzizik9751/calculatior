@@ -127,6 +127,10 @@ input[type=text]:focus{border-color:var(--accent)}
 .add-btn{flex:1;background:var(--accent);border:none;border-radius:5px;color:#fff;padding:6px 12px;font-size:11px;cursor:pointer;font-weight:bold;white-space:nowrap}
 .add-btn:hover{background:var(--accent2)}
 .sort-bar{display:flex;gap:4px}
+.clr-btn{flex-shrink:0;width:34px;background:var(--bg3);border:1px solid var(--border);border-radius:5px;color:var(--text2);font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit;transition:background 0.15s,color 0.15s,border-color 0.15s;white-space:nowrap}
+.clr-btn:hover:not(:disabled){color:#ff5555;border-color:#ff5555}
+.clr-btn:disabled{opacity:.35;cursor:default}
+.clr-btn.arm,.clr-btn.arm:hover:not(:disabled){width:auto;padding:0 10px;background:#c62828;border-color:#c62828;color:#fff;font-size:11px;font-weight:bold}
 .sb{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:4px;color:var(--text3);padding:4px 0;font-size:10px;cursor:pointer;text-align:center;font-family:inherit;transition:all 0.15s}
 .sb:hover{color:var(--text)}
 .sb.on{background:var(--accent);border-color:var(--accent);color:#fff}
@@ -201,6 +205,15 @@ input[type=range]{accent-color:var(--accent);width:120px}
 .sbar{position:fixed;bottom:0;left:300px;right:0;padding:3px 16px;font-size:10px;color:var(--text3);background:var(--bg);border-top:1px solid var(--border)}
 input[type=file]{display:none}
 
+/* ── 미니 플레이어(팝업) 사용 중 원래 창 가림막 ── */
+.mini-ov{position:fixed;inset:0;z-index:50;background:rgba(10,10,10,.93);display:none;align-items:center;justify-content:center;text-align:center;padding:20px}
+.mini-ov.on{display:flex}
+.mini-ov .mo-ic{font-size:44px;margin-bottom:12px}
+.mini-ov strong{display:block;font-size:16px;margin-bottom:6px}
+.mini-ov p{font-size:12px;color:var(--text3);margin-bottom:18px;line-height:1.6}
+.mini-ov button{background:var(--accent);border:none;border-radius:20px;color:#fff;padding:10px 22px;font-size:13px;font-weight:bold;cursor:pointer;font-family:inherit}
+.mini-ov button:hover{background:var(--accent2)}
+
 /* ── 모바일 레이아웃 (세로 분할) ───────────────────────────────────── */
 @media (max-width: 600px) {
   html,body{overflow:auto}
@@ -239,18 +252,37 @@ input[type=file]{display:none}
   /* 상태바 위치 조정 */
   .sbar{left:0}
 }
+
+/* ── 미니 플레이어(팝업 창) 레이아웃: 앨범·컨트롤 고정, 목록만 스크롤 ── */
+html.mini, html.mini body{overflow:hidden;height:100%}
+html.mini .pw{flex-direction:column;height:100vh;min-height:0}
+html.mini .main{order:1;flex:0 0 auto;justify-content:flex-start;padding:14px 16px 10px;gap:10px;border-bottom:1px solid var(--border);overflow:visible}
+html.mini .stage{--art:clamp(150px, calc(100vh - 610px), 340px);width:min(var(--art), calc(100vw - 32px));height:min(var(--art), calc(100vw - 32px));max-width:none;aspect-ratio:auto}
+html.mini .art-wrap{font-size:44px}
+html.mini .track-info{line-height:1.3}
+html.mini .t-title{font-size:16px;margin-bottom:2px}
+html.mini .t-artist{font-size:12px;margin-bottom:0}
+html.mini .t-album{display:none}
+html.mini .controls{max-width:100%;gap:8px}
+html.mini .btns{gap:14px}
+html.mini .pbtn{width:44px;height:44px;font-size:18px}
+html.mini .cb{font-size:18px}
+html.mini .sidebar{order:2;flex:1 1 auto;min-height:0;width:100%;min-width:0;border-right:none}
+html.mini .tlist{flex:1 1 auto;min-height:0;overflow-y:auto;padding-bottom:20px}
+html.mini .sbar{left:0}
 </style>
 </head>
 <body>
-<div class="pw">
+<div class="pw" id="pw">
   <div class="sidebar">
     <div class="sb-head">
       <div class="sb-row">
         <input type="text" id="search" placeholder="검색..." oninput="filt()">
+        <button class="clr-btn" id="clrAll" onclick="clearAll()" title="목록 전체 삭제" disabled>🗑</button>
       </div>
       <div class="sb-row">
-        <button class="add-btn" onclick="document.getElementById('fi').click()">+ 파일</button>
-        <button class="add-btn" onclick="document.getElementById('fd').click()">+ 폴더</button>
+        <button class="add-btn" onclick="$('fi').click()">+ 파일</button>
+        <button class="add-btn" onclick="$('fd').click()">+ 폴더</button>
         <input type="file" id="fi" multiple accept="audio/*,.lrc" onchange="addF(this.files)">
         <input type="file" id="fd" webkitdirectory directory multiple onchange="addF(this.files)">
       </div>
@@ -292,6 +324,7 @@ input[type=file]{display:none}
         <button class="cb pbtn" onclick="togPlay()"><span id="picon">▶</span></button>
         <button class="cb" onclick="next()" title="다음">⏭</button>
         <button class="cb" id="rep" onclick="togRep()" title="반복">🔁</button>
+        <button class="cb" id="miniBtn" onclick="miniToggle()" title="미니 플레이어로 열기">⧉</button>
       </div>
       <div class="vwrap">
         <span style="font-size:14px">🔇</span>
@@ -299,6 +332,14 @@ input[type=file]{display:none}
         <span style="font-size:14px">🔊</span>
       </div>
     </div>
+  </div>
+</div>
+<div class="mini-ov" id="miniOv">
+  <div>
+    <div class="mo-ic">🎵</div>
+    <strong>미니 플레이어에서 재생 중</strong>
+    <p>목록 편집·재생은 미니 플레이어 창에서 하세요.<br>미니 플레이어의 ↩ 버튼이나 아래 버튼으로 되돌아옵니다.</p>
+    <button onclick="recallMini()">↩ 이 창으로 되돌리기</button>
   </div>
 </div>
 <div class="sbar" id="sbar">준비됨 — 파일을 추가하세요</div>
@@ -311,7 +352,8 @@ let dragSrcIdx = null;
 let lastActiveLine = -1;
 
 const fmt = s => { if(isNaN(s)||s<0)return'0:00'; s=Math.floor(s); return Math.floor(s/60)+':'+(s%60<10?'0':'')+s%60; };
-const $ = id => document.getElementById(id);
+let DOC = document;   // 미니 플레이어(PiP 창)로 옮겨가면 그 창의 document를 가리킴
+const $ = id => DOC.getElementById(id);
 const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 const stat = m => $('sbar').textContent = m;
 
@@ -331,11 +373,13 @@ function openLibraryDB(){
 
 let _saveTimer = null;
 function scheduleSave(){
+  if(miniActive) return;   // 팝업이 재생을 넘겨받은 동안 원래 창은 저장하지 않음(팝업 변경분 덮어쓰기 방지)
   clearTimeout(_saveTimer);
   _saveTimer = setTimeout(saveLibrary, 400);
 }
 
 async function saveLibrary(){
+  if(miniActive) return;
   try{
     const db = await openLibraryDB();
     const data = {
@@ -365,7 +409,10 @@ async function restoreLibrary(){
       rq.onsuccess = () => resolve(rq.result);
       rq.onerror   = () => reject(rq.error);
     });
-    if(!data || !data.tracks || !data.tracks.length) return;
+    tracks.forEach(t => { try{ URL.revokeObjectURL(t.url); }catch(e){} });
+    if(!data || !data.tracks || !data.tracks.length){
+      tracks = []; cur = -1; aud.removeAttribute('src'); resetMain(); render(); return;
+    }
     tracks = data.tracks.map(t => ({ ...t, url: URL.createObjectURL(t.file) }));
     cur  = typeof data.cur === 'number' ? data.cur : -1;
     shuf = !!data.shuf; rep = !!data.rep;
@@ -569,7 +616,7 @@ function parseVorbisComment(buf){
 function addF(files){ ingest(toEntries(files)); }
 
 async function ingest(entries){
-  if(!entries.length) return;
+  if(!entries.length || miniActive) return;
   const audioEntries = entries.filter(e => AUDIO_RE.test(e.file.name) || e.file.type.startsWith('audio/'));
   const lrcEntries   = entries.filter(e => LRC_RE.test(e.file.name));
 
@@ -614,7 +661,7 @@ async function ingest(entries){
 // ── 정렬 ─────────────────────────────────────────────────────────
 function sort(k) {
   if(sk===k) sd*=-1; else{sk=k;sd=1;}
-  document.querySelectorAll('.sb').forEach(b=>b.classList.remove('on'));
+  DOC.querySelectorAll('.sb').forEach(b=>b.classList.remove('on'));
   const btn=$('s-'+k); if(btn)btn.classList.add('on');
   const ct = cur>=0 ? tracks[cur] : null;
   tracks.sort((a,b)=>{
@@ -629,6 +676,7 @@ function sort(k) {
 
 // ── 렌더 ─────────────────────────────────────────────────────────
 function render() {
+  updateClrBtn();
   const q = $('search').value.toLowerCase();
   if(!tracks.length){
     $('tlist').innerHTML=`<div class="dz" id="dz"><strong>🎵 드래그 또는 클릭</strong><p>MP3 · FLAC · WAV · OGG · M4A<br>음악 파일을 추가하세요</p></div>`;
@@ -663,17 +711,50 @@ function render() {
 
 function filt(){ render(); }
 
+// ── 목록 전체 삭제 (2단계 확인: 한 번 누르면 '전체 삭제?'로 바뀌고 3초 안에 다시 눌러야 실행) ──
+let _clrTimer = null;
+function updateClrBtn(){
+  const b = $('clrAll'); if(!b) return;
+  b.disabled = !tracks.length;
+  if(!tracks.length) disarmClr();
+}
+function disarmClr(){
+  clearTimeout(_clrTimer); _clrTimer = null;
+  const b = $('clrAll'); if(!b) return;
+  b.classList.remove('arm'); b.textContent = '🗑'; b.title = '목록 전체 삭제';
+}
+function clearAll(){
+  if(!tracks.length) return;
+  const b = $('clrAll');
+  if(!b.classList.contains('arm')){
+    b.classList.add('arm'); b.textContent = '전체 삭제?'; b.title = '한 번 더 누르면 '+tracks.length+'곡 모두 삭제';
+    _clrTimer = setTimeout(disarmClr, 3000);
+    return;
+  }
+  disarmClr();
+  const n = tracks.length;
+  aud.pause(); aud.removeAttribute('src'); aud.load();
+  tracks.forEach(t => { try{ URL.revokeObjectURL(t.url); }catch(e){} });
+  tracks = []; cur = -1;
+  $('search').value = '';
+  resetMain(); render();
+  stat(n+'곡 삭제 — 목록이 비었습니다');
+  scheduleSave();
+}
+
 // ── 삭제 ─────────────────────────────────────────────────────────
 function delTrack(e, i) {
   e.stopPropagation();
   const wasPlaying = !aud.paused;
   if(i === cur){
     aud.pause();
+    try{ URL.revokeObjectURL(tracks[i].url); }catch(err){}
     tracks.splice(i, 1);
     if(!tracks.length){ cur=-1; resetMain(); render(); stat('0곡'); scheduleSave(); return; }
     cur = Math.min(i, tracks.length-1);
     loadAudio(cur, wasPlaying);
   } else {
+    try{ URL.revokeObjectURL(tracks[i].url); }catch(err){}
     tracks.splice(i, 1);
     if(i < cur) cur--;
   }
@@ -726,7 +807,7 @@ function bindDragEvents(){
       scheduleSave();
     });
     el.addEventListener('dragend',function(){
-      document.querySelectorAll('.ti').forEach(el2=>el2.classList.remove('dragging','drag-over-top','drag-over-bot'));
+      DOC.querySelectorAll('.ti').forEach(el2=>el2.classList.remove('dragging','drag-over-top','drag-over-bot'));
       dragSrcIdx=null;
     });
   });
@@ -743,13 +824,16 @@ function bindDZ(){
     ingest(await collectDropEntries(e.dataTransfer));
   });
 }
-document.body.addEventListener('dragover',e=>e.preventDefault());
-document.body.addEventListener('drop',async e=>{
+function bindBodyDrop(body){
+body.addEventListener('dragover',e=>e.preventDefault());
+body.addEventListener('drop',async e=>{
   if(e.target.closest('#tlist')&&tracks.length)return;
   e.preventDefault();
   const entries = await collectDropEntries(e.dataTransfer);
   if(entries.length) ingest(entries);
 });
+}
+bindBodyDrop(document.body);
 bindDZ();
 
 // ── 플레이어 ─────────────────────────────────────────────────────
@@ -861,13 +945,190 @@ aud.onpause=()=>showPlay(true);
 aud.onplay=()=>showPlay(false);
 aud.onerror=()=>stat('⚠ 재생 실패: '+(tracks[cur]?.name||''));
 
-restoreLibrary();
+// ── 미니 플레이어(팝업 창) ───────────────────────────────────────
+// 원래 창 ⧉ → 같은 파일을 팝업(#mini)으로 열고 재생 위치를 넘겨줌(원래 창은 일시정지·가림막)
+// 팝업 ↩ → 목록 저장 후 재생 위치를 원래 창에 돌려주고 팝업 닫힘
+// 창 사이 통신은 postMessage, 목록 공유는 기존 IndexedDB 저장분을 사용
+let isMini = location.hash === '#mini';
+let miniWin = null, miniActive = false, miniHandoff = null, miniSavePromise = null;
+let _miniFallback = null, _miniStarted = false, _returned = false;
+const MSG = 'mplayer';
+
+function miniToggle(){
+  if(pipWin){ closePip(); return; }
+  if(isMini){ returnToMain(false); return; }
+  if('documentPictureInPicture' in window) openPip();
+  else openMini();          // PiP 미지원 브라우저(파이어폭스·사파리·모바일)는 일반 팝업으로
+}
+
+// ── 미니 플레이어: Document Picture-in-Picture (크롬·엣지 116+) ──────
+// 주소창 없는 작은 창(항상 위). 플레이어 화면 자체를 그 창으로 옮기므로
+// 재생은 끊기지 않고, 닫으면 원래 창으로 그대로 돌아옴.
+let pipWin = null;
+const PIP_FUNCS = ['$','filt','clearAll','addF','sort','toggleLyrics','togShuf','prev','togPlay','next','togRep','miniToggle','setVol','load','delTrack','seekLyric'];
+
+async function openPip(){
+  let w;
+  try{
+    w = await documentPictureInPicture.requestWindow({ width: 490, height: 910 });
+  }catch(e){
+    console.warn('PiP 창 열기 실패 → 일반 팝업으로 대체', e);
+    openMini(); return;
+  }
+  pipWin = w;
+  // 스타일 복사
+  document.querySelectorAll('style').forEach(st => w.document.head.appendChild(st.cloneNode(true)));
+  w.document.title = '♪ 미니 플레이어';
+  w.document.documentElement.classList.add('mini');
+  // 인라인 onclick이 PiP 창 기준으로 실행되므로 함수 연결
+  PIP_FUNCS.forEach(n => { try{ w[n] = window[n] || eval(n); }catch(e){} });
+  // 플레이어 화면을 PiP 창으로 이동
+  w.document.body.append($('pw'), $('sbar'));
+  DOC = w.document;
+  bindBodyDrop(w.document.body);
+  $('miniBtn').textContent = '↩'; $('miniBtn').title = '원래 창으로 되돌리기';
+  document.getElementById('miniOv').classList.add('on');
+  w.addEventListener('pagehide', restoreFromPip, { once:true });
+  const ti = $('tlist').querySelector('.ti.on'); if(ti) ti.scrollIntoView({ block:'nearest' });
+}
+
+function restoreFromPip(){
+  if(!pipWin) return;
+  const pw = DOC.getElementById('pw'), sb = DOC.getElementById('sbar');
+  const ov = document.getElementById('miniOv');
+  DOC = document;
+  if(pw) document.body.insertBefore(pw, ov);
+  if(sb) document.body.insertBefore(sb, ov);
+  pipWin = null;
+  $('miniBtn').textContent = '⧉'; $('miniBtn').title = '미니 플레이어로 열기';
+  ov.classList.remove('on');
+  render();
+}
+
+function closePip(){ if(pipWin){ const w = pipWin; restoreFromPip(); try{ w.close(); }catch(e){} } }
+
+function seekWhenReady(t){
+  if(!t) return;
+  if(aud.readyState >= 1) aud.currentTime = t;
+  else aud.addEventListener('loadedmetadata', () => { aud.currentTime = t; }, { once:true });
+}
+
+function openMini(){
+  if(miniActive && miniWin && !miniWin.closed){ miniWin.focus(); return; }
+  clearTimeout(_saveTimer);
+  const url = location.href.split('#')[0] + '#mini';
+  const w = window.open(url, 'musicMiniPlayer', 'popup=yes,width=490,height=910');
+  if(!w){ stat('⚠ 팝업이 차단되었습니다 — 주소창의 팝업 차단 아이콘에서 허용해 주세요'); return; }
+  miniWin = w;
+  miniHandoff = { cur, time: aud.currentTime || 0, playing: !aud.paused, vol: +$('vs').value };
+  miniSavePromise = saveLibrary();   // miniActive 설정 전에 최신 목록 저장
+  miniActive = true;
+  aud.pause();
+  document.getElementById('miniOv').classList.add('on');
+  stat('미니 플레이어로 넘겼습니다');
+}
+
+// 팝업이 돌려준 상태로 원래 창 복귀
+async function exitMiniMode(m){
+  if(!miniActive) return;
+  miniActive = false; miniWin = null; miniHandoff = null;
+  document.getElementById('miniOv').classList.remove('on');
+  await restoreLibrary();
+  if(m && m.vol != null){ $('vs').value = m.vol; aud.volume = m.vol/100; }
+  if(m && typeof m.cur === 'number' && m.cur >= 0 && tracks[m.cur]){
+    cur = m.cur;
+    aud.src = tracks[cur].url; aud.volume = $('vs').value/100;
+    updateMain(); render();
+    seekWhenReady(m.time);
+    if(m.playing) aud.play().catch(()=>{});
+  }
+  stat('원래 창으로 돌아왔습니다' + (tracks.length ? ' — '+tracks.length+'곡' : ''));
+}
+
+function recallMini(){
+  if(pipWin){ closePip(); return; }
+  if(miniWin && !miniWin.closed){
+    try{ miniWin.postMessage({ app:MSG, type:'recall' }, '*'); }catch(e){}
+    setTimeout(() => { if(miniActive) exitMiniMode(null); }, 2500);  // 응답 없을 때 대비
+  } else exitMiniMode(null);
+}
+
+// 팝업 창: 넘겨받은 위치로 재생 시작
+async function startMini(m){
+  if(_miniStarted) return; _miniStarted = true;
+  clearTimeout(_miniFallback);
+  await restoreLibrary();
+  if(!m) return;
+  if(m.vol != null){ $('vs').value = m.vol; aud.volume = m.vol/100; }
+  if(typeof m.cur === 'number' && m.cur >= 0 && tracks[m.cur]){
+    loadAudio(m.cur, false);
+    seekWhenReady(m.time);
+    if(m.playing) aud.play().catch(() => stat('▶ 버튼을 눌러 이어서 재생하세요'));
+  }
+}
+
+// 팝업 창: 원래 창으로 되돌리기(closing=true는 X로 창을 닫는 경우 → 원래 창은 일시정지 상태로 복귀)
+async function returnToMain(closing){
+  if(_returned) return;
+  let op = null;
+  try{ op = (window.opener && !window.opener.closed) ? window.opener : null; }catch(e){ op = null; }
+  if(!op){
+    if(closing) return;
+    // 원래 창이 이미 닫혔으면 이 창을 일반 화면으로 전환
+    isMini = false;
+    document.documentElement.classList.remove('mini');
+    history.replaceState(null, '', location.href.split('#')[0]);
+    $('miniBtn').textContent = '⧉'; $('miniBtn').title = '미니 플레이어(팝업 창)로 열기';
+    document.title = 'Music Player';
+    stat('원래 창이 없어 이 창을 일반 화면으로 전환했습니다');
+    return;
+  }
+  _returned = true;
+  const state = { app:MSG, type:'return', cur, time: aud.currentTime || 0, playing: !aud.paused && !closing, vol: +$('vs').value };
+  clearTimeout(_saveTimer);
+  if(closing){ saveLibrary(); }
+  else { aud.pause(); await saveLibrary(); }
+  try{ op.postMessage(state, '*'); }catch(e){}
+  if(!closing){ try{ op.focus(); }catch(e){} window.close(); }
+}
+
+window.addEventListener('message', e => {
+  const m = e.data;
+  if(!m || m.app !== MSG) return;
+  if(!isMini){
+    if(m.type === 'mini-ready' && miniActive && miniHandoff){
+      const h = miniHandoff; miniHandoff = null;
+      Promise.resolve(miniSavePromise).then(() => {
+        try{ e.source.postMessage({ app:MSG, type:'handoff', ...h }, '*'); }catch(err){}
+      });
+    } else if(m.type === 'return'){
+      exitMiniMode(m);
+    }
+  } else {
+    if(m.type === 'handoff') startMini(m);
+    else if(m.type === 'recall') returnToMain(false);
+  }
+});
+
+// 팝업을 예외적으로 놓친 경우(강제 종료 등) 원래 창 자동 복귀
+setInterval(() => {
+  if(miniActive && (!miniWin || miniWin.closed)){
+    setTimeout(() => { if(miniActive) exitMiniMode(null); }, 600);
+  }
+}, 1000);
+
+if(isMini){
+  document.documentElement.classList.add('mini');
+  document.title = '♪ 미니 플레이어';
+  $('miniBtn').textContent = '↩';
+  $('miniBtn').title = '원래 창으로 되돌리기';
+  let sent = false;
+  try{ if(window.opener){ window.opener.postMessage({ app:MSG, type:'mini-ready' }, '*'); sent = true; } }catch(e){}
+  _miniFallback = setTimeout(() => startMini(null), sent ? 1500 : 0);   // 넘겨받을 상태가 없으면 저장된 목록으로 시작
+  window.addEventListener('pagehide', () => { if(isMini && !_returned) returnToMain(true); });
+} else {
+  restoreLibrary();
+}
 </script>
-
-<div style="max-width:480px;margin:20px auto 0;padding:16px;text-align:center;font-size:11px;color:#8a8a9a;line-height:1.8;border-top:1px solid rgba(128,128,128,.25);">
-  Created by <a href="https://blog.naver.com/zzizik" target="_blank" rel="noopener noreferrer" style="color:#4a90d2;text-decoration:none;font-weight:600;">zzizik</a>, with Claude AI.<br>
-  Thanks to <a href="http://hwjy.co.kr/" target="_blank" rel="noopener noreferrer" style="color:#4a90d2;text-decoration:none;font-weight:600;">HWJY Co., Ltd.</a>
-</div>
-
 </body>
 </html>
