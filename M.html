@@ -287,7 +287,7 @@ html.mini .sbar{left:0}
       <div class="sb-row">
         <button class="add-btn" onclick="$('fi').click()">+ 파일</button>
         <button class="add-btn" onclick="$('fd').click()">+ 폴더</button>
-        <input type="file" id="fi" multiple accept="audio/*,.lrc" onchange="addF(this.files)">
+        <input type="file" id="fi" multiple accept="audio/*,.opus,.ogg,.oga,.lrc" onchange="addF(this.files)">
         <input type="file" id="fd" webkitdirectory directory multiple onchange="addF(this.files)">
       </div>
       <div class="sort-bar">
@@ -299,7 +299,7 @@ html.mini .sbar{left:0}
     <div class="tlist" id="tlist">
       <div class="dz" id="dz">
         <strong>🎵 드래그 또는 클릭</strong>
-        <p>MP3 · FLAC · WAV · OGG · M4A<br>음악 파일(폴더째로도 가능)을 추가하세요<br>같은 폴더에 .lrc가 있으면 가사도 자동 인식</p>
+        <p>MP3 · FLAC · OPUS · OGG · M4A · WAV<br>음악 파일(폴더째로도 가능)을 추가하세요<br>같은 폴더에 .lrc가 있으면 가사도 자동 인식</p>
       </div>
     </div>
   </div>
@@ -435,6 +435,17 @@ async function restoreLibrary(){
 // ── jsmediatags로 태그 읽기 (서버 불필요) ──────────────────────────
 function loadTags(i) {
   const t = tracks[i];
+  // OPUS·OGG는 jsmediatags가 못 읽으므로 직접 파싱(제목·가수·앨범·앨범 사진·가사)
+  if(OGG_RE.test(t.file.name)){
+    readOggTags(t.file).then(c => {
+      if(!c) return;
+      applyOggTags(t, c);
+      render();
+      if(tracks[cur] === t) updateMain();
+      scheduleSave();
+    }).catch(e => console.warn('OGG 태그 읽기 실패:', e));
+    return;
+  }
   jsmediatags.read(t.file, {
     onSuccess: function(tag) {
       const tags = tag.tags;
@@ -475,8 +486,83 @@ function loadTags(i) {
   }
 }
 
+// ── OPUS·OGG(Vorbis) 태그 직접 파싱 ─────────────────────────────
+// Ogg 페이지를 순서대로 읽어 두 번째 패킷(OpusTags / Vorbis comment 헤더)만 꺼낸다.
+// 앨범 사진이 크면 여러 페이지에 걸쳐 있으므로 패킷이 끝날 때까지 이어 붙인다.
+const OGG_RE = /\.(opus|ogg|oga)$/i;
+function concatU8(parts){
+  const len = parts.reduce((a,p)=>a+p.length,0), out = new Uint8Array(len);
+  let o = 0; for(const p of parts){ out.set(p,o); o += p.length; }
+  return out;
+}
+async function readOggTags(file){
+  const LIMIT = Math.min(file.size, 64*1024*1024);
+  let off = 0, serial = null, part = [], packets = [], pages = 0;
+  while(off + 27 <= LIMIT && packets.length < 2 && pages < 5000){
+    const hdr = new Uint8Array(await file.slice(off, off+27).arrayBuffer());
+    if(hdr[0]!==0x4f || hdr[1]!==0x67 || hdr[2]!==0x67 || hdr[3]!==0x53) return null;   // 'OggS'
+    const nseg = hdr[26];
+    const segs = new Uint8Array(await file.slice(off+27, off+27+nseg).arrayBuffer());
+    const bodyLen = segs.reduce((a,b)=>a+b,0), bodyStart = off+27+nseg;
+    const pageSerial = (hdr[14] | hdr[15]<<8 | hdr[16]<<16 | hdr[17]<<24) >>> 0;
+    if(serial === null) serial = pageSerial;
+    if(pageSerial === serial){
+      const body = new Uint8Array(await file.slice(bodyStart, bodyStart+bodyLen).arrayBuffer());
+      let p = 0;
+      for(const sz of segs){
+        part.push(body.subarray(p, p+sz)); p += sz;
+        if(sz < 255){ packets.push(concatU8(part)); part = []; if(packets.length >= 2) break; }
+      }
+    }
+    off = bodyStart + bodyLen; pages++;
+  }
+  if(packets.length < 2) return null;
+  const pk = packets[1];
+  const head = String.fromCharCode.apply(null, pk.subarray(0, 8));
+  let skip;
+  if(head === 'OpusTags') skip = 8;                                  // Opus
+  else if(pk[0] === 3 && head.slice(1,7) === 'vorbis') skip = 7;      // Ogg Vorbis
+  else return null;
+  return parseVorbisComment(pk.buffer.slice(pk.byteOffset + skip, pk.byteOffset + pk.byteLength));
+}
+function u8ToB64(u){
+  let s = '';
+  for(let i=0; i<u.length; i+=0x8000) s += String.fromCharCode.apply(null, u.subarray(i, i+0x8000));
+  return btoa(s);
+}
+// METADATA_BLOCK_PICTURE(base64, FLAC 그림 블록 구조) → {mime, data}
+function oggPicture(b64){
+  try{
+    const bin = atob(String(b64).split('\n')[0].trim());
+    const u = new Uint8Array(bin.length);
+    for(let i=0; i<bin.length; i++) u[i] = bin.charCodeAt(i);
+    const dv = new DataView(u.buffer);
+    let p = 4;                                             // 그림 종류
+    const ml = dv.getUint32(p); p += 4;
+    const mime = new TextDecoder().decode(u.subarray(p, p+ml)); p += ml;
+    const dl = dv.getUint32(p); p += 4 + dl;               // 설명
+    p += 16;                                               // 폭·높이·색 깊이·색수
+    const len = dv.getUint32(p); p += 4;
+    const data = u.subarray(p, p+len);
+    return data.length ? { mime: mime || 'image/jpeg', data } : null;
+  }catch(e){ return null; }
+}
+function applyOggTags(t, c){
+  const one = k => c[k] ? String(c[k]).split('\n')[0].trim() : '';
+  if(one('TITLE'))  t.title  = one('TITLE');
+  if(c.ARTIST)      t.artist = String(c.ARTIST).split('\n').map(s=>s.trim()).filter(Boolean).join(', ');
+  if(one('ALBUM'))  t.album  = one('ALBUM');
+  const d = one('DATE') || one('YEAR'); if(d) t.year = d.slice(0,4);
+  if(one('TRACKNUMBER')) t.track = one('TRACKNUMBER');
+  const pic = c.METADATA_BLOCK_PICTURE ? oggPicture(c.METADATA_BLOCK_PICTURE) : null;
+  if(pic) t.albumart = `data:${pic.mime};base64,${u8ToB64(pic.data)}`;
+  else if(c.COVERART) t.albumart = `data:${one('COVERARTMIME') || 'image/jpeg'};base64,${one('COVERART')}`;
+  const lk = Object.keys(c).find(k => /^(LYRICS|UNSYNCEDLYRICS|SYNCEDLYRICS|LYRIC)$/i.test(k));
+  if(lk && !t.lyrics) setLyrics(t, c[lk], 'tag');
+}
+
 // ── LRC 가사 지원 ────────────────────────────────────────────────
-const AUDIO_RE = /\.(mp3|flac|wav|ogg|m4a|aac|wma)$/i;
+const AUDIO_RE = /\.(mp3|flac|wav|ogg|oga|opus|m4a|aac|wma)$/i;
 const LRC_RE = /\.lrc$/i;
 
 // 파일/폴더 선택·드롭 결과를 {file, rel}(상대경로 포함) 배열로 통일
@@ -683,7 +769,7 @@ function render() {
   updateClrBtn();
   const q = $('search').value.toLowerCase();
   if(!tracks.length){
-    $('tlist').innerHTML=`<div class="dz" id="dz"><strong>🎵 드래그 또는 클릭</strong><p>MP3 · FLAC · WAV · OGG · M4A<br>음악 파일을 추가하세요</p></div>`;
+    $('tlist').innerHTML=`<div class="dz" id="dz"><strong>🎵 드래그 또는 클릭</strong><p>MP3 · FLAC · OPUS · OGG · M4A · WAV<br>음악 파일을 추가하세요</p></div>`;
     bindDZ(); return;
   }
   const filtered = q ? tracks.filter(t=>(t.title+t.artist+t.album).toLowerCase().includes(q)) : tracks;
