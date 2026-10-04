@@ -51,6 +51,18 @@ main{flex:1;display:flex;min-height:0}
 #pages{padding:18px 16px 60px;display:flex;flex-direction:column;align-items:center;gap:16px;min-width:min-content}
 .pg{position:relative;box-shadow:0 0 0 1px #c9ced6,0 2px 8px rgba(0,0,0,.12);background:#fff;isolation:isolate;flex:none}
 .pg canvas,.pg svg,.pg .hits,.pg .ink{position:absolute;left:0;top:0;width:100%;height:100%}
+.textLayer{position:absolute;left:0;top:0;overflow:hidden;line-height:1;text-align:initial;-webkit-text-size-adjust:none;text-size-adjust:none;forced-color-adjust:none;transform-origin:0 0}
+.textLayer :is(span,br){color:transparent;position:absolute;white-space:pre;cursor:text;transform-origin:0% 0%}
+.textLayer span.markedContent{top:0;height:0}
+.textLayer ::selection{background:rgba(30,99,214,.32)}
+.textLayer br::selection{background:transparent}
+.textLayer .endOfContent{display:block;position:absolute;inset:100% 0 0;z-index:-1;cursor:default;user-select:none}
+.textLayer .endOfContent.active{top:0}
+.textLayer[data-main-rotation="90"]{transform:rotate(90deg) translateY(-100%)}
+.textLayer[data-main-rotation="180"]{transform:rotate(180deg) translate(-100%,-100%)}
+.textLayer[data-main-rotation="270"]{transform:rotate(270deg) translateX(-100%)}
+.r .cp{float:right;margin:0 0 2px 6px;padding:0 6px;font-size:11.5px;color:var(--sub)}
+.r .cp:hover{color:var(--acc)}
 .pg .hits,.pg svg{pointer-events:none}
 .pg .ink{touch-action:none}
 body[data-tool=hand] .ink{pointer-events:none}
@@ -182,6 +194,7 @@ footer a{color:var(--sub)}
         <option value="page">같은 페이지</option>
       </select>
       <label><input type="checkbox" id="ign" checked>띄어쓰기 무시</label>
+      <label title="결과의 [복사] 버튼으로 복사할 때 끝에 (파일명 p.쪽)을 붙입니다"><input type="checkbox" id="cpSrc">복사 시 출처</label>
     </div>
     <div class="help">
       <code>균압선 요구</code> 두 단어가 모두 있는 줄/문장<br>
@@ -535,7 +548,7 @@ async function makePageEl(pg){
   const page=await getPage(pg.d,pg.p);
   const vp=vpOf(page,pg.rot,S.scale);
   const el=document.createElement('div');el.className='pg';el.dataset.id=pg.id;
-  el.style.width=vp.width+'px';el.style.height=vp.height+'px';
+  el.style.width=vp.width+'px';el.style.height=vp.height+'px';el.style.setProperty('--scale-factor',S.scale);
   const canvas=document.createElement('canvas');
   const hits=document.createElement('div');hits.className='hits';
   const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
@@ -555,7 +568,31 @@ async function renderCanvas(o){
     o.canvas.width=Math.floor(o.vp.width*dpr);o.canvas.height=Math.floor(o.vp.height*dpr);
     await page.render({canvasContext:o.canvas.getContext('2d'),viewport:o.vp,transform:dpr!==1?[dpr,0,0,dpr,0,0]:null}).promise;
     o.rendered=true;
+    await renderTextLayer(o,page);
   }catch(e){console.warn(e)}finally{o.busy=false}
+}
+// 글자 선택·복사용 투명 글자층 (이동 모드에서 드래그 → Ctrl+C)
+async function renderTextLayer(o,page){
+  if(o.tl)return;
+  const tl=document.createElement('div');tl.className='textLayer';
+  o.el.insertBefore(tl,o.hits);o.tl=tl;
+  try{
+    await pdfjsLib.renderTextLayer({textContentSource:await page.getTextContent(),container:tl,viewport:o.vp,textDivs:[]}).promise;
+  }catch(e){console.warn(e)}
+  const eoc=document.createElement('div');eoc.className='endOfContent';tl.append(eoc);
+  tl.addEventListener('mousedown',()=>eoc.classList.add('active'));
+}
+document.addEventListener('mouseup',()=>document.querySelectorAll('.endOfContent.active').forEach(x=>x.classList.remove('active')));
+// 클립보드 복사 (file:// 에서도 동작하도록 예비 방법 포함)
+async function copyText(t){
+  try{await navigator.clipboard.writeText(t);return true}catch(e){}
+  const ta=document.createElement('textarea');ta.value=t;ta.style.cssText='position:fixed;left:-9999px';document.body.appendChild(ta);ta.select();
+  let ok=false;try{ok=document.execCommand('copy')}catch(e){}ta.remove();return ok;
+}
+const oneLine=s=>s.replace(/\s*\n\s*/g,' ').replace(/[ \t]{2,}/g,' ').trim();
+function copyHit(text,src){
+  const t=oneLine(text)+($('#cpSrc').checked?` (${src})`:'');
+  copyText(t).then(ok=>status(ok?'복사됨: '+(t.length>60?t.slice(0,60)+'…':t):'복사하지 못했습니다. 글자를 드래그해서 Ctrl+C로 복사하세요.'));
 }
 function rectV(vp,r){const a=vp.convertToViewportRectangle(r);return[Math.min(a[0],a[2]),Math.min(a[1],a[3]),Math.abs(a[2]-a[0]),Math.abs(a[3]-a[1])]}
 function ulY(r){return r[1]+(r[3]-r[1])*0.06}
@@ -846,9 +883,15 @@ function renderResults(){
   $('#hPrev').onclick=()=>stepHit(-1);$('#hNext').onclick=()=>stepHit(1);
   $('#hlOcc').onclick=()=>hitsToAnn(false);$('#hlUnit').onclick=()=>hitsToAnn(true);
   const LIM=1500;
-  $('#res').innerHTML=S.hits.slice(0,LIM).map((h,i)=>`<div class="r${i===S.cur?' cur':''}" data-i="${i}"><b>${idxOf(h.id)+1}쪽</b>${h.snip}</div>`).join('')+(S.hits.length>LIM?`<div class="r">… 이하 ${S.hits.length-LIM}건 생략 (조건을 더 좁혀 보세요)</div>`:'');
+  $('#res').innerHTML=S.hits.slice(0,LIM).map((h,i)=>`<div class="r${i===S.cur?' cur':''}" data-i="${i}"><button class="cp" data-cp="${i}" title="이 줄(문장)을 클립보드로 복사">복사</button><b>${idxOf(h.id)+1}쪽</b>${h.snip}</div>`).join('')+(S.hits.length>LIM?`<div class="r">… 이하 ${S.hits.length-LIM}건 생략 (조건을 더 좁혀 보세요)</div>`:'');
 }
 $('#res').addEventListener('click',e=>{
+  const c=e.target.closest('.cp');
+  if(c){e.stopPropagation();
+    if(c.dataset.cp!=null){const h=S.hits[+c.dataset.cp],pg=pageById(h.id);if(!pg)return;const T=textCache.get(tk(pg.d,pg.p));
+      if(T)copyHit(T.text.slice(h.a,h.b),`${S.docs[pg.d].name.replace(/\.pdf$/i,'')} p.${pg.p+1}`)}
+    else{const h=LIB.hits[+c.dataset.cpl],f=LIB.files[h.f];copyHit(f.pages[h.p].text.slice(h.a,h.b),`${f.name.replace(/\.pdf$/i,'')} p.${h.p+1}`)}
+    return}
   const r=e.target.closest('.r[data-i]');if(r)return goHit(+r.dataset.i);
   const l=e.target.closest('.r[data-li]');if(l){$('#res').querySelectorAll('.r.cur').forEach(x=>x.classList.remove('cur'));l.classList.add('cur');LIB.cur=+l.dataset.li;return openLibHit(LIB.hits[LIB.cur])}
   const f=e.target.closest('.fh');if(f){const p=f.dataset.path;LIB.closed.has(p)?LIB.closed.delete(p):LIB.closed.add(p);renderResults()}
@@ -999,7 +1042,7 @@ function renderLibResults(){
     const f=LIB.files[fi],cl=LIB.closed.has(f.path);
     h+=`<div class="fh" data-path="${esc(f.path)}"><span class="ar">${cl?'▸':'▾'}</span><span class="fn">${esc(f.name)}</span><span class="fc">${arr.length}건</span><div class="fp">${esc(f.path)}</div></div>`;
     if(cl)continue;
-    for(const i of arr){if(shown++>=LIM)break;const x=LIB.hits[i];h+=`<div class="r${i===LIB.cur?' cur':''}" data-li="${i}"><b>${x.p+1}쪽</b>${x.snip}</div>`}
+    for(const i of arr){if(shown++>=LIM)break;const x=LIB.hits[i];h+=`<div class="r${i===LIB.cur?' cur':''}" data-li="${i}"><button class="cp" data-cpl="${i}" title="이 줄(문장)을 클립보드로 복사">복사</button><b>${x.p+1}쪽</b>${x.snip}</div>`}
   }
   if(shown>LIM)h+=`<div class="r">… 결과가 많아 일부만 표시했습니다. 조건을 더 좁혀 보세요.</div>`;
   res.innerHTML=h||'<div class="r" style="color:var(--sub)">찾은 결과가 없습니다.</div>';
