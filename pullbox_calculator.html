@@ -13,8 +13,8 @@
   --border:  #e0ddd5;
   --text:    #1a1a18;
   --muted:   #888880;
-  --accent:  #e8500a;
-  --acc-lt:  #fdf0eb;
+  --accent:  #555555;
+  --acc-lt:  #f0f0f0;
   --nec:     #1a5276;
   --nec-lt:  #eaf2fb;
   --jp:      #1e6b3a;
@@ -259,6 +259,34 @@ tbody tr:hover td { background: #f5f3ef; }
 @media (max-width: 640px) {
   .result-grid { grid-template-columns: repeat(2, 1fr); }
   .page-header { flex-direction: column; align-items: flex-start; }
+}
+</style>
+<style id="zz-standard">
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css");
+:root{--bg:#F8F8F8;--surface:rgba(255,255,255,.75);--surface2:rgba(255,255,255,.55);--border:rgba(128,128,128,.3);--text:#222222;--muted:#64748B;--accent:#555555;--acc-lt:rgba(128,128,128,.12);--nec:#1a5276;--nec-lt:#eaf2fb;--jp:#1e6b3a;--jp-lt:#eaf5ee;--ok:#2e7d32;--sm:#6c3483;--sm-lt:#f5eef8;--adopt:#b7770d;--adopt-lt:#fff8e6;--sans:'Pretendard','Noto Sans KR','Malgun Gothic',sans-serif;--shadow:0 8px 32px rgba(128,128,128,.14);--glass-sh:0 8px 32px rgba(128,128,128,.14)}
+@media (prefers-color-scheme:dark){:root{--bg:#1A1A1A;--surface:rgba(15,23,42,.75);--surface2:rgba(30,41,59,.55);--border:rgba(128,128,128,.35);--text:#EEEEEE;--muted:#94A3B8;--accent:#BDBDBD;--acc-lt:rgba(128,128,128,.2);--nec:#8ac2e5;--nec-lt:hsla(212,45%,55%,.2);--jp:#8fe0ad;--jp-lt:hsla(142,45%,55%,.2);--ok:#81c784;--sm:#c499d6;--sm-lt:hsla(282,45%,55%,.2);--adopt:#eac486;--adopt-lt:hsla(43,45%,55%,.2);--glass-sh:0 8px 32px rgba(0,0,0,.37);color-scheme:dark}}
+body{background:var(--bg) !important;color:var(--text);font-family:var(--sans)}
+.card,.res-card,.modal-box,.result-wrap,.result-card,.result-box,.bb-meta-card,.flow-box,.note-box,.tabs-wrap{-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px)}
+.card,.res-card,.modal-box,.result-wrap,.result-card{border-radius:16px;box-shadow:var(--glass-sh)}
+button,select,input,textarea{font-family:inherit}
+select option{background:#fff;color:#222}
+@media (prefers-color-scheme:dark){select option{background:#1e293b;color:#eee}}
+@media (prefers-color-scheme:dark){
+td.td-prod{background:hsla(43,45%,50%,.2) !important;}
+span.badge.b-nec{color:#111111 !important;}
+button.tab-btn.active{color:#111111 !important;}
+th.th-nec{color:#111111 !important;}
+td.td-prod{color:#cab999 !important;}
+span.basis-sep{color:#cccccc !important;}
+button.dan-btn.active{color:#111111 !important;}
+thead tr th{color:#111111 !important;}
+button.btn.btn-primary{color:#111111 !important;}
+div.rb-label{color:#EEEEEE !important;}
+button.btn.btn-accent{color:#111111 !important;}
+#btn-multi{color:#111111 !important;}
+.th-base,.input-table th,.th-no,.th-size{color:#222222 !important}
+.tab-btn:not(.active){color:#EEEEEE !important}
+
 }
 </style>
 </head>

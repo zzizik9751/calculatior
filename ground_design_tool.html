@@ -13,8 +13,8 @@
     --border:       #e0ddd5;
     --text:         #1a1a18;
     --muted:        #888880;
-    --accent:       #e8500a;
-    --accent-light: #fdf0eb;
+    --accent:       #555555;
+    --accent-light: #f0f0f0;
     --mono: 'Noto Sans Mono', monospace;
     --sans: 'Noto Sans KR', sans-serif;
   }
@@ -70,7 +70,7 @@
     font-size: 14px; font-weight: 700; border: none; border-radius: 8px;
     cursor: pointer; transition: background 0.15s;
   }
-  .calc-btn:hover { background: #d0440a; }
+  .calc-btn:hover { background: #444444; }
 
   /* Print Button */
   .print-btn {
@@ -242,6 +242,43 @@
   /* 화면에서는 날짜 숨김 */
   .print-date { display: none; }
 </style>
+<style id="zz-standard">
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css");
+:root{--bg:#F8F8F8;--surface:rgba(255,255,255,.75);--border:rgba(128,128,128,.3);--text:#222222;--muted:#64748B;--accent:#555555;--accent-light:rgba(128,128,128,.12);--sans:'Pretendard','Noto Sans KR','Malgun Gothic',sans-serif;--shadow:0 8px 32px rgba(128,128,128,.14);--glass-sh:0 8px 32px rgba(128,128,128,.14)}
+@media (prefers-color-scheme:dark){:root{--bg:#1A1A1A;--surface:rgba(15,23,42,.75);--border:rgba(128,128,128,.35);--text:#EEEEEE;--muted:#94A3B8;--accent:#BDBDBD;--accent-light:rgba(128,128,128,.2);--glass-sh:0 8px 32px rgba(0,0,0,.37);color-scheme:dark}}
+body{background:var(--bg) !important;color:var(--text);font-family:var(--sans)}
+.card,.res-card,.modal-box,.result-wrap,.result-card,.result-box,.bb-meta-card,.flow-box,.note-box,.tabs-wrap{-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px)}
+.card,.res-card,.modal-box,.result-wrap,.result-card{border-radius:16px;box-shadow:var(--glass-sh)}
+button,select,input,textarea{font-family:inherit}
+select option{background:#fff;color:#222}
+@media (prefers-color-scheme:dark){select option{background:#1e293b;color:#eee}}
+@media (prefers-color-scheme:dark){
+#i-D1-disp{background:rgba(30,41,59,.7) !important;}
+#i-D2-disp{background:rgba(30,41,59,.7) !important;}
+#i-addX-len{background:rgba(30,41,59,.7) !important;}
+#i-addY-len{background:rgba(30,41,59,.7) !important;}
+button.print-btn{background:rgba(30,41,59,.7) !important;}
+#warn-box{background:hsla(37,45%,50%,.2) !important;}
+span.tag.tag-ok{background:rgba(30,41,59,.7) !important;}
+#r-epr-judge{background:hsla(37,45%,50%,.2) !important;}
+#d-epr-condition{background:hsla(37,45%,50%,.2) !important;}
+#s-Em-judge{background:rgba(30,41,59,.7) !important;}
+#s-Es-judge{background:rgba(30,41,59,.7) !important;}
+#s-Rg-judge{background:rgba(30,41,59,.7) !important;}
+div.field label span{color:#bbbbbb !important;}
+button.calc-btn{color:#111111 !important;}
+div.warn-box.show strong{color:#f5b999 !important;}
+ul li{color:#f5b999 !important;}
+span.tag.tag-ok{color:#abcbad !important;}
+#r-epr-judge{color:#f5b999 !important;}
+#r-verdict-text{color:#abcbad !important;}
+#d-epr-condition{color:#f5b999 !important;}
+div strong{color:#f5b999 !important;}
+#s-Em-judge{color:#abcbad !important;}
+#s-Es-judge{color:#abcbad !important;}
+#s-Rg-judge{color:#abcbad !important;}
+}
+</style>
 </head>
 <body>
 <div class="wrapper">
@@ -343,14 +380,14 @@
         </div>
       </div>
       <div class="field">
-        <label>X방향 도체 수 (nX) <span style="color:#e8500a;font-size:10px;">→ D1 자동계산</span></label>
+        <label>X방향 도체 수 (nX) <span style="color:#555555;font-size:10px;">→ D1 자동계산</span></label>
         <div class="unit-wrap">
           <input type="number" id="i-nX" value="13" step="1" min="2" oninput="calc()">
           <span class="unit-label">개</span>
         </div>
       </div>
       <div class="field">
-        <label>Y방향 도체 수 (nY) <span style="color:#e8500a;font-size:10px;">→ D2 자동계산</span></label>
+        <label>Y방향 도체 수 (nY) <span style="color:#555555;font-size:10px;">→ D2 자동계산</span></label>
         <div class="unit-wrap">
           <input type="number" id="i-nY" value="5" step="1" min="2" oninput="calc()">
           <span class="unit-label">개</span>

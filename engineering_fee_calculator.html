@@ -10,7 +10,7 @@
 :root {
   --bg:#f2f4f7; --surf:#ffffff; --surf2:#f7f8fa; --surf3:#edf0f4;
   --border:#dde1e8; --border2:#bcc3cf;
-  --blue:#1a56db; --blue2:#1447c0; --blue-light:#eff4ff;
+  --blue:#555555; --blue2:#444444; --blue-light:#f0f0f0;
   --green:#1a7a4a; --green2:#15673e; --green-light:#ecfdf4;
   --purple:#6b21a8; --purple2:#581c87; --purple-light:#faf5ff;
   --orange:#c2400a; --orange-light:#fff7ed;
@@ -18,7 +18,7 @@
   --text:#111827; --sub:#4b5563; --dim:#9ca3af;
   --mono:'Noto Sans Mono',monospace; --sans:'Noto Sans KR',sans-serif;
   --radius:10px;
-  --hdr-blue:#1e3a5f;
+  --hdr-blue:#444444;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;padding:0 0 80px;font-size:14px;}
@@ -78,7 +78,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 .lbl{display:block;font-size:.72rem;color:var(--sub);margin-bottom:5px;font-weight:600;}
 .lbl-note{font-size:.62rem;color:var(--dim);display:block;margin-top:2px;font-weight:400;line-height:1.5;}
 .irow{display:flex;align-items:center;gap:8px;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:0 11px;transition:border-color .15s;}
-.irow:focus-within{border-color:var(--blue);box-shadow:0 0 0 2px rgba(26,86,219,.1);}
+.irow:focus-within{border-color:var(--blue);box-shadow:0 0 0 2px rgba(128,128,128,.1);}
 .irow input{flex:1;background:none;border:none;outline:none;font-family:var(--mono);font-size:.95rem;font-weight:600;color:var(--text);padding:9px 0;}
 .unit{font-size:.7rem;color:var(--dim);white-space:nowrap;}
 .hint{font-size:.68rem;color:var(--dim);margin-top:4px;font-family:var(--mono);}
@@ -104,7 +104,7 @@ hr.dv{border:none;border-top:1px solid var(--border);margin:8px 0;}
 .fh{color:var(--blue);font-weight:700;}.fr{color:var(--green);font-weight:700;}
 
 /* ── 최종 금액 ── */
-.final{background:var(--hdr-blue);border-radius:var(--radius);padding:16px 18px;box-shadow:0 2px 8px rgba(30,58,95,.2);}
+.final{background:var(--hdr-blue);border-radius:var(--radius);padding:16px 18px;box-shadow:0 2px 8px rgba(68,68,68,.2);}
 .final.green{background:var(--green);}
 .final.purple{background:var(--purple);}
 .final .fl{font-size:.62rem;color:rgba(255,255,255,.65);letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px;}
@@ -138,7 +138,7 @@ table.rt th.tg{color:#86efac;} table.rt th.tb{color:#93c5fd;} table.rt th.tp{col
 table.rt td{padding:6px 9px;border-bottom:1px solid var(--border);font-family:var(--mono);text-align:right;color:var(--sub);font-size:.72rem;}
 table.rt td:first-child{font-family:var(--sans);text-align:left;color:var(--text);white-space:nowrap;}
 table.rt tr:nth-child(even) td{background:var(--surf2);}
-table.rt tr.act td{background:#eff4ff;color:var(--text);font-weight:700;}
+table.rt tr.act td{background:#f0f0f0;color:var(--text);font-weight:700;}
 table.rt tr.act td:first-child{color:var(--blue);}
 table.rt td.ed{cursor:pointer;}
 table.rt td.ed:hover{background:var(--blue-light);}
@@ -166,6 +166,32 @@ table.rt td input.ci{background:var(--surf);border:1px solid var(--blue);outline
 
 /* ── 푸터 ── */
 .footer-note{max-width:1040px;margin:28px auto 0;text-align:center;font-size:.66rem;color:var(--dim);line-height:1.8;padding:12px 16px 4px;border-top:1px solid var(--border);}
+</style>
+<style id="zz-standard">
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css");
+:root{--bg:#F8F8F8;--surf:rgba(255,255,255,.75);--surf2:rgba(255,255,255,.55);--surf3:rgba(128,128,128,.12);--border:rgba(128,128,128,.3);--border2:rgba(128,128,128,.45);--blue:#555555;--blue2:#333333;--blue-light:rgba(128,128,128,.12);--green:#1a7a4a;--green2:#15673e;--green-light:#ecfdf4;--purple:#6b21a8;--purple2:#581c87;--purple-light:#faf5ff;--orange:#c2400a;--orange-light:#fff7ed;--red:#b91c1c;--text:#222222;--sub:#64748B;--dim:#8a94a3;--hdr-blue:#444444;--sans:'Pretendard','Noto Sans KR','Malgun Gothic',sans-serif;--shadow:0 8px 32px rgba(128,128,128,.14);--glass-sh:0 8px 32px rgba(128,128,128,.14)}
+@media (prefers-color-scheme:dark){:root{--bg:#1A1A1A;--surf:rgba(15,23,42,.75);--surf2:rgba(30,41,59,.55);--surf3:rgba(128,128,128,.18);--border:rgba(128,128,128,.35);--border2:rgba(128,128,128,.5);--blue:#BDBDBD;--blue2:#9E9E9E;--blue-light:rgba(128,128,128,.2);--green:#89e6b8;--green2:#88e7b8;--green-light:hsla(148,45%,55%,.2);--purple:#bc88e8;--purple2:#bd89e6;--purple-light:hsla(270,45%,55%,.2);--orange:#eaa386;--orange-light:hsla(33,45%,55%,.2);--red:#ea8686;--text:#EEEEEE;--sub:#94A3B8;--dim:#7b879a;--hdr-blue:#333333;--glass-sh:0 8px 32px rgba(0,0,0,.37);color-scheme:dark}}
+body{background:var(--bg) !important;color:var(--text);font-family:var(--sans)}
+.card,.res-card,.modal-box,.result-wrap,.result-card,.result-box,.bb-meta-card,.flow-box,.note-box,.tabs-wrap{-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px)}
+.card,.res-card,.modal-box,.result-wrap,.result-card{border-radius:16px;box-shadow:var(--glass-sh)}
+button,select,input,textarea{font-family:inherit}
+select option{background:#fff;color:#222}
+@media (prefers-color-scheme:dark){select option{background:#1e293b;color:#eee}}
+@media (prefers-color-scheme:dark){
+#b1-modeNote{background:hsla(48,45%,50%,.2) !important;}
+div.pm-box{background:rgba(30,41,59,.7) !important;}
+div.sb small{color:#cacfd7 !important;}
+#b1-modeNote{color:#c9ae9f !important;}
+div.flow-title{color:#cacfd7 !important;}
+div.fl{color:#111111 !important;}
+#b2-final{color:#111111 !important;}
+#b2-finalKor{color:#111111 !important;}
+div.fv{color:#111111 !important;}
+#b3-final{color:#111111 !important;}
+#b3-finalKor{color:#111111 !important;}
+button.io-btn.reset{color:#EEEEEE !important;}
+div a{color:#bbbbbb !important;}
+}
 </style>
 </head>
 <body>
@@ -1301,8 +1327,8 @@ calcB1(); calcB2(); calcB3();
 </script>
 
 <div style="max-width:1040px;margin:20px auto 0;padding:16px 24px;text-align:center;font-size:11px;color:#9ca3af;line-height:1.8;border-top:1px solid #dde1e8;">
-  Created by <a href="https://blog.naver.com/zzizik" target="_blank" rel="noopener noreferrer" style="color:#1a56db;text-decoration:none;font-weight:600;">zzizik</a>, with Claude AI.<br>
-  Thanks to <a href="http://hwjy.co.kr/" target="_blank" rel="noopener noreferrer" style="color:#1a56db;text-decoration:none;font-weight:600;">HWJY Co., Ltd.</a>
+  Created by <a href="https://blog.naver.com/zzizik" target="_blank" rel="noopener noreferrer" style="color:#555555;text-decoration:none;font-weight:600;">zzizik</a>, with Claude AI.<br>
+  Thanks to <a href="http://hwjy.co.kr/" target="_blank" rel="noopener noreferrer" style="color:#555555;text-decoration:none;font-weight:600;">HWJY Co., Ltd.</a>
 </div>
 
 </body>

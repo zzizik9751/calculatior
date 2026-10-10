@@ -21,9 +21,9 @@
   --text:         #1a1a18;
   --muted:        #888880;
   --muted2:       #b0aea6;
-  --accent:       #e8500a;
-  --accent-light: #fdf0eb;
-  --accent-dark:  #c04008;
+  --accent:       #555555;
+  --accent-light: #f0f0f0;
+  --accent-dark:  #444444;
   --ok:           #2e7d32;
   --ok-bg:        #e8f5e9;
   --warn:         #e65100;
@@ -210,7 +210,7 @@ code { font-family: var(--mono); background: var(--surface2); padding: 1px 5px; 
 /* ===== 결과 박스 ===== */
 .result-main {
   background: var(--accent-light);
-  border: 1px solid #f0c0a0;
+  border: 1px solid #c8c8c8;
   border-left: 3px solid var(--accent);
   border-radius: var(--radius);
   padding: 12px 16px;
@@ -410,6 +410,38 @@ code { font-family: var(--mono); background: var(--surface2); padding: 1px 5px; 
   .res-card-grid, .g2, .g3, .g4, .g5 { gap: 6px; }
   .res-card-val { font-size: 14px; }
   .modal-overlay { display: none !important; }
+}
+</style>
+<style id="zz-standard">
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css");
+:root{--bg:#F8F8F8;--surface:rgba(255,255,255,.75);--surface2:rgba(255,255,255,.55);--border:rgba(128,128,128,.3);--border2:rgba(128,128,128,.45);--text:#222222;--muted:#64748B;--muted2:#8a94a3;--accent:#555555;--accent-light:rgba(128,128,128,.12);--accent-dark:#333333;--ok:#2e7d32;--ok-bg:#e8f5e9;--warn:#e65100;--warn-bg:#fff3e0;--err:#c62828;--err-bg:#fce4ec;--info:#1565c0;--info-bg:#e3f2fd;--purple:#6a3fb5;--purple-bg:#f1ecfb;--sans:'Pretendard','Noto Sans KR','Malgun Gothic',sans-serif;--shadow:0 8px 32px rgba(128,128,128,.14);--glass-sh:0 8px 32px rgba(128,128,128,.14)}
+@media (prefers-color-scheme:dark){:root{--bg:#1A1A1A;--surface:rgba(15,23,42,.75);--surface2:rgba(30,41,59,.55);--border:rgba(128,128,128,.35);--border2:rgba(128,128,128,.5);--text:#EEEEEE;--muted:#94A3B8;--muted2:#7b879a;--accent:#BDBDBD;--accent-light:rgba(128,128,128,.2);--accent-dark:#9E9E9E;--ok:#81c784;--ok-bg:rgba(46,125,50,.22);--warn:#ffb74d;--warn-bg:rgba(230,81,0,.2);--err:#ef9a9a;--err-bg:rgba(198,40,40,.22);--info:#64b5f6;--info-bg:rgba(21,101,192,.22);--purple:#ae95da;--purple-bg:hsla(260,45%,55%,.2);--glass-sh:0 8px 32px rgba(0,0,0,.37);color-scheme:dark}}
+body{background:var(--bg) !important;color:var(--text);font-family:var(--sans)}
+.card,.res-card,.modal-box,.result-wrap,.result-card,.result-box,.bb-meta-card,.flow-box,.note-box,.tabs-wrap{-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px)}
+.card,.res-card,.modal-box,.result-wrap,.result-card{border-radius:16px;box-shadow:var(--glass-sh)}
+button,select,input,textarea{font-family:inherit}
+select option{background:#fff;color:#222}
+@media (prefers-color-scheme:dark){select option{background:#1e293b;color:#eee}}
+@media (prefers-color-scheme:dark){
+header.site-header{background:rgba(30,41,59,.7) !important;}
+footer.site-footer{background:rgba(30,41,59,.7) !important;}
+tr.row-total td{background:rgba(30,41,59,.7) !important;}
+#summaryTotalLen{background:rgba(30,41,59,.7) !important;}
+#tray1_sumW{background:rgba(30,41,59,.7) !important;}
+td.no-print{background:rgba(30,41,59,.7) !important;}
+button.btn.sm.no-print{color:#111111 !important;}
+button.btn.no-print{color:#111111 !important;}
+button.btn.danger.sm{color:#111111 !important;}
+button.btn.danger.sm.icon-x{color:#111111 !important;}
+div.info-box-blue.info-box{color:#9eb5d9 !important;}
+div.info-box-blue.info-box ul li{color:#9eb5d9 !important;}
+div.info-box{color:#beb3af !important;}
+button.btn.sm{color:#111111 !important;}
+#importAppendBtn{color:#111111 !important;}
+#importReplaceBtn{color:#111111 !important;}
+div a{color:#bbbbbb !important;}
+.btn.sm,.btn.no-print{color:#EEEEEE;border-color:rgba(128,128,128,.5)}
+
 }
 </style>
 </head>
@@ -2558,8 +2590,8 @@ window.onload = function(){
 </script>
 
 <div style="max-width:1100px;margin:20px auto 0;padding:16px;text-align:center;font-size:11px;color:#888880;line-height:1.8;border-top:1px solid #e0ddd5;">
-  Created by <a href="https://blog.naver.com/zzizik" target="_blank" rel="noopener noreferrer" style="color:#e8500a;text-decoration:none;font-weight:600;">zzizik</a>, with Claude AI.<br>
-  Thanks to <a href="http://hwjy.co.kr/" target="_blank" rel="noopener noreferrer" style="color:#e8500a;text-decoration:none;font-weight:600;">HWJY Co., Ltd.</a>
+  Created by <a href="https://blog.naver.com/zzizik" target="_blank" rel="noopener noreferrer" style="color:#555555;text-decoration:none;font-weight:600;">zzizik</a>, with Claude AI.<br>
+  Thanks to <a href="http://hwjy.co.kr/" target="_blank" rel="noopener noreferrer" style="color:#555555;text-decoration:none;font-weight:600;">HWJY Co., Ltd.</a>
 </div>
 
 </body>

@@ -14,9 +14,9 @@
     --border2:      #ccc9c0;
     --text:         #1a1a18;
     --muted:        #888880;
-    --accent:       #1a4fa0;
-    --accent-light: #eef3fc;
-    --accent2:      #e8500a;
+    --accent:       #555555;
+    --accent-light: #f0f0f0;
+    --accent2:      #555555;
     --ok:           #2e7d32;
     --ok-bg:        #e8f5e9;
     --warn:         #e65100;
@@ -131,14 +131,14 @@
   }
   .field input:focus, .field select:focus {
     border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(26,79,160,.12);
+    box-shadow: 0 0 0 3px rgba(128,128,128,.12);
   }
   .field .unit { font-size: 11px; color: var(--muted); margin-top: 4px; }
 
   /* ── 계산 결과 박스 ── */
   .result-highlight {
     background: var(--accent-light);
-    border: 1px solid #b8ccef;
+    border: 1px solid #c8c8c8;
     border-radius: 6px;
     padding: 14px 18px;
     margin-bottom: 14px;
@@ -253,7 +253,7 @@
     transition: all .15s;
   }
   .btn-primary { background: var(--accent); color: #fff; }
-  .btn-primary:hover { background: #153d80; }
+  .btn-primary:hover { background: #444444; }
   .btn-danger  { background: var(--err-bg); color: var(--err); border: 1px solid #f5b8b8; }
   .btn-danger:hover { background: #fad7d7; }
   .btn-sm { padding: 4px 10px; font-size: 11px; }
@@ -320,6 +320,59 @@
   .mt-14 { margin-top: 14px; }
   .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
   @media (max-width: 680px) { .grid2 { grid-template-columns: 1fr; } }
+</style>
+<style id="zz-standard">
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css");
+:root{--bg:#F8F8F8;--surface:rgba(255,255,255,.75);--surface2:rgba(255,255,255,.55);--border:rgba(128,128,128,.3);--border2:rgba(128,128,128,.45);--text:#222222;--muted:#64748B;--accent:#555555;--accent-light:rgba(128,128,128,.12);--accent2:#333333;--ok:#2e7d32;--ok-bg:#e8f5e9;--warn:#e65100;--warn-bg:#fff3e0;--err:#c62828;--err-bg:#fce4ec;--sans:'Pretendard','Noto Sans KR','Malgun Gothic',sans-serif;--shadow:0 8px 32px rgba(128,128,128,.14);--glass-sh:0 8px 32px rgba(128,128,128,.14)}
+@media (prefers-color-scheme:dark){:root{--bg:#1A1A1A;--surface:rgba(15,23,42,.75);--surface2:rgba(30,41,59,.55);--border:rgba(128,128,128,.35);--border2:rgba(128,128,128,.5);--text:#EEEEEE;--muted:#94A3B8;--accent:#BDBDBD;--accent-light:rgba(128,128,128,.2);--accent2:#9E9E9E;--ok:#81c784;--ok-bg:rgba(46,125,50,.22);--warn:#ffb74d;--warn-bg:rgba(230,81,0,.2);--err:#ef9a9a;--err-bg:rgba(198,40,40,.22);--glass-sh:0 8px 32px rgba(0,0,0,.37);color-scheme:dark}}
+body{background:var(--bg) !important;color:var(--text);font-family:var(--sans)}
+.card,.res-card,.modal-box,.result-wrap,.result-card,.result-box,.bb-meta-card,.flow-box,.note-box,.tabs-wrap{-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px)}
+.card,.res-card,.modal-box,.result-wrap,.result-card{border-radius:16px;box-shadow:var(--glass-sh)}
+button,select,input,textarea{font-family:inherit}
+select option{background:#fff;color:#222}
+@media (prefers-color-scheme:dark){select option{background:#1e293b;color:#eee}}
+@media (prefers-color-scheme:dark){
+#base-mva{background:rgba(30,41,59,.7) !important;}
+#ps-mva{background:rgba(30,41,59,.7) !important;}
+#ps-xr{background:rgba(30,41,59,.7) !important;}
+#hv-cable-type{background:rgba(30,41,59,.7) !important;}
+#hv-len{background:rgba(30,41,59,.7) !important;}
+#tr-kva{background:rgba(30,41,59,.7) !important;}
+#tr-pz{background:rgba(30,41,59,.7) !important;}
+#tr-pr{background:rgba(30,41,59,.7) !important;}
+#tr1-cable-type{background:rgba(30,41,59,.7) !important;}
+#tr1-len{background:rgba(30,41,59,.7) !important;}
+#lv-voltage{background:rgba(30,41,59,.7) !important;}
+div.result-highlight{background:hsla(43,45%,50%,.2) !important;}
+#ci-name{background:rgba(30,41,59,.7) !important;}
+#ci-size{background:rgba(30,41,59,.7) !important;}
+#ci-len{background:rgba(30,41,59,.7) !important;}
+#ci-frame{background:rgba(30,41,59,.7) !important;}
+#ci-at{background:rgba(30,41,59,.7) !important;}
+#ci-ic{background:rgba(30,41,59,.7) !important;}
+#ci-asym{background:rgba(30,41,59,.7) !important;}
+td.name{background:rgba(30,41,59,.7) !important;}
+td.mono{background:rgba(30,41,59,.7) !important;}
+td.mono.center{background:rgba(30,41,59,.7) !important;}
+td.mono.ok-cell{background:rgba(30,41,59,.7) !important;}
+td.center{background:rgba(30,41,59,.7) !important;}
+div.badge{color:#111111 !important;}
+header div h1{color:#111111 !important;}
+header div p{color:#111111 !important;}
+span.step{color:#111111 !important;}
+#ps-r-ohm{color:#111111 !important;}
+#ps-x-ohm{color:#111111 !important;}
+#ps-sc-ref{color:#EEEEEE !important;}
+span.label{color:#cabf9f !important;}
+#r1-isc{color:#cabf9f !important;}
+div.sc-head{color:#111111 !important;}
+button.btn.btn-sm{color:#111111 !important;}
+button.btn.btn-primary{color:#111111 !important;}
+thead tr th{color:#111111 !important;}
+header{background:rgba(30,41,59,.85) !important;}
+header div h1,header div p{color:#EEEEEE !important;}
+
+}
 </style>
 </head>
 <body>
@@ -1063,7 +1116,7 @@ function recalcCircuits() {
       <td class="mono ${ok?'ok-cell':'err-cell'}">${iscAsym.toFixed(1)}</td>
       <td class="mono">${strength.toFixed(1)}</td>
       <td class="center">${tag}</td>
-      <td class="center"><button class="btn btn-sm" style="background:var(--accent-light);color:var(--accent);border:1px solid #b8ccef;" onclick="editCircuit(${i})">수정</button></td>
+      <td class="center"><button class="btn btn-sm" style="background:var(--accent-light);color:var(--accent);border:1px solid #c8c8c8;" onclick="editCircuit(${i})">수정</button></td>
       <td class="center"><button class="btn btn-danger btn-sm" onclick="deleteCircuit(${i})">삭제</button></td>
     </tr>`;
   }).join('');

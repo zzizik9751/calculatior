@@ -10,7 +10,7 @@
 :root {
   --bg:#f5f4f0; --surface:#ffffff; --border:#e0ddd5;
   --text:#1a1a18; --muted:#888880;
-  --accent:#e8500a; --accent-dark:#d0440a; --accent-light:#fdf0eb;
+  --accent:#555555; --accent-dark:#444444; --accent-light:#f0f0f0;
   --ok:#2e7d32; --ok-bg:#e8f5e9;
   --warn:#e65100; --warn-bg:#fff3e0;
   --err:#c62828; --err-bg:#fce4ec;
@@ -65,12 +65,12 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
 .result-table td.left{text-align:left;}
 
 /* 결과 박스 */
-.result-box{background:var(--accent-light);border:1px solid #f5c9b0;border-radius:8px;padding:14px 18px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-top:14px;}
+.result-box{background:var(--accent-light);border:1px solid #c8c8c8;border-radius:8px;padding:14px 18px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-top:14px;}
 .result-box .rb-item{flex:1;min-width:120px;}
 .result-box .rb-label{font-size:10px;color:var(--muted);font-family:var(--mono);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;}
 .result-box .rb-val{font-family:var(--mono);font-size:22px;font-weight:700;color:var(--accent);line-height:1;}
 .result-box .rb-unit{font-family:var(--mono);font-size:12px;color:var(--muted);margin-left:4px;}
-.result-box .rb-divider{width:1px;height:46px;background:#f0c8a8;}
+.result-box .rb-divider{width:1px;height:46px;background:#c8c8c8;}
 
 /* 태그 */
 .tag{display:inline-block;font-family:var(--mono);font-size:11px;font-weight:600;padding:3px 8px;border-radius:4px;}
@@ -95,7 +95,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
 .bank-field label{font-size:11px;color:var(--muted);font-family:var(--mono);}
 .bank-field input,.bank-field select{font-family:var(--mono);font-size:13px;font-weight:500;background:var(--surface);border:1px solid var(--border);border-radius:5px;padding:6px 9px;outline:none;width:100%;min-width:90px;transition:border-color .15s;}
 .bank-field input:focus,.bank-field select:focus{border-color:var(--accent);}
-.bank-result{background:var(--accent-light);border-top:1px solid #f0c8a8;padding:8px 14px;display:flex;gap:16px;flex-wrap:wrap;align-items:center;}
+.bank-result{background:var(--accent-light);border-top:1px solid #c8c8c8;padding:8px 14px;display:flex;gap:16px;flex-wrap:wrap;align-items:center;}
 .bank-result-item{font-family:var(--mono);font-size:12px;color:var(--text);}
 .bank-result-item .val{font-weight:700;color:var(--accent);}
 .btn-remove{background:none;border:1px solid var(--border);border-radius:5px;color:#bbb;cursor:pointer;padding:5px 9px;font-size:14px;line-height:1;transition:all .15s;}
@@ -103,7 +103,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
 
 /* 버튼 */
 .btn-add{background:var(--accent-light);color:var(--accent);border:1.5px dashed var(--accent);border-radius:8px;padding:10px;width:100%;font-size:13px;font-weight:600;cursor:pointer;transition:background .15s;display:flex;align-items:center;justify-content:center;gap:6px;}
-.btn-add:hover{background:#fbe0d0;}
+.btn-add:hover{background:#e4e4e4;}
 .btn-primary{background:var(--accent);color:#fff;border:none;border-radius:7px;padding:10px 22px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--sans);transition:background .15s;}
 .btn-primary:hover{background:var(--accent-dark);}
 .btn-row{display:flex;gap:10px;justify-content:flex-end;margin-top:14px;}
@@ -131,6 +131,31 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
 .gf-f{background:#f0f4ff;border-left:3px solid #3949ab;}
 .note-box-sm{font-size:11px;}
 .ref-sub{font-family:var(--sans);font-size:12px;color:var(--muted);margin-bottom:10px;}
+</style>
+<style id="zz-standard">
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css");
+:root{--bg:#F8F8F8;--surface:rgba(255,255,255,.75);--border:rgba(128,128,128,.3);--text:#222222;--muted:#64748B;--accent:#555555;--accent-dark:#333333;--accent-light:rgba(128,128,128,.12);--ok:#2e7d32;--ok-bg:#e8f5e9;--warn:#e65100;--warn-bg:#fff3e0;--err:#c62828;--err-bg:#fce4ec;--sans:'Pretendard','Noto Sans KR','Malgun Gothic',sans-serif;--shadow:0 8px 32px rgba(128,128,128,.14);--glass-sh:0 8px 32px rgba(128,128,128,.14)}
+@media (prefers-color-scheme:dark){:root{--bg:#1A1A1A;--surface:rgba(15,23,42,.75);--border:rgba(128,128,128,.35);--text:#EEEEEE;--muted:#94A3B8;--accent:#BDBDBD;--accent-dark:#9E9E9E;--accent-light:rgba(128,128,128,.2);--ok:#81c784;--ok-bg:rgba(46,125,50,.22);--warn:#ffb74d;--warn-bg:rgba(230,81,0,.2);--err:#ef9a9a;--err-bg:rgba(198,40,40,.22);--glass-sh:0 8px 32px rgba(0,0,0,.37);color-scheme:dark}}
+body{background:var(--bg) !important;color:var(--text);font-family:var(--sans)}
+.card,.res-card,.modal-box,.result-wrap,.result-card,.result-box,.bb-meta-card,.flow-box,.note-box,.tabs-wrap{-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px)}
+.card,.res-card,.modal-box,.result-wrap,.result-card{border-radius:16px;box-shadow:var(--glass-sh)}
+button,select,input,textarea{font-family:inherit}
+select option{background:#fff;color:#222}
+@media (prefers-color-scheme:dark){select option{background:#1e293b;color:#eee}}
+@media (prefers-color-scheme:dark){
+thead tr th{background:rgba(30,41,59,.7) !important;}
+span.tag.tag-info{background:hsla(231,45%,50%,.2) !important;}
+div.note-box{background:rgba(30,41,59,.7) !important;}
+tbody tr{background:hsla(224,45%,50%,.2) !important;}
+th.td-left{background:rgba(30,41,59,.7) !important;}
+div.gf-method-title.gf-b1{background:rgba(30,41,59,.7) !important;}
+div.note-box.note-box-sm{background:rgba(30,41,59,.7) !important;}
+div.gf-method-title.gf-f{background:hsla(224,45%,50%,.2) !important;}
+span.bank-badge{color:#111111 !important;}
+span.tag.tag-info{color:#b0b6dd !important;}
+div.ref-sub b{color:#bbbbbb !important;}
+tr td b{color:#b0b6dd !important;}
+}
 </style>
 </head>
 <body>
@@ -326,7 +351,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
   <!-- 3-2 변압기 용량별 선정 요약 -->
   <div class="card">
     <div class="card-title">변압기 용량별 간선 선정 요약 (B1 공사방법, 40℃, HFCO)</div>
-    <div class="ref-sub">0.4 전기실 케이블 시트 기준 — 3Φ 4W 380/220V &nbsp;|&nbsp; <b style="color:#e8500a;">750 kVA 미만: 케이블 (트랜치 B1 / 트레이 F) &nbsp;/&nbsp; 750 kVA 이상: AL BUS-DUCT 확정</b></div>
+    <div class="ref-sub">0.4 전기실 케이블 시트 기준 — 3Φ 4W 380/220V &nbsp;|&nbsp; <b style="color:#555555;">750 kVA 미만: 케이블 (트랜치 B1 / 트레이 F) &nbsp;/&nbsp; 750 kVA 이상: AL BUS-DUCT 확정</b></div>
     <div class="result-table-wrap">
       <table class="ref-table">
         <thead>
