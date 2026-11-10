@@ -1,0 +1,397 @@
+<title>일반부하 선정 계산서</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=Noto+Serif+KR:wght@600;700&display=swap">
+<style>
+/* 레이아웃: A4 폭 680px 단일 컬럼. 입력 → 핵심 결과 → 산출근거(장별 x.1 기준 / x.2 계산 / x.3 결과) */
+:root{
+  color-scheme: light;
+  --bg:#ffffff;
+  --fg:#1c2230;
+  --muted:#5b6475;
+  --line:#d5dae3;
+  --soft:#f4f6fa;
+  --accent:#1d4ed8;
+  --accent-soft:#e8efff;
+  --ok:#067647; --ok-bg:#ecfdf3;
+  --ng:#b42318; --ng-bg:#fef3f2;
+  --warn:#8a5a00; --warn-bg:#fff8e1;
+  --sel-final:#ffe36b;
+  --sel-base:#dcebff;
+  --f-body:'Noto Sans KR','Malgun Gothic','맑은 고딕',sans-serif;
+  --f-head:'Noto Serif KR','Noto Sans KR','Malgun Gothic',serif;
+}
+*{box-sizing:border-box}
+html,body{background:var(--bg)}
+body{margin:0;color:var(--fg);font:13px/1.65 var(--f-body);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px}
+.page{max-width:680px;margin:0 auto}
+h1{font:700 21px/1.35 var(--f-head);margin:0 0 4px;letter-spacing:-.01em}
+.sub{color:var(--muted);font-size:12px;margin:0 0 14px}
+.sample{display:inline-block;font-size:11px;color:var(--warn);background:var(--warn-bg);padding:1px 8px;border-radius:10px;margin-left:6px;vertical-align:2px}
+
+/* 입력 */
+.panel{border-top:2px solid var(--fg);border-bottom:1px solid var(--line);padding:12px 0 6px;margin-bottom:14px}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 16px}
+@media (min-width:560px){.grid.c3{grid-template-columns:repeat(3,minmax(0,1fr))}}
+label{display:flex;flex-direction:column;gap:3px;font-size:11.5px;color:var(--muted);min-width:0}
+label b{font-weight:500;color:var(--fg);font-size:12px}
+input,select{font:inherit;font-size:13px;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:6px 8px;min-width:0;width:100%}
+input:focus-visible,select:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.row2{display:grid;grid-template-columns:minmax(0,1fr) 78px;gap:6px}
+details{margin:10px 0 4px}
+summary{cursor:pointer;color:var(--accent);font-size:12px;font-weight:500;padding:3px 0}
+details .grid{margin-top:8px}
+.hint{font-size:11px;color:var(--muted);margin:2px 0 0}
+
+/* 핵심 결과 */
+.tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;border-top:2px solid var(--accent);border-bottom:1px solid var(--line);margin:0 0 10px}
+@media (max-width:520px){.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.tile{padding:9px 10px;border-left:1px solid var(--line);min-width:0}
+.tile:first-child{border-left:0;padding-left:2px}
+@media (max-width:520px){.tile:nth-child(3){border-left:0;padding-left:2px}}
+.tile .k{font-size:11px;color:var(--muted)}
+.tile .v{font:700 15px/1.35 var(--f-body);color:var(--accent);overflow-wrap:anywhere}
+.tile .s{font-size:11px;color:var(--muted)}
+.judge{border:2px solid;border-radius:6px;padding:7px 12px;margin:6px 0}
+.judge.ok{border-color:var(--ok);background:var(--ok-bg)}
+.judge.ng{border-color:var(--ng);background:var(--ng-bg)}
+.judge .t{font-size:11px;color:var(--muted);margin-bottom:2px}
+.judge .l{font-size:14px;font-weight:700;color:var(--accent);line-height:1.5}
+.badge{display:inline-block;padding:0 10px;border-radius:12px;color:#fff;font-size:12px;font-weight:700;margin-left:8px;white-space:nowrap}
+.ok .badge{background:var(--ok)}.ng .badge{background:var(--ng)}
+.judge .why{color:var(--ng);font-size:12px;margin-top:3px}
+.warns{margin:8px 0}
+.warn{background:var(--warn-bg);color:var(--warn);border-radius:4px;padding:6px 10px;margin:4px 0;font-size:12px}
+.warn.bad{background:var(--ng-bg);color:var(--ng)}
+
+/* 산출근거 */
+.sec{break-inside:avoid-page;page-break-inside:avoid;margin-top:26px}
+h2{display:flex;align-items:center;gap:10px;font:700 17px/1.3 var(--f-head);margin:0 0 8px;padding-bottom:6px;border-bottom:2px solid var(--accent);color:var(--fg)}
+h2 .no{flex:none;display:inline-grid;place-items:center;min-width:26px;height:26px;background:var(--accent);color:#fff;font:700 14px/1 var(--f-body);border-radius:3px}
+h3{font:700 12.5px/1.4 var(--f-body);color:var(--accent);margin:12px 0 4px}
+.eq{margin:5px 0 5px 4px;font-size:13px}
+.eq + .eq{margin-top:9px}
+.eq .sm{display:block;color:var(--muted);font-size:11.5px}
+i{font-family:'Noto Serif KR',Georgia,serif}
+table{width:100%;border-collapse:collapse;font-size:12px;margin:5px 0;font-variant-numeric:tabular-nums}
+th,td{padding:4px 7px;text-align:center;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+th{background:var(--soft);font-weight:500;color:var(--muted)}
+td.l,th.l{text-align:left}
+tr.base td{background:var(--sel-base)}
+tr.fin td{background:var(--sel-final);font-weight:700}
+.tw{overflow-x:auto}
+.note{font-size:11.5px;color:var(--muted);margin:4px 0}
+.res{display:flex;flex-wrap:wrap;gap:4px 18px;font-weight:700;color:var(--accent);margin:4px 0}
+.pass{color:var(--ok);font-weight:700}.fail{color:var(--ng);font-weight:700}
+.foot{margin-top:30px;border-top:1px solid var(--line);padding-top:10px;font-size:11.5px;color:var(--muted)}
+.foot ul{margin:4px 0 0 18px;padding:0}
+.foot b{color:var(--fg)}
+@media print{
+  body{padding:0}
+  @page{size:A4;margin:14mm}
+  details{display:none}
+  input,select{border:0;padding:0;background:transparent;appearance:none}
+}
+</style>
+
+<div class="page">
+  <h1>일반부하 차단기 및 케이블 선정 계산서</h1>
+  <p class="sub">비전동기 부하 · 100 kW 이하 · 저압 분기회로 (KEC / KECG 1702-2019) <span class="sample">입력값은 예시입니다</span></p>
+
+  <div class="panel" id="inputs">
+    <div class="grid c3">
+      <label><b>회로명 · 부하명</b><input id="name" type="text" value="신호기기실 분전반 (예시)"></label>
+      <label><b>부하종류</b>
+        <select id="ltype">
+          <option value="gen" selected>일반부하 (조명·콘센트·기타)</option>
+          <option value="ups">UPS · 정류기</option>
+          <option value="heat">전열 (저항부하)</option>
+        </select></label>
+      <label><b>전기방식</b>
+        <select id="phase">
+          <option value="1">단상 2선 220 V</option>
+          <option value="3" selected>3상 4선 380 V</option>
+        </select></label>
+      <label><b>부하용량</b>
+        <span class="row2"><input id="cap" type="number" min="0" step="any" value="50">
+        <select id="unit"><option value="kVA" selected>kVA</option><option value="kW">kW</option></select></span></label>
+      <label><b>부하까지 거리 L (m)</b><input id="L" type="number" min="1" step="any" value="80"></label>
+      <label><b>허용 전압강하 (%)</b><input id="emax" type="number" min="0.1" step="0.1" value="2"></label>
+    </div>
+    <details>
+      <summary>고급 설정 (역률·효율·온도·회선수·케이블 형식)</summary>
+      <div class="grid c3">
+        <label><b>역률 cosθ</b><input id="cos" type="number" min="0.3" max="1" step="0.01" value="0.85"></label>
+        <label><b>효율 η (kW 입력 시)</b><input id="eff" type="number" min="0.5" max="1" step="0.01" value="0.9"></label>
+        <label><b>주위온도 (℃)</b>
+          <select id="Ta"></select></label>
+        <label><b>동일 경로 회선수 N<sub>c</sub></b><input id="Nc" type="number" min="1" max="20" step="1" value="1"></label>
+        <label><b>병렬 도체수 N<sub>p</sub></b><input id="Np" type="number" min="1" max="4" step="1" value="1"></label>
+        <label><b>케이블 · 보호장치 형식</b><select id="ctype"></select></label>
+      </div>
+      <p class="hint">형식 “자동”은 단상이면 HFIX·MCB, 3상이면 차단기 정격이 63 A 이하일 때 F-CV 4C·주택용 MCB, 초과일 때 HFCO 4C·산업용 MCCB를 적용합니다.</p>
+    </details>
+  </div>
+
+  <div id="out"></div>
+</div>
+
+<script>
+/* ===== 내장 데이터: kec_data.js (KECG 1702-2019 부록) 발췌, XLPE 도체 ===== */
+const DB={
+ SZ:[1.5,2.5,4,6,10,16,25,35,50,70,95,120,150,185,240,300],
+ IZ:{'1ph_A1':{"1.5":19,"2.5":26,"4":35,"6":45,"10":61,"16":81,"25":106,"35":131,"50":158,"70":200,"95":241,"120":278,"150":318,"185":362,"240":424,"300":486},
+     '3ph_B2':{"1.5":19.5,"2.5":26,"4":35,"6":44,"10":60,"16":80,"25":105,"35":128,"50":154,"70":194,"95":233,"120":268,"150":300,"185":340,"240":398,"300":455}},
+ TA:{10:1.15,15:1.12,20:1.08,25:1.04,30:1,35:0.96,40:0.91,45:0.87,50:0.82,55:0.76,60:0.71,65:0.65,70:0.58,75:0.5,80:0.41},
+ GR:[1,0.8,0.7,0.65,0.6,0.57,0.54,0.52,0.5,0.5,0.5,0.45,0.45,0.45,0.45,0.45,0.41,0.41,0.41,0.41],
+ RX:{'HFIX_1ph':{"1.5":[15.4287,0.1284],"2.5":[9.4485,0.1249],"4":[5.8783,0.1172],"6":[3.9274,0.1125],"10":[2.3336,0.1124],"16":[1.4666,0.1112],"25":[0.9274,0.1116],"35":[0.6687,0.1083],"50":[0.4942,0.1079],"70":[0.3429,0.1037],"95":[0.2477,0.1039],"120":[0.1972,0.1019],"150":[0.1607,0.1017],"185":[0.1295,0.1025],"240":[0.1003,0.1018],"300":[0.0819,0.1013]},
+     'F-CV_3ph_4C':{"1.5":[15.4287,0.1309],"2.5":[9.4485,0.1227],"4":[5.8783,0.1154],"6":[3.9274,0.1101],"10":[2.3336,0.1041],"16":[1.4666,0.1012],"25":[0.9274,0.1016],"35":[0.6687,0.0988],"50":[0.4942,0.0979],"70":[0.3429,0.0965],"95":[0.2477,0.0943],"120":[0.1972,0.0939],"150":[0.1607,0.0944],"185":[0.1295,0.0949],"240":[0.1003,0.0938],"300":[0.0818,0.0931]}},
+ IN:{MCB:[6,8,10,13,16,20,25,32,40,50,63,80,100,125],
+     MCCB:[6,8,10,13,16,20,25,32,40,50,63,80,100,125,160,200,250,320,400,500,630]}
+};
+/* 케이블·보호장치 형식 (서적판 G1·G2·G3 와 동일 로직) */
+const TYPES={
+ G1:{id:'G1',phase:1,label:'단상 · HFIX 1C · 공사방법 A1 · 주택용 MCB',cable:s=>`HFIX ${s}㎟`,cableName:'HFIX 1C',wiring:'A1 (배치 A1-1)',izKey:'1ph_A1',rxKey:'HFIX_1ph',prot:'MCB',protName:'주택용 MCB',pe:'HFIX',Kw:35.6,Kd:2},
+ G2:{id:'G2',phase:3,label:'3상 · F-CV 4C · 공사방법 B2 · 주택용 MCB',cable:s=>`F-CV ${s}㎟ 4C`,cableName:'F-CV 4C',wiring:'B2 (배치 B2-1)',izKey:'3ph_B2',rxKey:'F-CV_3ph_4C',prot:'MCB',protName:'주택용 MCB',pe:'F-GV',Kw:17.8,Kd:Math.sqrt(3)},
+ G3:{id:'G3',phase:3,label:'3상 · HFCO 4C · 공사방법 B2 · 산업용 MCCB',cable:s=>`HFCO ${s}㎟ 4C`,cableName:'HFCO 4C',wiring:'B2 (배치 B2-1)',izKey:'3ph_B2',rxKey:'F-CV_3ph_4C',prot:'MCCB',protName:'산업용 MCCB',pe:'F-GV',Kw:17.8,Kd:Math.sqrt(3)}
+};
+const LT={gen:{n:'일반부하 (조명·콘센트·기타)',cos:0.85,eff:0.9},ups:{n:'UPS · 정류기',cos:0.85,eff:0.9},heat:{n:'전열 (저항부하)',cos:1.0,eff:1.0}};
+
+const $=id=>document.getElementById(id);
+const fmt=(n,d=2)=>Number(n).toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
+const nextIn=(t,x)=>{const a=DB.IN[t];for(const v of a)if(v>=x)return v;return a[a.length-1]};
+const i2k=(t,In)=>t==='MCB'?(In<=63?1.45:1.52):(In<=63?1.3:1.37);
+const calcSize=r=>{for(const s of DB.SZ)if(s>=r)return s;return DB.SZ[DB.SZ.length-1]};
+const nextSize=s=>{const i=DB.SZ.indexOf(s);return DB.SZ[Math.min(i+1,DB.SZ.length-1)]};
+const S3=Math.sqrt(3);
+
+/* ===== 계산 (순수 함수) ===== */
+function compute(p){
+  const w=[]; // 경고 {t, bad}
+  const kVA = p.unit==='kW' ? p.cap/(p.cos*p.eff) : p.cap;
+  const IB = p.phase===1 ? kVA/(p.V/1000) : kVA/(S3*p.V/1000);
+
+  // 형식 결정
+  let tid=p.ctype, auto=false, autoWhy='';
+  if(p.phase===1){ tid='G1'; autoWhy='단상 → HFIX 1C·A1·주택용 MCB'; auto=(p.ctype==='auto'); }
+  else if(tid==='auto'||tid==='G1'){
+    auto=true;
+    const inM=nextIn('MCB',IB);
+    if(inM<=63&&IB<=inM){tid='G2';autoWhy=`3상, 주택용 MCB 정격 ${inM} A ≤ 63 A → F-CV 4C·주택용 MCB`;}
+    else{tid='G3';autoWhy=`3상, 주택용 MCB 정격이 63 A 이하를 벗어남 → HFCO 4C·산업용 MCCB`;}
+  }
+  const T=TYPES[tid];
+  if(!auto) autoWhy='사용자 지정 형식';
+
+  if(p.unit==='kW'&&p.cap>100) w.push({t:'부하용량이 100 kW를 초과합니다. 본 계산서 적용 범위(100 kW 이하) 밖입니다.',bad:true});
+  if(p.unit==='kVA'&&p.cap>100/0.765) w.push({t:'부하용량이 약 130 kVA를 초과합니다. 본 계산서 적용 범위(100 kW 이하) 밖일 수 있습니다.',bad:false});
+  if(p.phase===1&&IB>63) w.push({t:'단상 부하전류가 63 A를 넘습니다. 3상 사용 또는 부하 분할을 검토하세요.',bad:false});
+
+  // 보정계수
+  const Ka=DB.TA[p.Ta]??1;
+  const Kg=DB.GR[p.Nc-1]??1;
+  const Kp=p.Np>1?(DB.GR[p.Np-1]??1):1;
+  const Kt=Ka*Kg*Kp;
+  const Iz30=DB.IZ[T.izKey];
+  const Iz={}; for(const s of DB.SZ) if(Iz30[s]) Iz[s]=Iz30[s]*Kt*p.Np;
+  const selSize=req=>{for(const s of DB.SZ)if(Iz[s]>=req)return s;return null};
+
+  const In=nextIn(T.prot,IB);
+  const maxIn=DB.IN[T.prot][DB.IN[T.prot].length-1];
+  if(IB>In) w.push({t:`설계전류(${fmt(IB,1)} A)가 ${T.protName} 최대 정격(${maxIn} A)을 초과합니다. 병렬 회로 또는 상위 차단기를 검토하세요.`,bad:true});
+
+  let S1=selSize(IB), S2=selSize(In);
+  const noCable=(S1===null||S2===null);
+  if(noCable){
+    w.push({t:'300㎟ 단일(또는 지정 병렬) 조건으로도 허용전류가 부족합니다. 병렬 도체수 N_p를 늘리세요.',bad:true});
+    S1=S1??300; S2=S2??300;
+  }
+  if(S1<2.5) S1=2.5;
+  const Vc = p.phase===1 ? p.V : p.V/S3;
+  const Sv=(T.Kw*IB*p.L)/(1000*Vc*p.emax/100*p.Np);
+  const Sv_s=calcSize(Sv);
+  const Sbase=Math.max(S1,S2,Sv_s);
+
+  // 전압강하 실제식 (부적정이면 한 단계씩 증대)
+  const sinT=Math.sqrt(Math.max(0,1-p.cos*p.cos));
+  const RX=DB.RX[T.rxKey];
+  const steps=[]; let S=Sbase, e=0;
+  for(;;){
+    const [R,X]=RX[S];
+    e=T.Kd*IB*(p.L/1000)*(R*p.cos+X*sinT)/p.V/p.Np*100;
+    steps.push({S,R,X,e});
+    if(e<=p.emax||nextSize(S)===S)break;
+    S=nextSize(S);
+  }
+  if(e>p.emax) w.push({t:`전압강하(${fmt(e,2)} %)가 허용치(${p.emax} %)를 초과합니다. 병렬 도체수 증가 또는 변압기·분전반 위치 조정을 검토하세요.`,bad:true});
+  if(!Iz[S]) Iz[S]=Iz30[S]*Kt*p.Np;
+  const Izf=Iz[S], Izb=Iz[Sbase];
+
+  // 보호협조
+  const k2=i2k(T.prot,In), I2=k2*In;
+  const ok1=(IB<=In&&In<=Izf), ok2=(I2<=1.45*Izf);
+
+  // 보호도체 (표 142.3-1, 전압강하 조정 전 선도체 단면적 기준)
+  let rule, SPE;
+  if(Sbase<=16){SPE=Sbase;rule='S ≤ 16 → S_PE = S';}
+  else if(Sbase<=35){SPE=16;rule='16 < S ≤ 35 → S_PE = 16';}
+  else{SPE=calcSize(Sbase/2);rule='S > 35 → S_PE = S/2 (상위 규격)';}
+
+  return {kVA,IB,T,tid,auto,autoWhy,Ka,Kg,Kp,Kt,Iz30,Iz,In,S1,S2,Sv,Sv_s,Sbase,S,steps,e,Izf,Izb,k2,I2,ok1,ok2,SPE,rule,w,sinT,Vc,noCable,maxIn};
+}
+
+/* ===== 화면 ===== */
+const sec=(n,t,b)=>`<section class="sec"><h2><span class="no">${n}</span>${t}</h2>${b}</section>`;
+const eq=(h,sm)=>`<div class="eq">${h}${sm?`<span class="sm">${sm}</span>`:''}</div>`;
+const I=(s,sub)=>`<i>${s}</i>${sub?`<sub>${sub}</sub>`:''}`;
+
+function render(){
+  const lt=LT[$('ltype').value];
+  const p={
+    phase:+$('phase').value, cap:+$('cap').value, unit:$('unit').value, L:+$('L').value,
+    emax:+$('emax').value, cos:+$('cos').value, eff:+$('eff').value, Ta:+$('Ta').value,
+    Nc:Math.max(1,Math.round(+$('Nc').value||1)), Np:Math.max(1,Math.round(+$('Np').value||1)), ctype:$('ctype').value
+  };
+  p.V=p.phase===1?220:380;
+  const out=$('out');
+  if(!(p.cap>0&&p.L>0&&p.emax>0&&p.cos>0&&p.eff>0)){out.innerHTML='<div class="warn bad">부하용량·거리·허용 전압강하를 0보다 크게 입력하세요.</div>';return;}
+  const r=compute(p), T=r.T;
+  const cable=T.cable(r.S), pe=`${T.pe} ${r.SPE}㎟`;
+  const eop=r.e<p.emax?'<':(r.e===p.emax?'=':'>');
+  const eok=r.e<=p.emax;
+
+  /* 핵심 결과 */
+  const warns=r.w.map(x=>`<div class="warn${x.bad?' bad':''}">${x.t}</div>`).join('');
+  const judge=(ok,title,line,why)=>`<div class="judge ${ok?'ok':'ng'}"><div class="t">${title}</div><div class="l">${line}<span class="badge">${ok?'적정':'부적정'}</span></div>${why||''}</div>`;
+  let why1='';
+  if(r.IB>r.In) why1+=`<div class="why">▶ I<sub>n</sub> 값이 I<sub>B</sub> 값 미만이므로 부적정합니다.</div>`;
+  if(r.In>r.Izf) why1+=`<div class="why">▶ I<sub>z</sub> 값이 I<sub>n</sub> 값 미만이므로 부적정합니다.</div>`;
+  const why2=r.ok2?'':`<div class="why">▶ I<sub>2</sub> 값이 1.45I<sub>z</sub> 값을 초과하므로 부적정합니다.</div>`;
+  const summary=
+   `<div class="tiles">
+      <div class="tile"><div class="k">케이블</div><div class="v">${cable}</div><div class="s">${T.wiring.split(' ')[0]} · ${p.Np>1?'×'+p.Np+'병렬 · ':''}I<sub>z</sub> ${fmt(r.Izf,1)} A</div></div>
+      <div class="tile"><div class="k">차단기</div><div class="v">${T.protName}<br>${r.In} A</div><div class="s">I<sub>B</sub> ${fmt(r.IB,1)} A</div></div>
+      <div class="tile"><div class="k">전압강하</div><div class="v">${fmt(r.e,2)} %</div><div class="s">허용 ${p.emax} % · ${eok?'적정':'부적정'}</div></div>
+      <div class="tile"><div class="k">보호도체 PE</div><div class="v">${pe}</div><div class="s">표 142.3-1</div></div>
+    </div>`
+   + judge(r.ok1,'① 부하전류 ≤ 차단기 정격 ≤ 선도체 허용전류',
+       `I<sub>B</sub> (${fmt(r.IB,1)} A) ≤ I<sub>n</sub> (${r.In} A) ≤ I<sub>z</sub> (${fmt(r.Izf,1)} A)`,why1)
+   + judge(r.ok2,'② 차단기 규약 동작전류 ≤ 1.45 × 선도체 허용전류',
+       `I<sub>2</sub> (${fmt(r.I2,1)} A) ≤ 1.45 I<sub>z</sub> (${fmt(1.45*r.Izf,1)} A)`,why2)
+   + (warns?`<div class="warns">${warns}</div>`:'');
+
+  /* 1. 적용 조건 */
+  const s1=`<h3>1.1 적용 조건</h3>
+   <table><tbody>
+    <tr><td class="l">회로명</td><td class="l" colspan="3">${($('name').value||'-').replace(/</g,'&lt;')}</td></tr>
+    <tr><td class="l">전기방식 / 전압</td><td>${p.phase===1?'단상 2선':'3상 4선'} / ${p.V} V</td><td class="l">부하종류</td><td>${lt.n}</td></tr>
+    <tr><td class="l">부하용량</td><td>${fmt(p.cap,2)} ${p.unit}</td><td class="l">역률 / 효율</td><td>${p.cos} / ${p.unit==='kW'?p.eff:'-'}</td></tr>
+    <tr><td class="l">거리 L</td><td>${p.L} m</td><td class="l">허용 전압강하</td><td>${p.emax} %</td></tr>
+    <tr><td class="l">주위온도</td><td>${p.Ta} ℃</td><td class="l">회선수 / 병렬</td><td>${p.Nc} / ${p.Np}</td></tr>
+    <tr><td class="l">케이블</td><td>${T.cableName} (XLPE)</td><td class="l">공사방법</td><td>${T.wiring}</td></tr>
+    <tr><td class="l">보호장치</td><td>${T.protName}</td><td class="l">형식 선정</td><td>${r.autoWhy}</td></tr>
+   </tbody></table>`;
+
+  /* 2. 설계전류 */
+  const s2=`<h3>2.1 계산기준</h3>
+   ${p.unit==='kW'?eq(`${I('S')} = ${I('P')} / (cos${I('θ')} × ${I('η')})`,'kW로 입력한 경우 피상전력으로 환산'):''}
+   ${eq(p.phase===1?`${I('I','B')} = ${I('S')} / ${I('V')}`:`${I('I','B')} = ${I('S')} / (√3 × ${I('V')})`,p.phase===1?'단상 2선':'3상 4선, V = 선간전압')}
+   <h3>2.2 계산</h3>
+   ${p.unit==='kW'?eq(`${I('S')} = ${fmt(p.cap,2)} / (${p.cos} × ${p.eff}) = <b>${fmt(r.kVA,2)} kVA</b>`):''}
+   ${eq(p.phase===1?`${I('I','B')} = ${fmt(r.kVA,2)} / ${p.V/1000} = <b>${fmt(r.IB,2)} A</b>`:`${I('I','B')} = ${fmt(r.kVA,2)} / (√3 × ${p.V/1000}) = <b>${fmt(r.IB,2)} A</b>`)}
+   <h3>2.3 결과</h3><div class="res"><span>${I('I','B')} = ${fmt(r.IB,2)} A</span></div>`;
+
+  /* 3. 허용전류 */
+  const idxs=DB.SZ.filter(s=>r.Iz30[s]);
+  const iB=idxs.indexOf(r.Sbase), iF=idxs.indexOf(r.S);
+  const from=Math.max(0,iB-3), to=Math.min(idxs.length,Math.max(iB,iF)+3);
+  let rows='';
+  for(const s of idxs.slice(from,to)){
+    const cls=s===r.S?'fin':(s===r.Sbase?'base':'');
+    rows+=`<tr class="${cls}"><td>${s}</td><td>${r.Iz30[s]}</td><td>×${fmt(r.Ka,2)}</td><td>×${fmt(r.Kg,2)}</td><td>×${fmt(r.Kp,2)}</td><td>×${p.Np}</td><td><b>${fmt(r.Iz[s],1)}</b></td></tr>`;
+  }
+  const s3=`<h3>3.1 계산기준</h3>
+   ${eq(`${I('I','z')} = ${I('I','z,30℃')}(표) × ${I('K','ta')} × ${I('K','grp')} × ${I('K','par')} × ${I('N','p')}`,'XLPE 도체, 공사방법 '+T.wiring+', KECG 1702-2019 부록 허용전류표')}
+   <h3>3.2 계산</h3>
+   ${eq(`${I('K','total')} = ${fmt(r.Ka,2)} × ${fmt(r.Kg,2)} × ${fmt(r.Kp,2)} = <b>${fmt(r.Kt,3)}</b>`,`주위온도 ${p.Ta}℃ · 회선수 ${p.Nc} · 병렬 ${p.Np}`)}
+   <div class="tw"><table><thead><tr><th>S(㎟)</th><th>I<sub>z,30℃</sub>(A)</th><th>K<sub>ta</sub></th><th>K<sub>grp</sub></th><th>K<sub>par</sub></th><th>병렬</th><th>I<sub>z</sub>(A)</th></tr></thead><tbody>${rows}</tbody></table></div>
+   <div class="note">※ 진한 노란색: 최종 선정 단면적${r.S!==r.Sbase?' / 연한 파랑: 전압강하 조정 전 단면적':''}</div>
+   <h3>3.3 결과</h3><div class="res"><span>${I('I','z')} (${r.S}㎟) = ${fmt(r.Izf,1)} A</span></div>`;
+
+  /* 4. 선정 */
+  const s4=`<h3>4.1 계산기준</h3>
+   ${eq(`차단기 정격 ${I('I','n')}: ${T.protName} 표준정격 중 ${I('I','B')} 이상인 최소값`)}
+   ${eq(`단면적은 다음 세 기준 중 <b>최대값</b>으로 선정 (최소 2.5㎟)`,
+      `(1) ${I('I','z')} ≥ ${I('I','B')}  (2) ${I('I','z')} ≥ ${I('I','n')}  (3) 전압강하 단순식`)}
+   ${eq(`${I('S','v')} = ${I('K','w')} × ${I('I','B')} × ${I('L')} / (1000 × ${I('V','c')} × ${I('e','max')}/100 × ${I('N','p')})`,`${I('K','w')} = ${T.Kw} (${p.phase===1?'단상 2선':'3상 4선'}), ${I('V','c')} = ${p.phase===1?'V':'V/√3'}`)}
+   <h3>4.2 계산</h3>
+   ${eq(`(1) ${I('I','B')} 기준: ${fmt(r.IB,2)} A → <b>${r.S1}㎟</b>`)}
+   ${eq(`(2) ${I('I','n')} 기준: ${I('I','n')} = ${r.In} A → <b>${r.S2}㎟</b>`)}
+   ${eq(`(3) 전압강하 단순식: ${I('S','v')} = (${T.Kw} × ${fmt(r.IB,2)} × ${p.L}) / (1000 × ${fmt(r.Vc,1)} × ${p.emax/100}${p.Np>1?' × '+p.Np:''}) = ${fmt(r.Sv,3)}㎟ → <b>${r.Sv_s}㎟</b>`)}
+   <h3>4.3 결과</h3><div class="res"><span>${I('I','n')} = ${r.In} A</span><span>선도체 단면적(조정 전) = ${r.Sbase}㎟</span></div>`;
+
+  /* 5. 전압강하 */
+  let vr='';
+  r.steps.forEach((st,i)=>{
+    const ok=st.e<=p.emax;
+    vr+=`<tr${i===r.steps.length-1?' class="fin"':''}><td>${st.S}</td><td>${st.R}</td><td>${st.X}</td><td>${fmt(st.e,3)}</td><td class="${ok?'pass':'fail'}">${ok?'적정':'부적정'}</td></tr>`;
+  });
+  const s5=`<h3>5.1 계산기준</h3>
+   ${eq(`${I('e')} = ${p.phase===1?'2':'√3'} × ${I('I','B')} × (${I('L')}/1000) × (${I('R')}cos${I('θ')} + ${I('X')}sin${I('θ')}) / ${I('V')} × 100${p.Np>1?' / '+I('N','p'):''}  [%]`,`R, X: ${T.cableName} 임피던스 (Ω/km, 표 5-1·5-13), 허용 ${I('e','max')} = ${p.emax} %`)}
+   ${eq('단순식 선정 단면적에서 실제식이 부적정이면 한 단계씩 상위 규격으로 올려 적정이 될 때까지 재계산')}
+   <h3>5.2 계산</h3>
+   ${eq(`cos${I('θ')} = ${p.cos}, sin${I('θ')} = ${fmt(r.sinT,4)}, ${I('I','B')} = ${fmt(r.IB,2)} A, ${I('L')} = ${p.L} m`)}
+   <div class="tw"><table><thead><tr><th>S(㎟)</th><th>R(Ω/km)</th><th>X(Ω/km)</th><th>e(%)</th><th>판정</th></tr></thead><tbody>${vr}</tbody></table></div>
+   <h3>5.3 결과</h3>
+   <div class="res"><span>${I('e')} (${fmt(r.e,3)} %) ${eop} ${p.emax} %</span><span class="${eok?'pass':'fail'}">${eok?'적정':'부적정'}</span><span>최종 단면적 ${cable}</span></div>`;
+
+  /* 6. 보호협조 */
+  const s6=`<h3>6.1 계산기준</h3>
+   ${eq(`① ${I('I','B')} ≤ ${I('I','n')} ≤ ${I('I','z')}`)}
+   ${eq(`② ${I('I','2')} ≤ 1.45 × ${I('I','z')},  ${I('I','2')} = ${I('k')} × ${I('I','n')}`,'규약 동작전류 계수 k (표 5-18): 주택용 63 A 이하 1.45·초과 1.52, 산업용 63 A 이하 1.3·초과 1.37')}
+   <h3>6.2 계산</h3>
+   ${eq(`① ${fmt(r.IB,2)} ≤ ${r.In} ≤ ${fmt(r.Izf,1)} → <span class="${r.ok1?'pass':'fail'}">${r.ok1?'적정':'부적정'}</span>`)}
+   ${eq(`② ${I('I','2')} = ${r.k2} × ${r.In} = ${fmt(r.I2,1)} A,  1.45 × ${fmt(r.Izf,1)} = ${fmt(1.45*r.Izf,1)} A → <span class="${r.ok2?'pass':'fail'}">${r.ok2?'적정':'부적정'}</span>`)}
+   <h3>6.3 결과</h3><div class="res"><span>${I('I','B')} (${fmt(r.IB,1)} A) ≤ ${I('I','n')} (${r.In} A) ≤ ${I('I','z')} (${fmt(r.Izf,1)} A)</span></div>`;
+
+  /* 7. 보호도체 */
+  const s7=`<h3>7.1 계산기준</h3>
+   ${eq('KEC 142.3.2 표 142.3-1: 선도체 S ≤ 16㎟ 이면 S_PE = S, 16 < S ≤ 35㎟ 이면 16㎟, S > 35㎟ 이면 S/2')}
+   ${eq('보호도체는 전압강하와 무관하므로 전압강하 조정 전 선도체 단면적을 기준으로 선정')}
+   <h3>7.2 계산</h3>
+   ${eq(`선도체 ${r.Sbase}㎟ → ${r.rule} → <b>${r.SPE}㎟</b>`)}
+   ${r.S!==r.Sbase?`<div class="note">※ 선도체는 전압강하로 ${r.Sbase}㎟에서 ${r.S}㎟로 증대되었으나 보호도체는 위 기준(${r.Sbase}㎟)으로 선정. 단락전류에 의한 계산단면적 검토(142.3.2)는 이번 버전에 포함되지 않았습니다.</div>`:''}
+   <h3>7.3 결과</h3><div class="res"><span>보호도체 ${pe}</span></div>`;
+
+  const foot=`<div class="foot"><b>적용 범위 및 제한</b>
+    <ul>
+     <li>검토 항목: 설계전류, 차단기 정격, 케이블 허용전류·전압강하, 과부하 보호협조, 보호도체(표 142.3-1).</li>
+     <li><b>미검토 항목</b>: 단락전류, 차단기 차단용량(I<sub>cu</sub>), 케이블 단락 열적강도, 단락 보호 동작시간. 전원·변압기 조건이 확정되면 별도 확인이 필요합니다.</li>
+     <li>역률·효율 기본값: kW 입력 시 0.85 / 0.90 (프로젝트 공통 조건), 전열 부하는 1.0. 실제 장비 사양이 있으면 고급 설정에서 수정하세요.</li>
+     <li>케이블은 XLPE 도체 기준, 공사방법 A1(단상)·B2(3상), 허용전류는 단면적 300㎟까지 수록. 계산 근거: KECG 1702-2019 부록(G1·G2·G3 예제와 동일 로직).</li>
+     <li>본 계산서는 설계 참조용이며 최종 적용 전 설계자의 확인이 필요합니다.</li>
+    </ul></div>`;
+
+  out.innerHTML=summary
+    +sec(1,'적용 조건',s1)+sec(2,'설계전류',s2)+sec(3,'도체 허용전류',s3)
+    +sec(4,'차단기 및 케이블 선정',s4)+sec(5,'전압강하 검토',s5)
+    +sec(6,'과부하 보호협조',s6)+sec(7,'보호도체',s7)+foot;
+}
+
+/* ===== 초기화 ===== */
+function fillCtype(){
+  const ph=+$('phase').value, cur=$('ctype').value;
+  const opts = ph===1
+    ? [['auto','자동 (HFIX 1C · A1 · 주택용 MCB)']]
+    : [['auto','자동 (정격 63 A 이하 MCB / 초과 MCCB)'],['G2','F-CV 4C · B2 · 주택용 MCB'],['G3','HFCO 4C · B2 · 산업용 MCCB']];
+  $('ctype').innerHTML=opts.map(o=>`<option value="${o[0]}">${o[1]}</option>`).join('');
+  if(opts.some(o=>o[0]===cur)) $('ctype').value=cur;
+}
+$('Ta').innerHTML=Object.keys(DB.TA).map(t=>`<option value="${t}"${t==='40'?' selected':''}>${t}</option>`).join('');
+fillCtype();
+$('phase').addEventListener('change',()=>{fillCtype();render()});
+$('ltype').addEventListener('change',()=>{const l=LT[$('ltype').value];$('cos').value=l.cos;$('eff').value=l.eff;render()});
+document.querySelectorAll('#inputs input,#inputs select').forEach(el=>{if(el.id!=='phase'&&el.id!=='ltype')el.addEventListener('input',render)});
+window.__KEC_GL={compute,DB,TYPES};
+render();
+</script>
